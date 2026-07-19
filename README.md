@@ -449,6 +449,348 @@ This project is under active development. APIs, schemas, agent workflows, user i
 
 It is not currently intended for production use.
 
+## Enterprise Project Intelligence OS — Folder Structure
+
+```text
+Enterprise-Project-Intelligence-OS/
+├── CICD/
+│   └── LocalDev/
+│       ├── docker-all-up.sh
+│       ├── docker-all-down.sh
+│       ├── status.sh
+│       ├── MongoDB/
+│       │   └── docker-compose.yaml
+│       ├── PostgreSQL/
+│       │   └── docker-compose.yaml (Ensure to reuse existing docker images in the laptop)
+│       ├── Airflow/
+│       │   └── docker-compose.yaml (Ensure to reuse existing docker images in the laptop)
+│       ├── ChromDB/
+│       │   └── docker-compose.yaml (Ensure to reuse existing docker images in the laptop)
+│
+├── Airflow/
+│   ├── dags/
+│   │   ├── project_dataset_acquire/
+│   │   ├── project_dataset_ingest/
+│   │   ├── project_dataset_validate/
+│   │   ├── project_dataset_index/
+│   │   ├── project_dataset_reconcile/
+│   │   ├── project_risk_schedule/
+│   │   └── portfolio_risk_schedule/
+│   ├── plugins/
+│   ├── config/
+│   ├── tests/
+│   │   ├── unit/
+│   │   └── integration/
+│   ├── requirements.txt
+│   └── README.md
+│
+├── Middleware/
+│   ├── Ingestion-API/
+│   │   ├── ingestion_api/
+│   │   │   ├── api/
+│   │   │   │   ├── dependencies/
+│   │   │   │   ├── exception_handlers/
+│   │   │   │   ├── routers/
+│   │   │   │   └── main.py
+│   │   │   ├── common/
+│   │   │   │   ├── configuration/
+│   │   │   │   ├── exceptions/
+│   │   │   │   ├── logging/
+│   │   │   │   ├── models/
+│   │   │   │   ├── security/
+│   │   │   │   └── utilities/
+│   │   │   ├── interfaces/
+│   │   │   │   ├── facades/
+│   │   │   │   ├── services/
+│   │   │   │   └── daos/
+│   │   │   ├── facades/
+│   │   │   │   ├── start_ingestion/
+│   │   │   │   ├── pause_ingestion/
+│   │   │   │   ├── resume_ingestion/
+│   │   │   │   ├── cancel_ingestion/
+│   │   │   │   ├── retry_ingestion_batch/
+│   │   │   │   ├── get_ingestion_status/
+│   │   │   │   └── get_reconciliation/
+│   │   │   ├── services/
+│   │   │   │   ├── ingestion_orchestration/
+│   │   │   │   ├── batch_management/
+│   │   │   │   ├── checkpoint_management/
+│   │   │   │   ├── validation/
+│   │   │   │   └── reconciliation/
+│   │   │   ├── daos/
+│   │   │   │   ├── ingestion_tracking/
+│   │   │   │   ├── batch_tracking/
+│   │   │   │   └── airflow_gateway/
+│   │   │   └── dtos/
+│   │   │       ├── requests/
+│   │   │       ├── responses/
+│   │   │       └── common/
+│   │   ├── tests/
+│   │   │   ├── unit/
+│   │   │   ├── integration/
+│   │   │   └── contract/
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml
+│   │   └── README.md
+│   │
+│   ├── Admin-API/
+│   │   ├── admin_api/
+│   │   │   ├── api/
+│   │   │   │   ├── dependencies/
+│   │   │   │   ├── exception_handlers/
+│   │   │   │   ├── routers/
+│   │   │   │   └── main.py
+│   │   │   ├── common/
+│   │   │   │   ├── configuration/
+│   │   │   │   ├── exceptions/
+│   │   │   │   ├── logging/
+│   │   │   │   ├── models/
+│   │   │   │   ├── security/
+│   │   │   │   └── utilities/
+│   │   │   ├── interfaces/
+│   │   │   │   ├── facades/
+│   │   │   │   ├── services/
+│   │   │   │   └── daos/
+│   │   │   ├── facades/
+│   │   │   │   ├── manage_configuration/
+│   │   │   │   ├── manage_agents/
+│   │   │   │   ├── manage_models/
+│   │   │   │   ├── manage_prompts/
+│   │   │   │   ├── manage_schedules/
+│   │   │   │   ├── get_system_health/
+│   │   │   │   └── get_audit_history/
+│   │   │   ├── services/
+│   │   │   │   ├── configuration_management/
+│   │   │   │   ├── agent_management/
+│   │   │   │   ├── model_management/
+│   │   │   │   ├── prompt_management/
+│   │   │   │   ├── schedule_management/
+│   │   │   │   ├── system_health/
+│   │   │   │   └── audit_management/
+│   │   │   ├── daos/
+│   │   │   │   ├── configuration/
+│   │   │   │   ├── schedules/
+│   │   │   │   ├── audit/
+│   │   │   │   ├── airflow_gateway/
+│   │   │   │   └── graph_run_gateway/
+│   │   │   └── dtos/
+│   │   │       ├── requests/
+│   │   │       ├── responses/
+│   │   │       └── common/
+│   │   ├── tests/
+│   │   │   ├── unit/
+│   │   │   ├── integration/
+│   │   │   └── contract/
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml
+│   │   └── README.md
+│   │
+│   ├── Projects-API/
+│   │   ├── projects_api/
+│   │   │   ├── api/
+│   │   │   │   ├── dependencies/
+│   │   │   │   ├── exception_handlers/
+│   │   │   │   ├── routers/
+│   │   │   │   └── main.py
+│   │   │   ├── common/
+│   │   │   │   ├── configuration/
+│   │   │   │   ├── exceptions/
+│   │   │   │   ├── logging/
+│   │   │   │   ├── models/
+│   │   │   │   ├── security/
+│   │   │   │   └── utilities/
+│   │   │   ├── interfaces/
+│   │   │   │   ├── facades/
+│   │   │   │   ├── services/
+│   │   │   │   └── daos/
+│   │   │   ├── facades/
+│   │   │   │   ├── search_projects/
+│   │   │   │   ├── get_project/
+│   │   │   │   ├── search_work_items/
+│   │   │   │   ├── get_work_item_history/
+│   │   │   │   ├── get_comments/
+│   │   │   │   ├── get_dependencies/
+│   │   │   │   ├── get_project_metrics/
+│   │   │   │   └── get_portfolio_summary/
+│   │   │   ├── services/
+│   │   │   │   ├── project_search/
+│   │   │   │   ├── work_item_search/
+│   │   │   │   ├── history_analysis/
+│   │   │   │   ├── dependency_analysis/
+│   │   │   │   ├── backlog_metrics/
+│   │   │   │   ├── quality_metrics/
+│   │   │   │   ├── schedule_metrics/
+│   │   │   │   └── portfolio_metrics/
+│   │   │   ├── daos/
+│   │   │   │   ├── projects/
+│   │   │   │   ├── work_items/
+│   │   │   │   ├── change_events/
+│   │   │   │   ├── comments/
+│   │   │   │   ├── relationships/
+│   │   │   │   └── project_metrics/
+│   │   │   └── dtos/
+│   │   │       ├── requests/
+│   │   │       ├── responses/
+│   │   │       └── common/
+│   │   ├── tests/
+│   │   │   ├── unit/
+│   │   │   ├── integration/
+│   │   │   └── contract/
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml
+│   │   └── README.md
+│   │
+│   └── RiskAnalytics-API/
+│       ├── risk_analytics_api/
+│       │   ├── api/
+│       │   │   ├── dependencies/
+│       │   │   ├── exception_handlers/
+│       │   │   ├── routers/
+│       │   │   └── main.py
+│       │   ├── common/
+│       │   │   ├── configuration/
+│       │   │   ├── exceptions/
+│       │   │   ├── logging/
+│       │   │   ├── models/
+│       │   │   ├── security/
+│       │   │   └── utilities/
+│       │   ├── interfaces/
+│       │   │   ├── facades/
+│       │   │   ├── services/
+│       │   │   └── daos/
+│       │   ├── facades/
+│       │   │   ├── start_project_analysis/
+│       │   │   ├── start_portfolio_analysis/
+│       │   │   ├── get_analysis_status/
+│       │   │   ├── get_agent_executions/
+│       │   │   ├── get_risk_findings/
+│       │   │   ├── get_recommendations/
+│       │   │   ├── get_reports/
+│       │   │   ├── cancel_analysis/
+│       │   │   └── resume_analysis/
+│       │   ├── services/
+│       │   │   ├── analysis_orchestration/
+│       │   │   ├── evidence_retrieval/
+│       │   │   ├── risk_scoring/
+│       │   │   ├── risk_validation/
+│       │   │   ├── mitigation_planning/
+│       │   │   └── report_generation/
+│       │   ├── daos/
+│       │   │   ├── analysis_requests/
+│       │   │   ├── graph_runs/
+│       │   │   ├── agent_executions/
+│       │   │   ├── risk_findings/
+│       │   │   ├── recommendations/
+│       │   │   └── reports/
+│       │   ├── dtos/
+│       │   │   ├── requests/
+│       │   │   ├── responses/
+│       │   │   └── common/
+│       │   └── graphs/
+│       │       ├── project_risk_manager/
+│       │       ├── portfolio_risk_orchestrator/
+│       │       ├── evidence_retrieval/
+│       │       └── risk_review/
+│       ├── tests/
+│       │   ├── unit/
+│       │   ├── integration/
+│       │   ├── contract/
+│       │   └── graph_paths/
+│       ├── Dockerfile
+│       ├── pyproject.toml
+│       └── README.md
+│
+├── Agents/
+│   ├── project_risk_manager/
+│   ├── project_status_tracking/
+│   ├── schedule_risk/
+│   ├── quality_risk/
+│   ├── dependency_risk/
+│   ├── resource_risk/
+│   ├── backlog_health/
+│   ├── delivery_forecasting/
+│   ├── risk_scoring/
+│   ├── evidence_validation/
+│   ├── risk_correlation/
+│   ├── risk_deduplication/
+│   ├── mitigation_planning/
+│   ├── critic/
+│   ├── project_reporting/
+│   └── executive_reporting/
+│
+├── Portals/
+│   ├── Admin/
+│   │   ├── src/
+│   │   ├── public/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   ├── angular.json
+│   │   ├── package.json
+│   │   └── README.md
+│   └── Project-Tracker/
+│       ├── src/
+│       ├── public/
+│       ├── tests/
+│       ├── Dockerfile
+│       ├── angular.json
+│       ├── package.json
+│       └── README.md
+│
+
+├── Database/
+│   ├── PostgreSQL/
+│   │   ├── changelogs/
+│   │   ├── migrations/
+│   │   ├── seed/
+│   │   └── README.md
+│   └── MongoDB/
+│       ├── indexes/
+│       ├── initialization/
+│       ├── validation/
+│       └── README.md
+│
+├── OpenAPI/
+│   ├── ingestion-api.yaml
+│   ├── admin-api.yaml
+│   ├── projects-api.yaml
+│   └── risk-analytics-api.yaml
+│
+├── docs/
+│   ├── architecture/
+│   ├── agents/
+│   ├── api/
+│   ├── data/
+│   ├── operations/
+│   └── testing/
+│
+├── tests/
+│   ├── end_to_end/
+│   ├── performance/
+│   ├── resilience/
+│   └── fixtures/
+│
+├── .env.example
+├── .gitignore
+├── LICENSE-NOTICE.md
+├── README.md
+└── pyproject.toml
+└── package.json (this is for the project developer commands)
+        Commands like:
+        1. local:containers:start-all stop-all status-all
+        2. local:api-services:start-all stop-all status-all
+        3. local:portals:start-all stop-all status-all
+        4. local:api-portals:start-all stop-all status-all
+
+        Ensure "api-services" internally starts each api microservice independently on different port numbers. 
+        While starting the "api-services" ensure the .sh files that starts
+        install the python dependencies this way developers need not run the
+        python dependencies everytime we add something new.
+
+        While starting the "portals" ensure each portal .sh file does npm install this way everytime we add new dependency developers need not 
+        install the dependencies
+
+```
+
 ## Copyright and Use
 
 Copyright © 2026 Dr. Kishore Veleti. All rights reserved.
