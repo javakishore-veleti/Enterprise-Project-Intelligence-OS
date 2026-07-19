@@ -74,6 +74,9 @@ class RiskFinding(_Frozen):
     affected: list[str] = Field(default_factory=list)
     source_agent: str
     analysis_timestamp: datetime
+    #: Annotations added by review-pipeline processors (validation, correlation,
+    #: scoring, critic). Detectors leave this empty.
+    meta: dict = Field(default_factory=dict)
 
 
 class RiskAgent(ABC):
@@ -109,3 +112,59 @@ def severity_from_score(score: float) -> Severity:
     if score >= 25:
         return Severity.MEDIUM
     return Severity.LOW
+
+
+# --- Review pipeline ports -------------------------------------------------
+#
+# Detectors turn evidence into findings (RiskAgent, above). The review pipeline
+# then refines those findings and reports on them. Two more ports:
+#   FindingProcessor: RiskFinding[] -> RiskFinding[]  (validate/dedup/correlate/score/critique)
+#   Reporter:         RiskFinding[] -> RiskReport     (mitigation plan / project / executive)
+
+
+class ReviewContext(_Frozen):
+    """Immutable input to a review processor or reporter."""
+
+    project_key: str
+    project_name: str
+    evidence: EvidencePackage
+    findings: list[RiskFinding]
+
+    def with_findings(self, findings: list[RiskFinding]) -> "ReviewContext":
+        return self.model_copy(update={"findings": findings})
+
+
+class ReportKind(StrEnum):
+    MITIGATION = "mitigation"
+    PROJECT = "project"
+    EXECUTIVE = "executive"
+
+
+class RiskReport(_Frozen):
+    """A generated narrative artifact over a project's risk findings."""
+
+    kind: ReportKind
+    title: str
+    summary: str
+    sections: list[dict] = Field(default_factory=list)  # [{"heading":..., "body":...}]
+    source_agent: str
+    generated_at: datetime
+
+
+class FindingProcessor(ABC):
+    """Refines a set of findings (drop/merge/annotate/rescore). Deterministic or
+    LLM-backed; either way it maps findings -> findings."""
+
+    agent_key: str
+
+    @abstractmethod
+    def process(self, context: ReviewContext) -> list[RiskFinding]: ...
+
+
+class Reporter(ABC):
+    """Produces a narrative report from a project's findings."""
+
+    agent_key: str
+
+    @abstractmethod
+    def report(self, context: ReviewContext) -> RiskReport: ...

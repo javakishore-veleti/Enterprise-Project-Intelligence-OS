@@ -26,7 +26,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agent_core*", "schedule_risk*", "quality_risk*", "project_status_tracking*", "dependency_risk*", "resource_risk*", "backlog_health*", "delivery_forecasting*"]
+include = [
+    "agent_core*",
+    # detectors (evidence -> findings)
+    "schedule_risk*", "quality_risk*", "project_status_tracking*", "dependency_risk*",
+    "resource_risk*", "backlog_health*", "delivery_forecasting*",
+    # review-pipeline processors + reporters (findings -> findings / report)
+    "risk_scoring*", "risk_deduplication*", "risk_correlation*", "evidence_validation*",
+    "critic*", "mitigation_planning*", "project_reporting*", "executive_reporting*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
