@@ -31,6 +31,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /api/v1/projects/metrics/compute-all:
+    post:
+      tags:
+      - projects
+      summary: Compute All Metrics
+      description: Recompute metrics for every project from ingested evidence (batch).
+      operationId: computeAllProjectMetrics
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 5000
+          minimum: 1
+          default: 1000
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Computeallprojectmetrics
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_key}/metrics/compute:
+    post:
+      tags:
+      - projects
+      summary: Compute Project Metrics
+      description: Recompute a single project's metrics from ingested evidence.
+      operationId: computeProjectMetrics
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMetricsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/projects:
     get:
       tags:

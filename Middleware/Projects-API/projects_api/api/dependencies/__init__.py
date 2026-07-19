@@ -5,11 +5,14 @@ from functools import lru_cache
 
 from projects_api.common.configuration import get_settings
 from projects_api.daos.connection import Database
+from projects_api.daos.metrics_computation import MongoMetricsComputationDao
 from projects_api.daos.project_metrics import MongoProjectMetricsDao
 from projects_api.daos.projects import MongoProjectsDao
+from projects_api.facades.compute_metrics import ComputeMetricsFacade
 from projects_api.facades.get_project import GetProjectFacade
 from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
 from projects_api.facades.search_projects import SearchProjectsFacade
+from projects_api.services.metrics_computation import DefaultMetricsComputationService
 from projects_api.services.project_metrics import DefaultProjectMetricsService
 from projects_api.services.project_query import DefaultProjectQueryService
 
@@ -37,3 +40,10 @@ def provide_get_project_facade() -> GetProjectFacade:
 
 def provide_get_project_metrics_facade() -> GetProjectMetricsFacade:
     return GetProjectMetricsFacade(_metrics_service())
+
+
+def provide_compute_metrics_facade() -> ComputeMetricsFacade:
+    db = get_database()
+    service = DefaultMetricsComputationService(
+        MongoMetricsComputationDao(db), MongoProjectsDao(db))
+    return ComputeMetricsFacade(service)

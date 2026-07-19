@@ -22,3 +22,11 @@ class ProjectQueryService(ABC):
 class ProjectMetricsService(ABC):
     @abstractmethod
     def latest(self, project_key: str) -> ProjectMetricsResponse: ...
+
+
+class MetricsComputationService(ABC):
+    @abstractmethod
+    def compute(self, project_key: str) -> ProjectMetricsResponse: ...
+
+    @abstractmethod
+    def compute_all(self, limit: int) -> list[str]: ...

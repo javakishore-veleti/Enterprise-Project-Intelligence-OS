@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from projects_api.api.dependencies import (
+    provide_compute_metrics_facade,
     provide_get_project_facade,
     provide_get_project_metrics_facade,
     provide_search_projects_facade,
@@ -14,11 +15,32 @@ from projects_api.dtos.responses import (
     ProjectResponse,
     ProjectSearchResponse,
 )
+from projects_api.facades.compute_metrics import ComputeMetricsFacade
 from projects_api.facades.get_project import GetProjectFacade
 from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
 from projects_api.facades.search_projects import SearchProjectsFacade
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
+
+
+@router.post("/metrics/compute-all", operation_id="computeAllProjectMetrics")
+def compute_all_metrics(
+    limit: int = Query(default=1000, ge=1, le=5000),
+    facade: ComputeMetricsFacade = Depends(provide_compute_metrics_facade),
+) -> dict:
+    """Recompute metrics for every project from ingested evidence (batch)."""
+    computed = facade.compute_all(limit)
+    return {"computed": computed, "count": len(computed)}
+
+
+@router.post("/{project_key}/metrics/compute", response_model=ProjectMetricsResponse,
+             operation_id="computeProjectMetrics")
+def compute_project_metrics(
+    project_key: str,
+    facade: ComputeMetricsFacade = Depends(provide_compute_metrics_facade),
+) -> ProjectMetricsResponse:
+    """Recompute a single project's metrics from ingested evidence."""
+    return facade.compute(project_key)
 
 
 @router.get("", response_model=ProjectSearchResponse, operation_id="searchProjects")

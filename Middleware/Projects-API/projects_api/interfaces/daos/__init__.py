@@ -22,3 +22,37 @@ class ProjectMetricsDao(ABC):
 
     @abstractmethod
     def latest(self, project_key: str) -> ProjectMetricsResponse | None: ...
+
+
+class MetricsComputationDao(ABC):
+    """Reads raw evidence + writes computed metrics (MongoDB). Deterministic — no LLM."""
+
+    @abstractmethod
+    def list_project_keys(self, limit: int) -> list[str]: ...
+
+    @abstractmethod
+    def counts(self, project_key: str) -> dict:
+        """{issue_count, open_issue_count, blocker_count, resolved_count}."""
+
+    @abstractmethod
+    def reopened_count(self, project_key: str) -> int: ...
+
+    @abstractmethod
+    def reference_date(self, project_key: str):
+        """Latest issue ``created_at`` for the project (the data-relative 'now'), or None."""
+
+    @abstractmethod
+    def created_between(self, project_key: str, start, end) -> int: ...
+
+    @abstractmethod
+    def resolved_between(self, project_key: str, start, end) -> int: ...
+
+    @abstractmethod
+    def blocking_links(self, project_key: str) -> list[tuple[str, str]]:
+        """(source_issue_key, target_issue_key) for blocks/depends links in the project."""
+
+    @abstractmethod
+    def write_metrics(self, project_key: str, metrics: dict, computed_at) -> None: ...
+
+    @abstractmethod
+    def update_project_counts(self, project_key: str, issue_count: int, open_issue_count: int) -> None: ...
