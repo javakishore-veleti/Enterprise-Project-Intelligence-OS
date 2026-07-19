@@ -1,0 +1,2 @@
+# Editable local package dependencies (repo-relative paths), installed before this service.
+Agents

@@ -1,0 +1,40 @@
+"""Application configuration loaded from environment variables / .env."""
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Typed settings for the Risk Analytics API.
+
+    Reads agent config + persists findings in PostgreSQL; reads the evidence
+    store in MongoDB; calls Claude via langchain-anthropic (ANTHROPIC_API_KEY is
+    read from the environment by the SDK and is never stored here).
+    """
+
+    model_config = SettingsConfigDict(env_prefix="", extra="ignore")
+
+    service_name: str = "risk-analytics-api"
+    service_port: int = Field(default=8004, alias="RISK_ANALYTICS_API_PORT")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    pg_host: str = Field(default="localhost", alias="PG_HOST")
+    pg_port: int = Field(default=5432, alias="PG_PORT")
+    pg_user: str = Field(default="epi_os", alias="PG_USER")
+    pg_password: str = Field(default="epi_os", alias="PG_PASSWORD")
+    pg_database: str = Field(default="epi_os", alias="PG_DATABASE")
+
+    mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
+    mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
+
+    # Fallback defaults if an agent has no Admin-API config row yet.
+    default_agent_model: str = Field(default="claude-opus-4-8", alias="AGENT_MODEL")
+    default_agent_framework: str = Field(default="langgraph", alias="AGENT_FRAMEWORK")
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

@@ -1,0 +1,280 @@
+openapi: 3.1.0
+info:
+  title: Risk Analytics API
+  description: Multi-agent risk analysis (LangGraph) over evidence for Enterprise
+    Project Intelligence OS.
+  version: 0.1.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/analysis/projects/{project_key}:
+    post:
+      tags:
+      - analysis
+      summary: Start Project Analysis
+      operationId: startProjectAnalysis
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartAnalysisRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/runs/{run_id}:
+    get:
+      tags:
+      - analysis
+      summary: Get Analysis Run
+      operationId: getAnalysisRun
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AnalysisRunResponse:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        project_key:
+          type: string
+          title: Project Key
+        status:
+          $ref: '#/components/schemas/AnalysisStatus'
+        agent_keys:
+          items:
+            type: string
+          type: array
+          title: Agent Keys
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        findings:
+          items:
+            $ref: '#/components/schemas/RiskFindingResponse'
+          type: array
+          title: Findings
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - project_key
+      - status
+      - agent_keys
+      - started_at
+      - finished_at
+      - findings
+      title: AnalysisRunResponse
+      description: A multi-agent analysis run and its findings.
+    AnalysisStatus:
+      type: string
+      enum:
+      - RUNNING
+      - COMPLETED
+      - FAILED
+      title: AnalysisStatus
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      title: HealthResponse
+    RiskFindingResponse:
+      properties:
+        finding_id:
+          type: string
+          title: Finding Id
+        agent_key:
+          type: string
+          title: Agent Key
+        risk_category:
+          type: string
+          title: Risk Category
+        probability:
+          type: number
+          title: Probability
+        impact:
+          type: number
+          title: Impact
+        severity:
+          type: string
+          title: Severity
+        score:
+          type: number
+          title: Score
+        confidence:
+          type: number
+          title: Confidence
+        explanation:
+          type: string
+          title: Explanation
+        assumptions:
+          items:
+            type: string
+          type: array
+          title: Assumptions
+        recommended_actions:
+          items:
+            type: string
+          type: array
+          title: Recommended Actions
+        affected:
+          items:
+            type: string
+          type: array
+          title: Affected
+        analysis_timestamp:
+          type: string
+          format: date-time
+          title: Analysis Timestamp
+      additionalProperties: false
+      type: object
+      required:
+      - finding_id
+      - agent_key
+      - risk_category
+      - probability
+      - impact
+      - severity
+      - score
+      - confidence
+      - explanation
+      - assumptions
+      - recommended_actions
+      - affected
+      - analysis_timestamp
+      title: RiskFindingResponse
+      description: A persisted risk finding surfaced to clients.
+    StartAnalysisRequest:
+      properties:
+        agents:
+          items:
+            type: string
+          type: array
+          title: Agents
+          description: Agent keys to run. Only implemented agents execute.
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+      additionalProperties: false
+      type: object
+      title: StartAnalysisRequest
+      description: Start a risk analysis for a project.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
