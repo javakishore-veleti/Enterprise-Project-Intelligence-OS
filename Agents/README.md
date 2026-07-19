@@ -48,11 +48,20 @@ are the import roots:
 
 - `agent_core/` — the framework-free port: `EvidencePackage`, `RiskFinding`,
   `RiskAgent` ABC, and the `RiskCategory`/`Severity` enums.
-- `schedule_risk/` — **implemented** (the first agent). `contract.py` (port),
-  `prompts/`, `tools/` (deterministic scoring), `adapters/langgraph_adapter.py`
-  (real LangGraph + `langchain-anthropic`), `adapters/other_frameworks.py`
-  (stubs that raise until built), `registry.py` (`build_agent(framework, model)`).
+- `schedule_risk/` — **implemented**. `contract.py` (port), `prompts/`, `tools/`,
+  `adapters/langgraph_adapter.py` (real LangGraph + `langchain-anthropic`),
+  **`adapters/openai_agents_adapter.py`** (real — OpenAI Agents SDK routed to
+  Claude via LiteLLM; proves the framework seam), `adapters/other_frameworks.py`
+  (remaining stubs), `registry.py`.
+- `quality_risk/` — **implemented** (LangGraph adapter + stubs). Second agent.
+- Deterministic scoring (`risk_score`, `severity_from_score`) lives in
+  `agent_core` so every agent + framework scores identically.
 
-`RiskAnalytics-API` consumes this package (installed via its `local-deps.txt`)
-and maps agent keys to builders in `graphs/project_risk_manager`. The remaining
-15 agents are not built yet.
+`IMPLEMENTED_FRAMEWORKS` today: `langgraph` (default), `openai_agents`. The
+`openai_agents` adapter needs the optional extra: `pip install "epi-agents[frameworks-openai]"`.
+CrewAI is intentionally not wired — it does not install on Python 3.14 (stale
+`tiktoken` pin).
+
+`RiskAnalytics-API` consumes this package (via its `local-deps.txt`) and maps
+agent keys to builders in `graphs/project_risk_manager` (a LangGraph fan-out).
+The remaining 14 agents are not built yet.
