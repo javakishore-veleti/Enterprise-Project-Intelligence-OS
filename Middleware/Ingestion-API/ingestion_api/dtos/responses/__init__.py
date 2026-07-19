@@ -72,3 +72,20 @@ class ReconciliationResponse(TypedModel):
     source_count: int
     destination_count: int
     mismatches: list[dict] = []
+
+
+class DatasetStatusResponse(TypedModel):
+    """Acquisition status of a configured dataset (the Initial Dataset feature)."""
+
+    dataset_id: str
+    title: str
+    state: str
+    file_name: str
+    source_url: str
+    expected_md5: str
+    size_bytes: int
+    downloaded_bytes: int
+    message: str
+    zenodo_record: str | None = None
+    downloaded_at: datetime | None = None
+    updated_at: datetime

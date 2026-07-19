@@ -343,6 +343,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/datasets/{dataset_id}:
+    get:
+      tags:
+      - datasets
+      summary: Get Dataset Status
+      operationId: getDatasetStatus
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/datasets/{dataset_id}/acquire:
+    post:
+      tags:
+      - datasets
+      summary: Acquire Dataset
+      description: Trigger the Airflow acquire DAG and mark the dataset DOWNLOADING.
+      operationId: acquireDataset
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/datasets/{dataset_id}/status:
+    put:
+      tags:
+      - datasets
+      summary: Update Dataset Status
+      description: State updates posted by the Airflow acquire DAG as it downloads.
+      operationId: updateDatasetStatus
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDatasetStatusRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AcquireDatasetRequest:
@@ -428,6 +514,66 @@ components:
       - verified
       - actual_sha256
       title: AcquisitionVerifyResponse
+    DatasetStatusResponse:
+      properties:
+        dataset_id:
+          type: string
+          title: Dataset Id
+        title:
+          type: string
+          title: Title
+        state:
+          type: string
+          title: State
+        file_name:
+          type: string
+          title: File Name
+        source_url:
+          type: string
+          title: Source Url
+        expected_md5:
+          type: string
+          title: Expected Md5
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        downloaded_bytes:
+          type: integer
+          title: Downloaded Bytes
+        message:
+          type: string
+          title: Message
+        zenodo_record:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Zenodo Record
+        downloaded_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Downloaded At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      - title
+      - state
+      - file_name
+      - source_url
+      - expected_md5
+      - size_bytes
+      - downloaded_bytes
+      - message
+      - updated_at
+      title: DatasetStatusResponse
+      description: Acquisition status of a configured dataset (the Initial Dataset
+        feature).
     HTTPValidationError:
       properties:
         detail:
@@ -637,6 +783,34 @@ components:
       - dataset_id
       title: StartIngestionRequest
       description: Request to start ingesting a configured dataset.
+    UpdateDatasetStatusRequest:
+      properties:
+        state:
+          type: string
+          minLength: 1
+          title: State
+        downloaded_bytes:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Downloaded Bytes
+        downloaded_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Downloaded Path
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+      additionalProperties: false
+      type: object
+      required:
+      - state
+      title: UpdateDatasetStatusRequest
+      description: State update posted by the Airflow acquire DAG as it progresses.
     ValidateDatasetRequest:
       properties:
         dataset_id:

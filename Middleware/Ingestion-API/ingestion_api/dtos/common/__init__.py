@@ -18,6 +18,13 @@ class IngestionStatus(StrEnum):
     COMPLETED = "COMPLETED"
 
 
+class DatasetState(StrEnum):
+    NOT_DOWNLOADED = "NOT_DOWNLOADED"
+    DOWNLOADING = "DOWNLOADING"
+    DOWNLOADED = "DOWNLOADED"
+    FAILED = "FAILED"
+
+
 class OperationRecord(TypedModel):
     """Internal record of an ingestion sub-operation (acquire/validate/index/reconcile)."""
 

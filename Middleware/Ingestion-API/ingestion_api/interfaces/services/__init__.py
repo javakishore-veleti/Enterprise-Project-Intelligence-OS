@@ -9,9 +9,10 @@ from ingestion_api.dtos.requests import (
     IndexDatasetRequest,
     ReconcileDatasetRequest,
     StartIngestionRequest,
+    UpdateDatasetStatusRequest,
     ValidateDatasetRequest,
 )
-from ingestion_api.dtos.responses import IngestionRunResponse
+from ingestion_api.dtos.responses import DatasetStatusResponse, IngestionRunResponse
 
 
 class IngestionOrchestrationService(ABC):
@@ -47,3 +48,19 @@ class OperationsService(ABC):
 
     @abstractmethod
     def get(self, operation_id: str, expected_type: str) -> OperationRecord: ...
+
+
+class DatasetService(ABC):
+    """Dataset acquisition status + triggering the Airflow download DAG."""
+
+    @abstractmethod
+    def get_status(self, dataset_id: str) -> DatasetStatusResponse: ...
+
+    @abstractmethod
+    def request_download(self, dataset_id: str) -> DatasetStatusResponse:
+        """Trigger the Airflow acquire DAG and mark the dataset DOWNLOADING."""
+
+    @abstractmethod
+    def update_status(
+        self, dataset_id: str, request: UpdateDatasetStatusRequest
+    ) -> DatasetStatusResponse: ...

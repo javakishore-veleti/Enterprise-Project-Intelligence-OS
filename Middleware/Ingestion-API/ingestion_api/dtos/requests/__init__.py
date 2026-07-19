@@ -43,3 +43,18 @@ class IndexDatasetRequest(TypedModel):
 class ReconcileDatasetRequest(TypedModel):
     dataset_id: str = Field(..., min_length=1)
     requested_by: str = Field(default="system", min_length=1)
+
+
+class AcquireDatasetTriggerRequest(TypedModel):
+    """Request the (Airflow-driven) download of a configured dataset."""
+
+    requested_by: str = Field(default="admin", min_length=1)
+
+
+class UpdateDatasetStatusRequest(TypedModel):
+    """State update posted by the Airflow acquire DAG as it progresses."""
+
+    state: str = Field(..., min_length=1)  # NOT_DOWNLOADED|DOWNLOADING|DOWNLOADED|FAILED
+    downloaded_bytes: int | None = Field(default=None, ge=0)
+    downloaded_path: str | None = None
+    message: str | None = None

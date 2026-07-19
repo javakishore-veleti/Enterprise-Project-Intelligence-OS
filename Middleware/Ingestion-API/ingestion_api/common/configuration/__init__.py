@@ -29,9 +29,15 @@ class Settings(BaseSettings):
     mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
     mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
 
-    # Gateway to Airflow (operational workflow trigger). Stubbed in the
-    # foundation slice; real deployments point this at the Airflow REST API.
+    # Gateway to Airflow (operational workflow trigger). The dataset-acquire
+    # trigger POSTs to the Airflow REST API using these credentials.
     airflow_base_url: str = Field(default="http://localhost:8080", alias="AIRFLOW_BASE_URL")
+    airflow_user: str = Field(default="admin", alias="AIRFLOW_ADMIN_USER")
+    airflow_password: str = Field(default="admin", alias="AIRFLOW_ADMIN_PASSWORD")
+
+    # The dataset the "Initial Dataset" download manages.
+    default_dataset_id: str = Field(default="public-jira", alias="DEFAULT_DATASET_ID")
+    acquire_dag_id: str = Field(default="project_dataset_acquire", alias="ACQUIRE_DAG_ID")
 
 
 @lru_cache

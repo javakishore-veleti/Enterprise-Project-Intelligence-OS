@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ingestion_api.dtos.common import IngestionStatus, OperationRecord
-from ingestion_api.dtos.responses import IngestionRunResponse
+from ingestion_api.dtos.responses import DatasetStatusResponse, IngestionRunResponse
 
 
 class IngestionTrackingDao(ABC):
@@ -43,6 +43,33 @@ class OperationsDao(ABC):
 
     @abstractmethod
     def update_result(self, operation_id: str, status: str, result: dict) -> OperationRecord | None: ...
+
+
+class DatasetsDao(ABC):
+    """Persistence of dataset-acquisition status (PostgreSQL)."""
+
+    @abstractmethod
+    def get(self, dataset_id: str) -> DatasetStatusResponse | None: ...
+
+    @abstractmethod
+    def update_status(
+        self,
+        dataset_id: str,
+        state: str,
+        *,
+        downloaded_bytes: int | None = None,
+        downloaded_path: str | None = None,
+        message: str | None = None,
+        set_downloaded_at: bool = False,
+    ) -> DatasetStatusResponse | None: ...
+
+
+class DatasetAcquisitionGateway(ABC):
+    """Triggers the Airflow dataset-acquisition DAG (operational scheduler)."""
+
+    @abstractmethod
+    def trigger_acquire(self, dataset_id: str) -> str:
+        """Trigger the acquire DAG; return the external dag-run reference."""
 
 
 class EvidenceCountsGateway(ABC):
