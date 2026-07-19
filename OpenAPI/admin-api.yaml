@@ -1,0 +1,438 @@
+openapi: 3.1.0
+info:
+  title: Admin API
+  description: Platform, agent, model, prompt, schedule, and audit administration
+    for Enterprise Project Intelligence OS.
+  version: 0.1.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/admin/agents:
+    get:
+      tags:
+      - agents
+      summary: List Agents
+      operationId: listAgentConfigs
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentConfigListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/agents/{agent_key}:
+    get:
+      tags:
+      - agents
+      summary: Get Agent
+      operationId: getAgentConfig
+      parameters:
+      - name: agent_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Agent Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentConfigResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - agents
+      summary: Upsert Agent
+      operationId: upsertAgentConfig
+      parameters:
+      - name: agent_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Agent Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAgentConfigRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentConfigResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/audit:
+    get:
+      tags:
+      - system
+      summary: Get Audit
+      operationId: getAuditHistory
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/admin/system/health:
+    get:
+      tags:
+      - system
+      summary: Get System Health
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+components:
+  schemas:
+    AgentConfigListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AgentConfigResponse'
+          type: array
+          title: Items
+        page:
+          $ref: '#/components/schemas/PageMeta'
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - page
+      title: AgentConfigListResponse
+    AgentConfigResponse:
+      properties:
+        agent_key:
+          type: string
+          title: Agent Key
+        display_name:
+          type: string
+          title: Display Name
+        enabled:
+          type: boolean
+          title: Enabled
+        model:
+          type: string
+          title: Model
+        framework:
+          $ref: '#/components/schemas/AgentFramework'
+        prompt_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Prompt Ref
+        updated_by:
+          type: string
+          title: Updated By
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - agent_key
+      - display_name
+      - enabled
+      - model
+      - framework
+      - prompt_ref
+      - updated_by
+      - updated_at
+      title: AgentConfigResponse
+      description: Public view of an agent's runtime configuration.
+    AgentFramework:
+      type: string
+      enum:
+      - langgraph
+      - crewai
+      - openai_agents
+      - strands
+      - google_adk
+      - ms_agent_framework
+      title: AgentFramework
+      description: 'Orchestration framework an agent executes under.
+
+
+        The default is LangGraph; the alternatives are pluggable adapters behind
+
+        each agent''s framework-agnostic port (see Agents/README.md). Selecting a
+
+        framework here is how the platform toggles orchestration per agent.'
+    AuditEventResponse:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        entity_type:
+          type: string
+          title: Entity Type
+        entity_key:
+          type: string
+          title: Entity Key
+        action:
+          type: string
+          title: Action
+        actor:
+          type: string
+          title: Actor
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - event_id
+      - entity_type
+      - entity_key
+      - action
+      - actor
+      - details
+      - created_at
+      title: AuditEventResponse
+      description: An administrative audit record.
+    AuditListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuditEventResponse'
+          type: array
+          title: Items
+        page:
+          $ref: '#/components/schemas/PageMeta'
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - page
+      title: AuditListResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      title: HealthResponse
+    PageMeta:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      title: PageMeta
+    SystemHealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+        agent_count:
+          type: integer
+          title: Agent Count
+        enabled_agent_count:
+          type: integer
+          title: Enabled Agent Count
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      - dependencies
+      - agent_count
+      - enabled_agent_count
+      title: SystemHealthResponse
+      description: Aggregate platform health as seen by the Admin API.
+    UpsertAgentConfigRequest:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+          default: true
+        model:
+          type: string
+          minLength: 1
+          title: Model
+          description: Reasoning model id, e.g. claude-opus-4-8.
+        framework:
+          $ref: '#/components/schemas/AgentFramework'
+          default: langgraph
+        prompt_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Prompt Ref
+          description: Reference/version of the agent prompt.
+        updated_by:
+          type: string
+          minLength: 1
+          title: Updated By
+          default: admin
+      additionalProperties: false
+      type: object
+      required:
+      - model
+      title: UpsertAgentConfigRequest
+      description: Create or update an agent's runtime configuration.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
