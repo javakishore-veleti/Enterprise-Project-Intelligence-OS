@@ -87,3 +87,25 @@ class RiskAgent(ABC):
     @abstractmethod
     def analyze(self, evidence: EvidencePackage) -> list[RiskFinding]:
         """Interpret the evidence and return zero or more risk findings."""
+
+
+def risk_score(probability: float, impact: float) -> float:
+    """Deterministic overall score (0-100) from probability and impact.
+
+    Shared by every agent + framework adapter so findings score identically
+    regardless of orchestration.
+    """
+    p = max(0.0, min(1.0, probability))
+    i = max(0.0, min(1.0, impact))
+    return round(p * i * 100.0, 1)
+
+
+def severity_from_score(score: float) -> Severity:
+    """Map a 0-100 risk score to a severity band."""
+    if score >= 75:
+        return Severity.CRITICAL
+    if score >= 50:
+        return Severity.HIGH
+    if score >= 25:
+        return Severity.MEDIUM
+    return Severity.LOW

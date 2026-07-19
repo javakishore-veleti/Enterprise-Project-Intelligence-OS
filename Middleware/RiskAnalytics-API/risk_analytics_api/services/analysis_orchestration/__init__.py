@@ -23,6 +23,7 @@ from risk_analytics_api.interfaces.daos import (
     GraphRunDao,
     RiskFindingDao,
 )
+from risk_analytics_api.graphs.project_risk_manager import ProjectRiskManager
 from risk_analytics_api.interfaces.services import (
     AnalysisOrchestrationService,
     EvidenceRetrievalService,
@@ -49,46 +50,55 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
         self._runs = graph_run_dao
         self._findings = risk_finding_dao
         self._factory = agent_factory
+        self._manager = ProjectRiskManager(agent_factory)
         self._settings = settings
+
+    def _resolve_specs(self, agent_keys: list[str]) -> list[tuple[str, str, str]]:
+        """Resolve each requested agent's (key, framework, model) from Admin config."""
+        specs: list[tuple[str, str, str]] = []
+        for agent_key in agent_keys:
+            cfg = self._config.get(agent_key)
+            if cfg is None:
+                enabled = True
+                model = self._settings.default_agent_model
+                framework = self._settings.default_agent_framework
+            else:
+                enabled, model, framework = cfg
+            if not enabled:
+                _logger.info("agent disabled, skipping", extra={"context": {"agent_key": agent_key}})
+                continue
+            specs.append((agent_key, framework, model))
+        return specs
 
     def run(self, project_key: str, request: StartAnalysisRequest) -> AnalysisRunResponse:
         # Build evidence first so a missing project fails cleanly (no dangling run).
         evidence = self._evidence.for_project(project_key)
+        specs = self._resolve_specs(request.agents)
 
         run_id = new_id()
         started = utc_now()
         self._runs.create(run_id, project_key, request.agents, started)
 
-        try:
-            for agent_key in request.agents:
-                cfg = self._config.get(agent_key)
-                if cfg is None:
-                    enabled = True
-                    model = self._settings.default_agent_model
-                    framework = self._settings.default_agent_framework
-                else:
-                    enabled, model, framework = cfg
-                if not enabled:
-                    _logger.info("agent disabled, skipping", extra={"context": {"agent_key": agent_key}})
-                    continue
+        # Fan out across specialists via the LangGraph manager graph.
+        result = self._manager.run(evidence, specs)
+        if result.findings:
+            self._findings.add_many(run_id, project_key, result.findings)
+        for err in result.errors:
+            _logger.warning("agent failed", extra={"context": err})
 
-                agent = self._factory(agent_key, framework, model)
-                if agent is None:
-                    _logger.info("agent not implemented, skipping", extra={"context": {"agent_key": agent_key}})
-                    continue
-
-                findings = agent.analyze(evidence)
-                self._findings.add_many(run_id, project_key, findings)
-                _logger.info(
-                    "agent produced findings",
-                    extra={"context": {"agent_key": agent_key, "framework": framework,
-                                       "model": model, "count": len(findings)}},
-                )
-        except Exception as exc:
+        # Fail the run only if every attempted agent errored and produced nothing.
+        if result.errors and not result.findings:
             self._runs.complete(run_id, AnalysisStatus.FAILED.value, utc_now())
-            raise AgentExecutionError(f"analysis failed: {exc}") from exc
+            raise AgentExecutionError(
+                "analysis failed: " + "; ".join(e.get("error", "") for e in result.errors)
+            )
 
         self._runs.complete(run_id, AnalysisStatus.COMPLETED.value, utc_now())
+        _logger.info(
+            "analysis completed",
+            extra={"context": {"run_id": run_id, "agents": [s[0] for s in specs],
+                               "findings": len(result.findings), "errors": len(result.errors)}},
+        )
         return self._runs.get(run_id)
 
     def get_run(self, run_id: str) -> AnalysisRunResponse:
