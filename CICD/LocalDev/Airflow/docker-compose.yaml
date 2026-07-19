@@ -20,7 +20,10 @@ services:
       # download to a mounted data dir.
       INGESTION_API_BASE_URL: http://host.docker.internal:8001
       DATASET_DATA_DIR: /opt/airflow/data
-      PIP_ADDITIONAL_REQUIREMENTS: requests>=2.31.0
+      # The ingest DAG batch-writes evidence directly to MongoDB (operational tier).
+      MONGO_URI: mongodb://host.docker.internal:27017/epi_os
+      MONGO_DATABASE: epi_os
+      PIP_ADDITIONAL_REQUIREMENTS: "requests>=2.31.0 pymongo>=4.8"
     ports:
       - "8080:8080"
     volumes:
