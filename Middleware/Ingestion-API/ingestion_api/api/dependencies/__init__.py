@@ -12,6 +12,7 @@ from ingestion_api.daos.airflow_gateway import HttpAirflowGateway
 from ingestion_api.daos.airflow_gateway.dataset_acquisition import (
     AirflowDatasetAcquisitionGateway,
     AirflowDatasetIngestionGateway,
+    AirflowMetricsComputeGateway,
 )
 from ingestion_api.daos.connection import Database
 from ingestion_api.daos.datasets import PostgresDatasetsDao
@@ -79,5 +80,7 @@ def provide_manage_ingestion_facade() -> ManageIngestionFacade:
         PostgresIngestionTrackingDao(db),
         PostgresIngestionProgressDao(db),
         AirflowDatasetIngestionGateway(settings),
+        metrics_gateway=AirflowMetricsComputeGateway(settings),
+        auto_compute_metrics=settings.auto_compute_metrics,
     )
     return ManageIngestionFacade(service)

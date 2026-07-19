@@ -106,6 +106,14 @@ class DatasetIngestionGateway(ABC):
         """Trigger the ingest DAG for a run; return the external dag-run reference."""
 
 
+class MetricsComputeGateway(ABC):
+    """Triggers the Airflow metric-computation DAG (operational scheduler)."""
+
+    @abstractmethod
+    def trigger_compute(self) -> str:
+        """Trigger the metrics-compute DAG; return the external dag-run reference."""
+
+
 class EvidenceCountsGateway(ABC):
     """Read-only counts from the MongoDB evidence store, for validate/index/reconcile."""
 

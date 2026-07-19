@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from ingestion_api.common.configuration import Settings
 from ingestion_api.daos.airflow_gateway.trigger import trigger_dag
-from ingestion_api.interfaces.daos import DatasetAcquisitionGateway, DatasetIngestionGateway
+from ingestion_api.interfaces.daos import (
+    DatasetAcquisitionGateway,
+    DatasetIngestionGateway,
+    MetricsComputeGateway,
+)
 
 
 class AirflowDatasetAcquisitionGateway(DatasetAcquisitionGateway):
@@ -23,3 +27,11 @@ class AirflowDatasetIngestionGateway(DatasetIngestionGateway):
             self._settings, self._settings.ingest_dag_id,
             {"dataset_id": dataset_id, "run_id": run_id},
         )
+
+
+class AirflowMetricsComputeGateway(MetricsComputeGateway):
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def trigger_compute(self) -> str:
+        return trigger_dag(self._settings, self._settings.metrics_dag_id, {})

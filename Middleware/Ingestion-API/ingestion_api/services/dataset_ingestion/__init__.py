@@ -27,6 +27,7 @@ from ingestion_api.interfaces.daos import (
     DatasetsDao,
     IngestionProgressDao,
     IngestionTrackingDao,
+    MetricsComputeGateway,
 )
 from ingestion_api.interfaces.services import DatasetIngestionService
 
@@ -41,11 +42,15 @@ class DefaultDatasetIngestionService(DatasetIngestionService):
         tracking_dao: IngestionTrackingDao,
         progress_dao: IngestionProgressDao,
         ingest_gateway: DatasetIngestionGateway,
+        metrics_gateway: MetricsComputeGateway | None = None,
+        auto_compute_metrics: bool = False,
     ) -> None:
         self._datasets = datasets_dao
         self._tracking = tracking_dao
         self._progress = progress_dao
         self._airflow = ingest_gateway
+        self._metrics = metrics_gateway
+        self._auto_compute = auto_compute_metrics
 
     def start(self, dataset_id: str, request: StartDatasetIngestionRequest) -> IngestionProgressResponse:
         dataset = self._datasets.get(dataset_id)
@@ -91,6 +96,17 @@ class DefaultDatasetIngestionService(DatasetIngestionService):
         run = self._tracking.update_status(run_id, IngestionStatus(request.status))
         if run is None:
             raise NotFoundError(f"ingestion run '{run_id}' not found")
+        # Chain the pipeline: a completed ingestion auto-triggers metric computation
+        # (best-effort — a metrics-trigger failure must not fail the run finalize).
+        if (self._auto_compute and self._metrics is not None
+                and run.status is IngestionStatus.COMPLETED):
+            try:
+                dag_run = self._metrics.trigger_compute()
+                _logger.info("metric computation auto-triggered", extra={"context": {
+                    "run_id": run_id, "dag_run": dag_run}})
+            except Exception as exc:  # pragma: no cover - best effort
+                _logger.warning("metric auto-trigger failed", extra={"context": {
+                    "run_id": run_id, "error": str(exc)}})
         return run
 
     def committed_batches(self, run_id: str, entity: str) -> list[int]:

@@ -18,6 +18,7 @@ from ingestion_api.interfaces.daos import (
     DatasetsDao,
     IngestionProgressDao,
     IngestionTrackingDao,
+    MetricsComputeGateway,
 )
 from ingestion_api.services.dataset_ingestion import DefaultDatasetIngestionService
 
@@ -153,6 +154,27 @@ def test_progress_aggregates_entities() -> None:
     assert len(result.recent_log) == 1
 
 
+class FakeMetricsGateway(MetricsComputeGateway):
+    def __init__(self, fail=False):
+        self.fail = fail
+        self.calls = 0
+
+    def trigger_compute(self):
+        self.calls += 1
+        if self.fail:
+            raise RuntimeError("airflow down")
+        return "metrics-run-1"
+
+
+def _svc_with_metrics(metrics, auto=True):
+    tracking = FakeTracking()
+    svc = DefaultDatasetIngestionService(
+        FakeDatasets(DatasetState.DOWNLOADED.value), tracking, FakeProgress(), FakeGateway(),
+        metrics_gateway=metrics, auto_compute_metrics=auto)
+    started = svc.start("public-jira", StartDatasetIngestionRequest())
+    return svc, started.run_id
+
+
 def test_finalize_run_sets_status() -> None:
     tracking = FakeTracking()
     svc = DefaultDatasetIngestionService(
@@ -160,3 +182,26 @@ def test_finalize_run_sets_status() -> None:
     started = svc.start("public-jira", StartDatasetIngestionRequest())
     run = svc.finalize_run(started.run_id, UpdateRunStatusRequest(status="COMPLETED"))
     assert run.status is IngestionStatus.COMPLETED
+
+
+def test_completed_run_auto_triggers_metrics() -> None:
+    metrics = FakeMetricsGateway()
+    svc, run_id = _svc_with_metrics(metrics)
+    svc.finalize_run(run_id, UpdateRunStatusRequest(status="COMPLETED"))
+    assert metrics.calls == 1
+
+
+def test_failed_run_does_not_trigger_metrics() -> None:
+    metrics = FakeMetricsGateway()
+    svc, run_id = _svc_with_metrics(metrics)
+    svc.finalize_run(run_id, UpdateRunStatusRequest(status="FAILED"))
+    assert metrics.calls == 0
+
+
+def test_metrics_trigger_failure_does_not_fail_finalize() -> None:
+    metrics = FakeMetricsGateway(fail=True)
+    svc, run_id = _svc_with_metrics(metrics)
+    run = svc.finalize_run(run_id, UpdateRunStatusRequest(status="COMPLETED"))
+    assert run.status is IngestionStatus.COMPLETED  # best-effort trigger
+
+
