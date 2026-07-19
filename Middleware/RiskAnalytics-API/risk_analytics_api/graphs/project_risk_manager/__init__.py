@@ -30,9 +30,19 @@ def _register_builders() -> None:
         return
     from schedule_risk import build_agent as build_schedule_risk
     from quality_risk import build_agent as build_quality_risk
+    from project_status_tracking import build_agent as build_project_status_tracking
+    from dependency_risk import build_agent as build_dependency_risk
+    from resource_risk import build_agent as build_resource_risk
+    from backlog_health import build_agent as build_backlog_health
+    from delivery_forecasting import build_agent as build_delivery_forecasting
 
     _BUILDERS["schedule_risk"] = build_schedule_risk
     _BUILDERS["quality_risk"] = build_quality_risk
+    _BUILDERS["project_status_tracking"] = build_project_status_tracking
+    _BUILDERS["dependency_risk"] = build_dependency_risk
+    _BUILDERS["resource_risk"] = build_resource_risk
+    _BUILDERS["backlog_health"] = build_backlog_health
+    _BUILDERS["delivery_forecasting"] = build_delivery_forecasting
 
 
 def build_agent(agent_key: str, framework: str, model: str) -> RiskAgent | None:
