@@ -7,7 +7,7 @@ generated/validated from these — do not hand-duplicate contracts.
 |---|---|---|
 | `ingestion-api.yaml` | Ingestion API (:8001) | generated |
 | `admin-api.yaml` | Admin API (:8002) | pending |
-| `projects-api.yaml` | Projects API (:8003) | pending |
+| `projects-api.yaml` | Projects API (:8003) | generated |
 | `risk-analytics-api.yaml` | Risk Analytics API (:8004) | pending |
 
 ## Regenerate a spec

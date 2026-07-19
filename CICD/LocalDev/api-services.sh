@@ -17,7 +17,7 @@ mkdir -p "$RUN_DIR"
 SERVICES=(
   "Middleware/Ingestion-API:ingestion_api.api.main:app:8001"
   # "Middleware/Admin-API:admin_api.api.main:app:8002"
-  # "Middleware/Projects-API:projects_api.api.main:app:8003"
+  "Middleware/Projects-API:projects_api.api.main:app:8003"
   # "Middleware/RiskAnalytics-API:risk_analytics_api.api.main:app:8004"
 )
 
