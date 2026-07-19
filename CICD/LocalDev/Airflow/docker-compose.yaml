@@ -12,13 +12,24 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
         postgresql+psycopg2://${PG_USER:-epi_os}:${PG_PASSWORD:-epi_os}@host.docker.internal:${PG_PORT:-5432}/airflow
+      # Enable the REST API with basic auth so the middleware can trigger DAGs.
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
       _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-admin}
       _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+      # The acquire DAG reports status to the host Ingestion-API and writes the
+      # download to a mounted data dir.
+      INGESTION_API_BASE_URL: http://host.docker.internal:8001
+      DATASET_DATA_DIR: /opt/airflow/data
+      PIP_ADDITIONAL_REQUIREMENTS: requests>=2.31.0
     ports:
       - "8080:8080"
     volumes:
       - ../../../Airflow/dags:/opt/airflow/dags
       - ../../../Airflow/plugins:/opt/airflow/plugins
       - ../../../Airflow/config:/opt/airflow/config
+      - epi_dataset_data:/opt/airflow/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+volumes:
+  epi_dataset_data:

@@ -1,11 +1,11 @@
-"""Unit tests for the project dataset acquisition DAG.
+"""Unit tests for the real project dataset acquisition DAG.
 
-Two layers, both hermetic (no network, no live Ingestion-API, no scheduler):
-
+Hermetic (no network, no live Ingestion-API, no scheduler, no multi-GB download):
 1. A DAG-parse test using ``airflow.models.DagBag``.
-2. Direct tests of the pure task callables against a *fake* HTTP client.
+2. Direct tests of the pure task callables against a *fake* HTTP client + tmp dir.
 """
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -15,13 +15,9 @@ from project_dataset_acquire import tasks
 DAGS_DIR = Path(__file__).resolve().parents[2] / "dags"
 
 
-# --------------------------------------------------------------------------- #
-# Fakes
-# --------------------------------------------------------------------------- #
-class FakeResponse:
-    def __init__(self, payload, status_code=200, error=None):
+class FakeJsonResponse:
+    def __init__(self, payload, error=None):
         self._payload = payload
-        self.status_code = status_code
         self._error = error
 
     def raise_for_status(self):
@@ -32,193 +28,97 @@ class FakeResponse:
         return self._payload
 
 
-class FakeHttpClient:
-    def __init__(self, post_responses=None, get_responses=None):
-        self._post_responses = list(post_responses or [])
-        self._get_responses = list(get_responses or [])
-        self.post_calls = []
-        self.get_calls = []
+class FakeStreamResponse:
+    def __init__(self, content: bytes, error=None):
+        self._content = content
+        self._error = error
 
-    def post(self, url, json, timeout):  # noqa: A002
-        self.post_calls.append({"url": url, "json": json, "timeout": timeout})
-        if not self._post_responses:
-            raise AssertionError("unexpected POST with no queued responses")
-        if len(self._post_responses) == 1:
-            return self._post_responses[0]
-        return self._post_responses.pop(0)
+    def raise_for_status(self):
+        if self._error is not None:
+            raise self._error
 
-    def get(self, url, timeout):
-        self.get_calls.append({"url": url, "timeout": timeout})
-        if not self._get_responses:
-            raise AssertionError("unexpected GET with no queued responses")
-        if len(self._get_responses) == 1:
-            return self._get_responses[0]
-        return self._get_responses.pop(0)
+    def iter_content(self, chunk_size):
+        for i in range(0, len(self._content), chunk_size):
+            yield self._content[i:i + chunk_size]
+
+
+class FakeHttp:
+    """Records PUT calls; returns queued json responses and a streamed body."""
+
+    def __init__(self, get_json=None, stream_body=b"", get_error=None):
+        self._get_json = get_json or {}
+        self._stream_body = stream_body
+        self._get_error = get_error
+        self.puts = []
+
+    def get(self, url, timeout=30, stream=False):
+        if stream:
+            return FakeStreamResponse(self._stream_body, error=self._get_error)
+        return FakeJsonResponse(self._get_json, error=self._get_error)
+
+    def put(self, url, json, timeout=30):
+        self.puts.append((url, json))
+        return FakeJsonResponse({**json, "ok": True})
 
 
 # --------------------------------------------------------------------------- #
-# 1. DAG parse tests
+# DAG parse
 # --------------------------------------------------------------------------- #
 def test_dagbag_imports_without_errors():
     from airflow.models import DagBag
 
-    dag_bag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
-    assert dag_bag.import_errors == {}, f"DAG import errors: {dag_bag.import_errors}"
-    assert "project_dataset_acquire" in dag_bag.dags
-
-
-def test_dag_structure_and_schedule():
-    from airflow.models import DagBag
-
-    dag_bag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
-    dag = dag_bag.dags["project_dataset_acquire"]
-
-    assert dag is not None
-    assert dag.schedule_interval is None  # on-demand
-    assert set(dag.task_ids) == {
-        "build_acquire_spec",
-        "start_acquisition",
-        "poll_acquisition",
-        "verify_checksum",
-        "extract_dataset",
-        "finalize",
-    }
-    assert dag.get_task("start_acquisition").upstream_task_ids == {"build_acquire_spec"}
-    assert dag.get_task("poll_acquisition").upstream_task_ids == {"start_acquisition"}
-    assert dag.get_task("verify_checksum").upstream_task_ids == {"poll_acquisition"}
-    assert dag.get_task("extract_dataset").upstream_task_ids == {"verify_checksum"}
-    assert dag.get_task("finalize").upstream_task_ids == {"extract_dataset"}
-    assert dag.default_args["retries"] == 3
+    bag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
+    assert bag.import_errors == {}
+    assert "project_dataset_acquire" in bag.dags
 
 
 # --------------------------------------------------------------------------- #
-# 2. Task callable tests
+# Task callables
 # --------------------------------------------------------------------------- #
-def test_get_base_url_default(monkeypatch):
-    monkeypatch.delenv("INGESTION_API_BASE_URL", raising=False)
-    assert tasks.get_base_url() == "http://localhost:8001"
+def test_fetch_dataset_returns_metadata():
+    http = FakeHttp(get_json={"source_url": "http://x/f.zip", "expected_md5": "abc", "file_name": "f.zip"})
+    out = tasks.fetch_dataset("http://base", http, "public-jira")
+    assert out["source_url"] == "http://x/f.zip" and out["file_name"] == "f.zip"
 
 
-def test_get_base_url_from_env_strips_trailing_slash(monkeypatch):
-    monkeypatch.setenv("INGESTION_API_BASE_URL", "http://ingestion:8001/")
-    assert tasks.get_base_url() == "http://ingestion:8001"
+def test_update_status_posts_state():
+    http = FakeHttp()
+    tasks.update_status("http://base", http, "public-jira", "DOWNLOADING", downloaded_bytes=0, message="go")
+    url, body = http.puts[-1]
+    assert url.endswith("/api/v1/ingestion/datasets/public-jira/status")
+    assert body["state"] == "DOWNLOADING" and body["downloaded_bytes"] == 0
 
 
-def test_build_acquire_spec_valid():
-    spec = tasks.build_acquire_spec("ds", "http://x/f.tgz", "a" * 64, "airflow")
-    assert spec == {
-        "dataset_id": "ds",
-        "source_url": "http://x/f.tgz",
-        "expected_sha256": "a" * 64,
-        "requested_by": "airflow",
-    }
+def test_download_streams_and_computes_md5(tmp_path):
+    content = b"hello public jira dataset" * 1000
+    expected = hashlib.md5(content).hexdigest()
+    http = FakeHttp(stream_body=content)
+    dest = str(tmp_path / "sub" / "f.zip")
+
+    result = tasks.download_dataset("http://x/f.zip", dest, http, expected_md5=expected, chunk_size=64)
+
+    assert result["bytes"] == len(content)
+    assert result["md5"] == expected
+    assert result["skipped"] is False
+    assert Path(dest).read_bytes() == content
+    assert not Path(dest + ".part").exists()  # atomic rename cleaned up
 
 
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {"dataset_id": "", "source_url": "u", "expected_sha256": "s", "requested_by": "x"},
-        {"dataset_id": "d", "source_url": "", "expected_sha256": "s", "requested_by": "x"},
-        {"dataset_id": "d", "source_url": "u", "expected_sha256": "", "requested_by": "x"},
-        {"dataset_id": "d", "source_url": "u", "expected_sha256": "s", "requested_by": ""},
-    ],
-)
-def test_build_acquire_spec_invalid(kwargs):
+def test_download_is_idempotent_when_md5_matches(tmp_path):
+    content = b"already here"
+    expected = hashlib.md5(content).hexdigest()
+    dest = tmp_path / "f.zip"
+    dest.write_bytes(content)
+    http = FakeHttp(stream_body=b"SHOULD NOT BE WRITTEN")  # differs -> proves skip
+
+    result = tasks.download_dataset("http://x/f.zip", str(dest), http, expected_md5=expected)
+
+    assert result["skipped"] is True
+    assert dest.read_bytes() == content
+
+
+def test_verify_md5_raises_on_mismatch():
     with pytest.raises(ValueError):
-        tasks.build_acquire_spec(**kwargs)
-
-
-def test_start_acquisition_posts_and_returns_id():
-    http = FakeHttpClient(
-        post_responses=[FakeResponse({"acquisition_id": "acq-1", "status": "PENDING"})]
-    )
-    spec = {"dataset_id": "d"}
-    result = tasks.start_acquisition("http://api:8001", http, spec)
-
-    assert result == {"acquisition_id": "acq-1", "status": "PENDING"}
-    assert http.post_calls[0]["url"] == "http://api:8001/api/v1/ingestion/acquisitions"
-    assert http.post_calls[0]["json"] == spec
-
-
-def test_start_acquisition_missing_id_raises():
-    http = FakeHttpClient(post_responses=[FakeResponse({"status": "PENDING"})])
-    with pytest.raises(RuntimeError):
-        tasks.start_acquisition("http://api:8001", http, {})
-
-
-def test_start_acquisition_propagates_http_error():
-    boom = RuntimeError("500 Server Error")
-    http = FakeHttpClient(post_responses=[FakeResponse({}, 500, boom)])
-    with pytest.raises(RuntimeError, match="500 Server Error"):
-        tasks.start_acquisition("http://api:8001", http, {})
-
-
-def test_poll_acquisition_completes():
-    http = FakeHttpClient(
-        get_responses=[
-            FakeResponse({"acquisition_id": "a", "status": "DOWNLOADING"}),
-            FakeResponse({"acquisition_id": "a", "status": "COMPLETED"}),
-        ]
-    )
-    sleeps = []
-    result = tasks.poll_acquisition(
-        "http://api:8001", http, "a", max_polls=5, sleep_fn=sleeps.append
-    )
-    assert result["status"] == "COMPLETED"
-    assert len(http.get_calls) == 2
-    assert len(sleeps) == 1
-
-
-def test_poll_acquisition_times_out():
-    http = FakeHttpClient(
-        get_responses=[FakeResponse({"acquisition_id": "a", "status": "DOWNLOADING"})]
-    )
-    with pytest.raises(TimeoutError):
-        tasks.poll_acquisition("http://api:8001", http, "a", max_polls=2, sleep_fn=lambda _: None)
-
-
-def test_poll_acquisition_unknown_status_raises():
-    http = FakeHttpClient(get_responses=[FakeResponse({"status": "WAT"})])
-    with pytest.raises(RuntimeError):
-        tasks.poll_acquisition("http://api:8001", http, "a", sleep_fn=lambda _: None)
-
-
-def test_verify_checksum_ok():
-    http = FakeHttpClient(
-        post_responses=[FakeResponse({"verified": True, "actual_sha256": "a" * 64})]
-    )
-    result = tasks.verify_checksum("http://api:8001", http, "a", "a" * 64)
-    assert result["verified"] is True
-    assert http.post_calls[0]["url"] == "http://api:8001/api/v1/ingestion/acquisitions/a/verify"
-    assert http.post_calls[0]["json"] == {"expected_sha256": "a" * 64}
-
-
-def test_verify_checksum_mismatch_raises():
-    http = FakeHttpClient(
-        post_responses=[FakeResponse({"verified": False, "actual_sha256": "b" * 64})]
-    )
-    with pytest.raises(RuntimeError):
-        tasks.verify_checksum("http://api:8001", http, "a", "a" * 64)
-
-
-def test_extract_dataset_ok():
-    http = FakeHttpClient(post_responses=[FakeResponse({"extracted": True, "file_count": 12})])
-    result = tasks.extract_dataset("http://api:8001", http, "a")
-    assert result["file_count"] == 12
-    assert http.post_calls[0]["url"] == "http://api:8001/api/v1/ingestion/acquisitions/a/extract"
-
-
-def test_extract_dataset_incomplete_raises():
-    http = FakeHttpClient(post_responses=[FakeResponse({"extracted": False})])
-    with pytest.raises(RuntimeError):
-        tasks.extract_dataset("http://api:8001", http, "a")
-
-
-def test_finalize_summary():
-    summary = tasks.finalize("acq-1", {"extracted": True, "file_count": 5})
-    assert summary == {
-        "acquisition_id": "acq-1",
-        "extracted": True,
-        "file_count": 5,
-        "ok": True,
-    }
+        tasks.verify_md5("aaa", "bbb")
+    tasks.verify_md5("aaa", "aaa")  # matching -> no raise
+    tasks.verify_md5("aaa", None)   # no expected -> no raise

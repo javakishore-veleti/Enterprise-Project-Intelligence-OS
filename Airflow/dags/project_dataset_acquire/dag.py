@@ -1,23 +1,21 @@
-"""Airflow DAG: project dataset acquisition.
+"""Airflow DAG: real project dataset acquisition.
 
 Task flow::
 
-    build_acquire_spec -> start_acquisition -> poll_acquisition
-        -> verify_checksum -> extract_dataset -> finalize
+    prepare -> download -> complete
 
-The DAG is a thin operational wrapper: every task delegates to a pure callable
-in :mod:`tasks`, injecting ``requests`` as the HTTP client and the Ingestion-API
-base URL from the ``INGESTION_API_BASE_URL`` env var. No database access and no
-agent/LLM logic live here — acquisition is driven exclusively through the
-Ingestion-API FastAPI boundary.
+Triggered on demand (``schedule=None``), typically by the Admin portal
+"Initial Dataset" button via the Ingestion-API (which POSTs a dagRun with a
+``conf`` carrying ``dataset_id``). The DAG:
 
-NOTE: the acquisition/verify/extract endpoints this DAG calls are the *intended*
-Ingestion-API contract and are **not yet implemented** in the middleware (only
-``/api/v1/ingestion/runs`` exists today). See ``tasks.py``.
+1. ``prepare``  — GET the dataset metadata from the Ingestion-API and mark it DOWNLOADING.
+2. ``download`` — stream the archive from its source URL to ``DATASET_DATA_DIR``,
+   verifying md5 (idempotent: skips if already present with a matching checksum).
+3. ``complete`` — mark the dataset DOWNLOADED with the path + byte count.
 
-Triggered on demand (``schedule=None``).
+All state lives in the Ingestion-API (the governed boundary); the DAG only does
+operational work. On failure the dataset is marked FAILED.
 """
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -30,94 +28,73 @@ from project_dataset_acquire import tasks
 DEFAULT_ARGS = {
     "owner": "data-platform",
     "depends_on_past": False,
-    "retries": 3,
+    "retries": 2,
     "retry_delay": timedelta(minutes=2),
     "retry_exponential_backoff": True,
-    "max_retry_delay": timedelta(minutes=15),
+    "max_retry_delay": timedelta(minutes=30),
 }
 
-DEFAULT_PARAMS = {
-    "dataset_id": "msr-issue-tracking",
-    "source_url": "https://zenodo.org/records/15719919/files/dataset.tar.gz",
-    "expected_sha256": "0" * 64,
-    "requested_by": "airflow",
-}
+DEFAULT_PARAMS = {"dataset_id": "public-jira"}
+
+
+def _mark_failed(context) -> None:
+    """DAG-level failure hook: mark the dataset FAILED in the Ingestion-API."""
+    dag_run = context.get("dag_run")
+    conf = (dag_run.conf if dag_run else None) or {}
+    dataset_id = conf.get("dataset_id") or DEFAULT_PARAMS["dataset_id"]
+    try:
+        tasks.update_status(
+            tasks.get_base_url(), requests, dataset_id, "FAILED",
+            message="Acquisition failed; see Airflow logs.",
+        )
+    except Exception:  # pragma: no cover - best-effort status update
+        pass
 
 
 @dag(
     dag_id="project_dataset_acquire",
-    description="Acquire, checksum-verify, and extract the dataset via the Ingestion-API.",
+    description="Download + checksum-verify the dataset archive; report status to the Ingestion-API.",
     schedule=None,
     start_date=datetime(2026, 1, 1),
     catchup=False,
     default_args=DEFAULT_ARGS,
     params=DEFAULT_PARAMS,
+    on_failure_callback=_mark_failed,
     tags=["ingestion", "operational", "acquire"],
     doc_md=__doc__,
 )
 def project_dataset_acquire():
     @task
-    def build_acquire_spec(**context):
-        params = context["params"]
-        return tasks.build_acquire_spec(
-            dataset_id=params["dataset_id"],
-            source_url=params["source_url"],
-            expected_sha256=params["expected_sha256"],
-            requested_by=params["requested_by"],
-        )
+    def prepare(**context) -> dict:
+        dataset_id = context["params"]["dataset_id"]
+        base = tasks.get_base_url()
+        dataset = tasks.fetch_dataset(base, requests, dataset_id)
+        tasks.update_status(base, requests, dataset_id, "DOWNLOADING",
+                            downloaded_bytes=0, message="Download started.")
+        return {"dataset_id": dataset_id, "source_url": dataset["source_url"],
+                "expected_md5": dataset["expected_md5"], "file_name": dataset["file_name"]}
 
     @task
-    def start_acquisition(spec):
-        return tasks.start_acquisition(
-            base_url=tasks.get_base_url(),
-            http=requests,
-            spec=spec,
+    def download(dataset: dict) -> dict:
+        import os
+        dest = os.path.join(tasks.get_data_dir(), dataset["file_name"])
+        result = tasks.download_dataset(
+            dataset["source_url"], dest, requests, expected_md5=dataset["expected_md5"],
         )
-
-    @task
-    def poll_acquisition(acquisition):
-        payload = tasks.poll_acquisition(
-            base_url=tasks.get_base_url(),
-            http=requests,
-            acquisition_id=acquisition["acquisition_id"],
-        )
-        payload.setdefault("acquisition_id", acquisition["acquisition_id"])
-        return payload
-
-    @task
-    def verify_checksum(acquisition_payload, **context):
-        params = context["params"]
-        tasks.verify_checksum(
-            base_url=tasks.get_base_url(),
-            http=requests,
-            acquisition_id=acquisition_payload["acquisition_id"],
-            expected_sha256=params["expected_sha256"],
-        )
-        return acquisition_payload
-
-    @task
-    def extract_dataset(acquisition_payload):
-        result = tasks.extract_dataset(
-            base_url=tasks.get_base_url(),
-            http=requests,
-            acquisition_id=acquisition_payload["acquisition_id"],
-        )
-        result["acquisition_id"] = acquisition_payload["acquisition_id"]
+        tasks.verify_md5(result["md5"], dataset["expected_md5"])
+        result["dataset_id"] = dataset["dataset_id"]
         return result
 
     @task
-    def finalize(extract_payload):
-        return tasks.finalize(
-            acquisition_id=extract_payload["acquisition_id"],
-            extract_payload=extract_payload,
+    def complete(result: dict) -> dict:
+        tasks.update_status(
+            tasks.get_base_url(), requests, result["dataset_id"], "DOWNLOADED",
+            downloaded_bytes=result["bytes"], downloaded_path=result["path"],
+            message="Skipped (already present)." if result.get("skipped") else "Download complete.",
         )
+        return result
 
-    spec = build_acquire_spec()
-    acquisition = start_acquisition(spec)
-    downloaded = poll_acquisition(acquisition)
-    verified = verify_checksum(downloaded)
-    extracted = extract_dataset(verified)
-    finalize(extracted)
+    complete(download(prepare()))
 
 
 dag = project_dataset_acquire()

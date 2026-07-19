@@ -1,232 +1,119 @@
-"""Pure, importable task callables for the project dataset acquisition DAG.
+"""Pure, importable task callables for the real dataset-acquisition DAG.
 
-These functions contain the operational logic and are deliberately kept free of
-Airflow imports so they can be unit-tested in isolation with a *fake* HTTP
-client (no network, no scheduler, no live Ingestion-API).
+Airflow owns operational work: this DAG downloads the configured dataset archive
+(the ~5.8 GB public Jira dataset from Zenodo), verifies its md5, and reports
+progress to the Ingestion-API dataset resource. The callables are free of Airflow
+imports so they can be unit-tested with a *fake* HTTP client + a temp directory
+(no network, no scheduler, no live API, no multi-GB download).
 
-The contract for the injected ``http`` client mirrors the ``requests`` module:
-it must expose ``post(url, json=..., timeout=...)`` and ``get(url, timeout=...)``
-returning a response object with ``raise_for_status()`` and ``json()``.
-
-Airflow owns *operational* work only: these callables acquire, verify, and
-extract the dataset through the Ingestion-API FastAPI boundary. They never touch
-a database directly and contain no agent/LLM/reasoning logic.
-
-Endpoint status (as of this DAG): the Ingestion-API currently implements only
-``POST /api/v1/ingestion/runs`` and ``GET /api/v1/ingestion/runs/{run_id}``.
-The acquisition/verify/extract endpoints modelled below are the *intended* REST
-contract and are **implemented** in the middleware — they are marked
-documented in-line. The DAG parses and its callables are fully unit-tested against
-a fake client regardless.
+Injected ``http`` client mirrors ``requests``:
+- ``get(url, timeout=..., stream=...)`` -> response with ``raise_for_status()``,
+  ``json()``, and (when streaming) ``iter_content(chunk_size)``.
+- ``put(url, json=..., timeout=...)`` -> response with ``raise_for_status()``/``json()``.
 """
-
 from __future__ import annotations
 
+import hashlib
 import os
-import time
 from typing import Any, Callable, Dict, Optional, Protocol
 
-# Statuses returned by the Ingestion-API acquisition resource.
-TERMINAL_STATUSES = frozenset({"COMPLETED", "FAILED", "CANCELLED"})
-NON_TERMINAL_STATUSES = frozenset({"PENDING", "DOWNLOADING", "RUNNING"})
-
 DEFAULT_BASE_URL = "http://localhost:8001"
-DEFAULT_TIMEOUT = 30
-
-# Endpoints — the Ingestion-API acquisition contract (now built).
-ACQUISITIONS_PATH = "/api/v1/ingestion/acquisitions"
+DEFAULT_TIMEOUT = 60
+DEFAULT_DATA_DIR = "/opt/airflow/data"
+DATASETS_PATH = "/api/v1/ingestion/datasets"
+DOWNLOAD_CHUNK = 8 * 1024 * 1024  # 8 MiB
 
 
 class HttpClient(Protocol):
-    """Minimal HTTP surface used by the task callables (satisfied by ``requests``)."""
-
-    def post(self, url: str, json: Dict[str, Any], timeout: int) -> Any:  # noqa: A002
-        ...
-
-    def get(self, url: str, timeout: int) -> Any:
-        ...
+    def get(self, url: str, timeout: int = ..., stream: bool = ...) -> Any: ...
+    def put(self, url: str, json: Dict[str, Any], timeout: int = ...) -> Any: ...
 
 
 def get_base_url() -> str:
-    """Resolve the Ingestion-API base URL from the environment.
-
-    Falls back to :data:`DEFAULT_BASE_URL` so DAG parsing never fails on a
-    missing variable.
-    """
-    return os.environ.get("INGESTION_API_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+    """Resolve the Ingestion-API base URL from the environment (never fails)."""
+    return (os.environ.get("INGESTION_API_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
 
 
-def build_acquire_spec(
+def get_data_dir() -> str:
+    return os.environ.get("DATASET_DATA_DIR") or DEFAULT_DATA_DIR
+
+
+def fetch_dataset(base_url: str, http: HttpClient, dataset_id: str) -> Dict[str, Any]:
+    """GET the dataset's status/metadata (source_url, expected_md5, file_name)."""
+    resp = http.get(f"{base_url}{DATASETS_PATH}/{dataset_id}", timeout=DEFAULT_TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def update_status(
+    base_url: str,
+    http: HttpClient,
     dataset_id: str,
+    state: str,
+    *,
+    downloaded_bytes: Optional[int] = None,
+    downloaded_path: Optional[str] = None,
+    message: Optional[str] = None,
+) -> Dict[str, Any]:
+    """PUT a state update to the Ingestion-API dataset resource."""
+    body: Dict[str, Any] = {"state": state}
+    if downloaded_bytes is not None:
+        body["downloaded_bytes"] = downloaded_bytes
+    if downloaded_path is not None:
+        body["downloaded_path"] = downloaded_path
+    if message is not None:
+        body["message"] = message
+    resp = http.put(f"{base_url}{DATASETS_PATH}/{dataset_id}/status", json=body, timeout=DEFAULT_TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _md5_of_file(path: str, chunk: int = DOWNLOAD_CHUNK) -> str:
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(chunk), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def download_dataset(
     source_url: str,
-    expected_sha256: str,
-    requested_by: str,
-) -> Dict[str, Any]:
-    """Assemble and validate the acquisition request (a pure shaping step).
-
-    Raises ``ValueError`` on obviously invalid inputs so a misconfigured trigger
-    fails fast, before any HTTP call is made.
-    """
-    if not dataset_id:
-        raise ValueError("dataset_id is required")
-    if not source_url:
-        raise ValueError("source_url is required")
-    if not expected_sha256:
-        raise ValueError("expected_sha256 is required")
-    if not requested_by:
-        raise ValueError("requested_by is required")
-
-    return {
-        "dataset_id": dataset_id,
-        "source_url": source_url,
-        "expected_sha256": expected_sha256,
-        "requested_by": requested_by,
-    }
-
-
-def start_acquisition(
-    base_url: str,
+    dest_path: str,
     http: HttpClient,
-    spec: Dict[str, Any],
-    timeout: int = DEFAULT_TIMEOUT,
+    expected_md5: Optional[str] = None,
+    chunk_size: int = DOWNLOAD_CHUNK,
+    on_progress: Optional[Callable[[int], None]] = None,
 ) -> Dict[str, Any]:
-    """POST an acquisition (download) job and return ``{acquisition_id, status}``.
+    """Stream-download ``source_url`` to ``dest_path``; return path/bytes/md5.
 
-    NOTE: ``POST /api/v1/ingestion/acquisitions`` is implemented in
-    the Ingestion-API. Modelled against the intended contract.
-
-    Raises ``RuntimeError`` if the response lacks an ``acquisition_id``.
+    Idempotent: if the file already exists and its md5 matches ``expected_md5``,
+    the download is skipped ("already downloaded"). Streams to a ``.part`` file
+    and atomically renames on success, so a partial file is never mistaken for a
+    complete one.
     """
-    url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}"
-    response = http.post(url, json=spec, timeout=timeout)
-    response.raise_for_status()
-    payload = response.json()
+    if expected_md5 and os.path.exists(dest_path) and _md5_of_file(dest_path) == expected_md5:
+        return {"path": dest_path, "bytes": os.path.getsize(dest_path), "md5": expected_md5, "skipped": True}
 
-    acquisition_id = payload.get("acquisition_id")
-    if not acquisition_id:
-        raise RuntimeError(
-            f"Ingestion-API did not return an acquisition_id: {payload!r}"
-        )
+    os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+    resp = http.get(source_url, timeout=DEFAULT_TIMEOUT, stream=True)
+    resp.raise_for_status()
 
-    return {
-        "acquisition_id": acquisition_id,
-        "status": payload.get("status", "PENDING"),
-    }
-
-
-def get_acquisition_status(
-    base_url: str,
-    http: HttpClient,
-    acquisition_id: str,
-    timeout: int = DEFAULT_TIMEOUT,
-) -> Dict[str, Any]:
-    """GET a single acquisition resource and return its JSON payload.
-
-    NOTE: ``GET /api/v1/ingestion/acquisitions/{id}`` implemented.
-    """
-    url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}"
-    response = http.get(url, timeout=timeout)
-    response.raise_for_status()
-    return response.json()
+    digest = hashlib.md5()
+    total = 0
+    tmp_path = dest_path + ".part"
+    with open(tmp_path, "wb") as f:
+        for chunk in resp.iter_content(chunk_size):
+            if not chunk:
+                continue
+            f.write(chunk)
+            digest.update(chunk)
+            total += len(chunk)
+            if on_progress is not None:
+                on_progress(total)
+    os.replace(tmp_path, dest_path)
+    return {"path": dest_path, "bytes": total, "md5": digest.hexdigest(), "skipped": False}
 
 
-def poll_acquisition(
-    base_url: str,
-    http: HttpClient,
-    acquisition_id: str,
-    max_polls: int = 240,
-    poll_interval_seconds: float = 15.0,
-    timeout: int = DEFAULT_TIMEOUT,
-    sleep_fn: Callable[[float], None] = time.sleep,
-) -> Dict[str, Any]:
-    """Poll the acquisition until it reaches a terminal status.
-
-    ``sleep_fn`` is injectable so tests run without real delays. Returns the
-    final payload. Raises ``TimeoutError`` if not terminal within ``max_polls``
-    attempts, and ``RuntimeError`` on an unrecognized status value.
-    """
-    if max_polls <= 0:
-        raise ValueError("max_polls must be a positive integer")
-
-    last_payload: Optional[Dict[str, Any]] = None
-    for attempt in range(max_polls):
-        payload = get_acquisition_status(base_url, http, acquisition_id, timeout=timeout)
-        last_payload = payload
-        status = payload.get("status")
-
-        if status in TERMINAL_STATUSES:
-            return payload
-        if status not in NON_TERMINAL_STATUSES:
-            raise RuntimeError(
-                f"Unrecognized acquisition status {status!r} for {acquisition_id}"
-            )
-
-        if attempt < max_polls - 1:
-            sleep_fn(poll_interval_seconds)
-
-    raise TimeoutError(
-        f"Acquisition {acquisition_id} did not reach a terminal status within "
-        f"{max_polls} polls (last status: "
-        f"{last_payload.get('status') if last_payload else 'unknown'})"
-    )
-
-
-def verify_checksum(
-    base_url: str,
-    http: HttpClient,
-    acquisition_id: str,
-    expected_sha256: str,
-    timeout: int = DEFAULT_TIMEOUT,
-) -> Dict[str, Any]:
-    """Ask the Ingestion-API to verify the downloaded artifact's checksum.
-
-    NOTE: ``POST /api/v1/ingestion/acquisitions/{id}/verify`` now built.
-    Raises ``RuntimeError`` when the checksum does not match.
-    """
-    url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}/verify"
-    response = http.post(url, json={"expected_sha256": expected_sha256}, timeout=timeout)
-    response.raise_for_status()
-    payload = response.json()
-
-    if not payload.get("verified"):
-        raise RuntimeError(
-            f"Checksum verification failed for acquisition {acquisition_id}: "
-            f"expected {expected_sha256!r}, got {payload.get('actual_sha256')!r}"
-        )
-    return payload
-
-
-def extract_dataset(
-    base_url: str,
-    http: HttpClient,
-    acquisition_id: str,
-    timeout: int = DEFAULT_TIMEOUT,
-) -> Dict[str, Any]:
-    """Ask the Ingestion-API to extract the verified archive.
-
-    NOTE: ``POST /api/v1/ingestion/acquisitions/{id}/extract`` now built.
-    Raises ``RuntimeError`` when extraction did not complete.
-    """
-    url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}/extract"
-    response = http.post(url, json={}, timeout=timeout)
-    response.raise_for_status()
-    payload = response.json()
-
-    if not payload.get("extracted"):
-        raise RuntimeError(
-            f"Extraction did not complete for acquisition {acquisition_id}: {payload!r}"
-        )
-    return payload
-
-
-def finalize(
-    acquisition_id: str,
-    extract_payload: Dict[str, Any],
-) -> Dict[str, Any]:
-    """Interpret the extract result and produce a compact success summary."""
-    return {
-        "acquisition_id": acquisition_id,
-        "extracted": True,
-        "file_count": extract_payload.get("file_count"),
-        "ok": True,
-    }
+def verify_md5(actual: str, expected: Optional[str]) -> None:
+    if expected and actual != expected:
+        raise ValueError(f"dataset md5 mismatch: expected {expected!r}, got {actual!r}")
