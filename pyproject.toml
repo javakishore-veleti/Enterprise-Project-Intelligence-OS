@@ -1,0 +1,12 @@
+[project]
+name = "enterprise-project-intelligence-os"
+version = "0.1.0"
+description = "Repo-level Python tooling config for Enterprise Project Intelligence OS. Individual services define their own dependencies in Middleware/*/pyproject.toml."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+addopts = "-q"

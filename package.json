@@ -1,0 +1,25 @@
+{
+  "name": "enterprise-project-intelligence-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Developer task runner for the Enterprise Project Intelligence OS monorepo. Not an application package.",
+  "scripts": {
+    "local:containers:start-all": "bash CICD/LocalDev/docker-all-up.sh",
+    "local:containers:stop-all": "bash CICD/LocalDev/docker-all-down.sh",
+    "local:containers:status-all": "bash CICD/LocalDev/status.sh",
+
+    "local:db:migrate": "python3 Database/PostgreSQL/apply_migrations.py",
+
+    "local:api-services:start-all": "bash CICD/LocalDev/api-services.sh start-all",
+    "local:api-services:stop-all": "bash CICD/LocalDev/api-services.sh stop-all",
+    "local:api-services:status-all": "bash CICD/LocalDev/api-services.sh status-all",
+
+    "local:portals:start-all": "bash CICD/LocalDev/portals.sh start-all",
+    "local:portals:stop-all": "bash CICD/LocalDev/portals.sh stop-all",
+    "local:portals:status-all": "bash CICD/LocalDev/portals.sh status-all",
+
+    "local:api-portals:start-all": "npm run local:api-services:start-all && npm run local:portals:start-all",
+    "local:api-portals:stop-all": "npm run local:portals:stop-all && npm run local:api-services:stop-all",
+    "local:api-portals:status-all": "npm run local:api-services:status-all && npm run local:portals:status-all"
+  }
+}
