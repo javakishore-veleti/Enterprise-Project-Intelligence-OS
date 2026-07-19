@@ -175,6 +175,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemHealthResponse'
+  /api/v1/admin/dataset/status:
+    get:
+      tags:
+      - dataset
+      summary: Get Dataset Status
+      operationId: getDatasetStatus
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetStatusResponse'
+  /api/v1/admin/dataset/download:
+    post:
+      tags:
+      - dataset
+      summary: Download Dataset
+      description: Trigger the Airflow-driven dataset download (via the Ingestion
+        API).
+      operationId: downloadDataset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetStatusResponse'
 components:
   schemas:
     AgentConfigListResponse:
@@ -303,6 +331,64 @@ components:
       - items
       - page
       title: AuditListResponse
+    DatasetStatusResponse:
+      properties:
+        dataset_id:
+          type: string
+          title: Dataset Id
+        title:
+          type: string
+          title: Title
+        state:
+          type: string
+          title: State
+        file_name:
+          type: string
+          title: File Name
+        source_url:
+          type: string
+          title: Source Url
+        expected_md5:
+          type: string
+          title: Expected Md5
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        downloaded_bytes:
+          type: integer
+          title: Downloaded Bytes
+        message:
+          type: string
+          title: Message
+        zenodo_record:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Zenodo Record
+        downloaded_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Downloaded At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      - title
+      - state
+      - file_name
+      - source_url
+      - expected_md5
+      - size_bytes
+      - downloaded_bytes
+      - message
+      - updated_at
+      title: DatasetStatusResponse
     HTTPValidationError:
       properties:
         detail:

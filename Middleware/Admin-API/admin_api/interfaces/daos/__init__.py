@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from admin_api.dtos.dataset import DatasetStatusResponse
 from admin_api.dtos.responses import AgentConfigResponse, AuditEventResponse
+
+
+class DatasetGateway(ABC):
+    """Governed boundary to the Ingestion API for dataset acquisition."""
+
+    @abstractmethod
+    def get_status(self, dataset_id: str) -> DatasetStatusResponse: ...
+
+    @abstractmethod
+    def trigger_download(self, dataset_id: str) -> DatasetStatusResponse: ...
 
 
 class AgentConfigDao(ABC):

@@ -7,9 +7,11 @@ from admin_api.common.configuration import get_settings
 from admin_api.daos.agent_config import PostgresAgentConfigDao
 from admin_api.daos.audit import PostgresAuditDao
 from admin_api.daos.connection import Database
+from admin_api.daos.ingestion_gateway import HttpIngestionDatasetGateway
 from admin_api.facades.get_audit_history import GetAuditHistoryFacade
 from admin_api.facades.get_system_health import GetSystemHealthFacade
 from admin_api.facades.manage_agents import ManageAgentsFacade
+from admin_api.facades.manage_dataset import ManageDatasetFacade
 from admin_api.services.agent_management import DefaultAgentManagementService
 from admin_api.services.audit_management import DefaultAuditManagementService
 from admin_api.services.system_health import DefaultSystemHealthService
@@ -39,4 +41,11 @@ def provide_get_audit_history_facade() -> GetAuditHistoryFacade:
 def provide_get_system_health_facade() -> GetSystemHealthFacade:
     return GetSystemHealthFacade(
         DefaultSystemHealthService(get_database(), _config_dao(), get_settings())
+    )
+
+
+def provide_manage_dataset_facade() -> ManageDatasetFacade:
+    settings = get_settings()
+    return ManageDatasetFacade(
+        HttpIngestionDatasetGateway(settings), settings.default_dataset_id
     )

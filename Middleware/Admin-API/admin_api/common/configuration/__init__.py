@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     default_agent_model: str = Field(default="claude-opus-4-8", alias="AGENT_MODEL")
     default_agent_framework: str = Field(default="langgraph", alias="AGENT_FRAMEWORK")
 
+    # Governed boundary to the Ingestion API (dataset acquisition is owned there).
+    ingestion_api_base_url: str = Field(default="http://localhost:8001", alias="INGESTION_API_BASE_URL")
+    default_dataset_id: str = Field(default="public-jira", alias="DEFAULT_DATASET_ID")
+
 
 @lru_cache
 def get_settings() -> Settings:

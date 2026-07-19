@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from admin_api.api.exception_handlers import register_exception_handlers
-from admin_api.api.routers import agents, health, system
+from admin_api.api.routers import agents, dataset, health, system
 from admin_api.common.configuration import get_settings
 from admin_api.common.logging import configure_logging
 
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(agents.router)
     app.include_router(system.router)
+    app.include_router(dataset.router)
     return app
 
 
