@@ -203,6 +203,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetStatusResponse'
+  /api/v1/admin/dataset/ingestion:
+    get:
+      tags:
+      - dataset
+      summary: Get Dataset Ingestion
+      operationId: getDatasetIngestion
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionProgressResponse'
+  /api/v1/admin/dataset/ingest:
+    post:
+      tags:
+      - dataset
+      summary: Ingest Dataset
+      description: Trigger the Airflow-driven batch ingestion into the evidence store.
+      operationId: ingestDataset
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionProgressResponse'
 components:
   schemas:
     AgentConfigListResponse:
@@ -389,6 +416,28 @@ components:
       - message
       - updated_at
       title: DatasetStatusResponse
+    EntityProgress:
+      properties:
+        entity:
+          type: string
+          title: Entity
+        records_done:
+          type: integer
+          title: Records Done
+        records_total:
+          type: integer
+          title: Records Total
+        status:
+          type: string
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - entity
+      - records_done
+      - records_total
+      - status
+      title: EntityProgress
     HTTPValidationError:
       properties:
         detail:
@@ -418,6 +467,91 @@ components:
       - status
       - service
       title: HealthResponse
+    IngestionLogEntry:
+      properties:
+        level:
+          type: string
+          title: Level
+        entity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entity
+        message:
+          type: string
+          title: Message
+        records_done:
+          type: integer
+          title: Records Done
+        records_total:
+          type: integer
+          title: Records Total
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - level
+      - entity
+      - message
+      - records_done
+      - records_total
+      - created_at
+      title: IngestionLogEntry
+    IngestionProgressResponse:
+      properties:
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        records_done:
+          type: integer
+          title: Records Done
+          default: 0
+        records_total:
+          type: integer
+          title: Records Total
+          default: 0
+        entities:
+          items:
+            $ref: '#/components/schemas/EntityProgress'
+          type: array
+          title: Entities
+          default: []
+        recent_log:
+          items:
+            $ref: '#/components/schemas/IngestionLogEntry'
+          type: array
+          title: Recent Log
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - dataset_id
+      - status
+      title: IngestionProgressResponse
     PageMeta:
       properties:
         total:

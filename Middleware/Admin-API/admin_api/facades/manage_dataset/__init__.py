@@ -1,7 +1,7 @@
 """Use case: view/trigger the Initial Dataset download (proxied to Ingestion API)."""
 from __future__ import annotations
 
-from admin_api.dtos.dataset import DatasetStatusResponse
+from admin_api.dtos.dataset import DatasetStatusResponse, IngestionProgressResponse
 from admin_api.interfaces.daos import DatasetGateway
 
 
@@ -15,3 +15,9 @@ class ManageDatasetFacade:
 
     def download(self) -> DatasetStatusResponse:
         return self._gateway.trigger_download(self._dataset_id)
+
+    def ingestion(self) -> IngestionProgressResponse:
+        return self._gateway.get_ingestion(self._dataset_id)
+
+    def ingest(self) -> IngestionProgressResponse:
+        return self._gateway.trigger_ingest(self._dataset_id)
