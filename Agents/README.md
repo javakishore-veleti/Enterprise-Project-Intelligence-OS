@@ -40,3 +40,19 @@ model-provider abstraction, so comparisons measure orchestration, not models.
 **Build order:** implement LangGraph fully first, define the port cleanly, then
 add ONE alternative adapter to prove the seam. The rest are documented stubs
 until needed — six adapters × 16 agents is a large surface to maintain.
+
+## Status / package layout
+
+This is an installable package (`epi-agents`); the flat packages under `Agents/`
+are the import roots:
+
+- `agent_core/` — the framework-free port: `EvidencePackage`, `RiskFinding`,
+  `RiskAgent` ABC, and the `RiskCategory`/`Severity` enums.
+- `schedule_risk/` — **implemented** (the first agent). `contract.py` (port),
+  `prompts/`, `tools/` (deterministic scoring), `adapters/langgraph_adapter.py`
+  (real LangGraph + `langchain-anthropic`), `adapters/other_frameworks.py`
+  (stubs that raise until built), `registry.py` (`build_agent(framework, model)`).
+
+`RiskAnalytics-API` consumes this package (installed via its `local-deps.txt`)
+and maps agent keys to builders in `graphs/project_risk_manager`. The remaining
+15 agents are not built yet.

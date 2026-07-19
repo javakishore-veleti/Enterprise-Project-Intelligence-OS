@@ -1,0 +1,28 @@
+[project]
+name = "epi-agents"
+version = "0.1.0"
+description = "Specialist risk agents (framework-agnostic port + adapters) for Enterprise Project Intelligence OS."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "langgraph>=0.2",
+    "langchain-anthropic>=0.2",
+    "langchain-core>=0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_core*", "schedule_risk*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
