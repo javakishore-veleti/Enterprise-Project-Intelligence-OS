@@ -1,0 +1,22 @@
+/* Global styles for the Project-Tracker portal */
+:root {
+  --app-bar-bg: #1f2937;
+  --app-bar-fg: #f9fafb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  color: #1f2937;
+  background: #fff;
+}

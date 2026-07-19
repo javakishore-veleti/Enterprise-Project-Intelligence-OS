@@ -1,0 +1,93 @@
+.projects {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.projects__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.projects__subtitle {
+  margin: 0.25rem 0 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.projects__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.projects__search {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.projects__search:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.projects__count {
+  color: #666;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.projects__status {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.projects__status--error {
+  color: #b91c1c;
+}
+
+.projects__table-wrap {
+  overflow-x: auto;
+}
+
+.projects__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.projects__table th,
+.projects__table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.projects__table thead th {
+  border-bottom: 2px solid #ddd;
+  color: #444;
+  font-weight: 600;
+}
+
+.projects__table tbody tr:hover {
+  background: #f7f9fc;
+}
+
+.num {
+  text-align: right;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.projects__empty {
+  text-align: center;
+  color: #999;
+  padding: 1.5rem;
+}

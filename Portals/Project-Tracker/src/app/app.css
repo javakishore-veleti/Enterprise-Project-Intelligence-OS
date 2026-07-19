@@ -1,0 +1,18 @@
+.app-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--app-bar-bg);
+  color: var(--app-bar-fg);
+}
+
+.app-bar__brand {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.app-bar__portal {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

@@ -1,0 +1,59 @@
+<section class="projects">
+  <header class="projects__header">
+    <h1>Projects</h1>
+    <p class="projects__subtitle">Delivery-health view over the Projects-API evidence store.</p>
+  </header>
+
+  <div class="projects__toolbar">
+    <input
+      type="search"
+      class="projects__search"
+      placeholder="Search projects by key or name…"
+      [(ngModel)]="query"
+      (ngModelChange)="onQueryChange($event)"
+      aria-label="Search projects"
+    />
+    @if (!loading()) {
+      <span class="projects__count">{{ total() }} result(s)</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="projects__status">Loading…</p>
+  }
+
+  @if (error()) {
+    <p class="projects__status projects__status--error">{{ error() }}</p>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="projects__table-wrap">
+      <table class="projects__table">
+        <thead>
+          <tr>
+            <th>Project Key</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th class="num">Issues</th>
+            <th class="num">Open Issues</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (project of projects(); track project.project_key) {
+            <tr>
+              <td class="mono">{{ project.project_key }}</td>
+              <td>{{ project.name }}</td>
+              <td>{{ project.category ?? '—' }}</td>
+              <td class="num">{{ project.issue_count }}</td>
+              <td class="num">{{ project.open_issue_count }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="projects__empty" colspan="5">No projects found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
