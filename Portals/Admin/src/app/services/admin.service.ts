@@ -7,7 +7,9 @@ import {
   AgentConfig,
   AgentConfigListResponse,
   AuditListResponse,
+  DatasetStatus,
   SystemHealth,
+  TriggerDatasetDownloadRequest,
   UpsertAgentConfigRequest,
 } from '../models/admin';
 
@@ -63,5 +65,14 @@ export class AdminService {
 
   getSystemHealth(): Observable<SystemHealth> {
     return this.http.get<SystemHealth>(`${this.baseUrl}/system/health`);
+  }
+
+  getDatasetStatus(): Observable<DatasetStatus> {
+    return this.http.get<DatasetStatus>(`${this.baseUrl}/dataset/status`);
+  }
+
+  triggerDatasetDownload(requestedBy = 'admin'): Observable<DatasetStatus> {
+    const body: TriggerDatasetDownloadRequest = { requested_by: requestedBy };
+    return this.http.post<DatasetStatus>(`${this.baseUrl}/dataset/download`, body);
   }
 }

@@ -1,0 +1,18 @@
+<div class="data-layout">
+  <nav class="data-sidebar" aria-label="Data Management">
+    <h2 class="data-sidebar__title">Data Management</h2>
+    <ul class="data-sidebar__list">
+      <li>
+        <a
+          routerLink="/data/initial-dataset"
+          routerLinkActive="data-sidebar__link--active"
+          class="data-sidebar__link"
+          >Initial Dataset</a
+        >
+      </li>
+    </ul>
+  </nav>
+  <section class="data-content">
+    <router-outlet />
+  </section>
+</div>

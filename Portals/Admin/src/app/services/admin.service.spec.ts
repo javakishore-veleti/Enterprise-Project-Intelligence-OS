@@ -4,7 +4,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { environment } from '../../environments/environment';
 import { AdminService } from './admin.service';
-import { AgentConfig, AgentConfigListResponse, UpsertAgentConfigRequest } from '../models/admin';
+import {
+  AgentConfig,
+  AgentConfigListResponse,
+  DatasetStatus,
+  UpsertAgentConfigRequest,
+} from '../models/admin';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -94,5 +99,52 @@ describe('AdminService', () => {
       agent_count: 16,
       enabled_agent_count: 2,
     });
+  });
+
+  it('fetches dataset status via GET', () => {
+    const stub: DatasetStatus = {
+      dataset_id: 'msr-issue-tracking',
+      title: 'MSR Issue-Tracking Dataset',
+      state: 'NOT_DOWNLOADED',
+      file_name: 'dataset.tar.gz',
+      size_bytes: 6227702088,
+      expected_md5: 'abc123',
+      downloaded_bytes: 0,
+      message: 'Not started.',
+      updated_at: '2026-07-19T00:00:00Z',
+    };
+
+    let result: DatasetStatus | undefined;
+    service.getDatasetStatus().subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(`${base}/dataset/status`);
+    expect(req.request.method).toBe('GET');
+    req.flush(stub);
+
+    expect(result).toEqual(stub);
+  });
+
+  it('triggers a dataset download via POST with requested_by body', () => {
+    const response: DatasetStatus = {
+      dataset_id: 'msr-issue-tracking',
+      title: 'MSR Issue-Tracking Dataset',
+      state: 'DOWNLOADING',
+      file_name: 'dataset.tar.gz',
+      size_bytes: 6227702088,
+      expected_md5: 'abc123',
+      downloaded_bytes: 1024,
+      message: 'Download started.',
+      updated_at: '2026-07-19T01:00:00Z',
+    };
+
+    let result: DatasetStatus | undefined;
+    service.triggerDatasetDownload('admin').subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(`${base}/dataset/download`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ requested_by: 'admin' });
+    req.flush(response);
+
+    expect(result).toEqual(response);
   });
 });

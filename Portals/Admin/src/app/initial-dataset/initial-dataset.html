@@ -1,0 +1,84 @@
+<section class="panel">
+  <header class="panel__header">
+    <h1>Initial Dataset</h1>
+    <p class="panel__subtitle">
+      Acquisition status of the managed dataset. Trigger the download and watch progress; the Admin-API
+      owns the actual acquisition workflow.
+    </p>
+  </header>
+
+  <div class="panel__toolbar">
+    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
+    <button
+      type="button"
+      class="btn btn--primary"
+      [disabled]="downloadDisabled()"
+      (click)="download()"
+    >
+      {{ triggering() ? 'Starting…' : 'Download Dataset' }}
+    </button>
+    @if (status(); as s) {
+      @if (s.state === 'DOWNLOADING') {
+        <span class="panel__count">Download in progress…</span>
+      } @else if (s.state === 'DOWNLOADED') {
+        <span class="panel__count">Dataset already downloaded</span>
+      }
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="panel__status">Loading…</p>
+  }
+
+  @if (error()) {
+    <p class="panel__status panel__status--error">{{ error() }}</p>
+  }
+
+  @if (!loading() && status(); as s) {
+    <div class="dataset">
+      <div class="dataset__title-row">
+        <h2 class="dataset__title">{{ s.title }}</h2>
+        <span [class]="badgeClass(s.state)">{{ s.state }}</span>
+      </div>
+
+      <dl class="dataset__grid">
+        <dt>File name</dt>
+        <dd class="mono">{{ s.file_name }}</dd>
+
+        <dt>Size</dt>
+        <dd>{{ formatBytes(s.size_bytes) }}</dd>
+
+        <dt>Expected MD5</dt>
+        <dd class="mono nowrap">{{ s.expected_md5 || '—' }}</dd>
+
+        <dt>Dataset ID</dt>
+        <dd class="mono">{{ s.dataset_id }}</dd>
+
+        <dt>Updated at</dt>
+        <dd class="mono nowrap">{{ s.updated_at }}</dd>
+
+        <dt>Message</dt>
+        <dd>{{ s.message || '—' }}</dd>
+      </dl>
+
+      @if (s.state === 'DOWNLOADING') {
+        <div class="progress">
+          <div class="progress__labels">
+            <span>{{ formatBytes(s.downloaded_bytes) }} / {{ formatBytes(s.size_bytes) }}</span>
+            <span>{{ progressPct() }}%</span>
+          </div>
+          <div class="progress__track">
+            <div
+              class="progress__bar"
+              role="progressbar"
+              [attr.aria-valuenow]="progressPct()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [style.width.%]="progressPct()"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>
