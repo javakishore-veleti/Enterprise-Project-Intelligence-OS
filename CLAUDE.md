@@ -11,10 +11,11 @@ What exists and runs today (verified end-to-end against live Postgres):
 - Root `package.json` task runner, `pyproject.toml`, `.env.example`.
 - **`Middleware/Ingestion-API/` (:8001) — the reference microservice.** Full Endpoint→Facade→Service→DAO layering, DTOs, health endpoints, Postgres-backed DAO (pg8000) + stubbed `airflow_gateway`, 7 passing unit+contract tests. **Copy its structure when building the other services.**
 - **`Middleware/Projects-API/` (:8003) — read-only queries over the MongoDB evidence store** (pymongo). Same layering; search/get/metrics endpoints, 14 tests (unit fakes + mongomock integration + contract). Verified live against seeded Mongo.
-- `Database/PostgreSQL/` migrations + `apply_migrations.py` (idempotent, pg8000); `Database/MongoDB/` init + indexes + local-dev `seed/`.
-- `OpenAPI/ingestion-api.yaml` and `OpenAPI/projects-api.yaml` generated from the services.
+- **`Middleware/Admin-API/` (:8002) — platform/agent configuration on Postgres.** Owns the per-agent `framework` toggle + model/prompt/enabled config (read by the agent phase), plus audit history and system health. V002 migration seeds the 16 agents (LangGraph/Claude defaults). Config changes write audit events. 8 tests; verified live (framework toggle persisted + audited).
+- `Database/PostgreSQL/` migrations `V001` (ingestion) + `V002` (admin config + audit, seeds 16 agents) + `apply_migrations.py` (idempotent, pg8000); `Database/MongoDB/` init + indexes + local-dev `seed/`.
+- `OpenAPI/{ingestion,projects,admin}-api.yaml` generated from the services.
 
-Still placeholders (dir + README only): `Airflow/`, `Agents/`, `Portals/`, `Middleware/{Admin,RiskAnalytics}-API`, `docs/`.
+Still placeholders (dir + README only): `Airflow/`, `Agents/`, `Portals/`, `Middleware/RiskAnalytics-API`, `docs/`.
 
 **Key environment facts:** Python 3.14 + Node 20 available. Docker infra reuses local images `postgres:16`, `mongo:7`, `chromadb/chroma:latest`, `apache/airflow:2.10.0-python3.12`. **Port map** (ChromaDB owns :8000, so APIs start at 8001): Postgres 5432 · Mongo 27017 · Chroma 8000 · Airflow 8080 · Ingestion 8001 · Admin 8002 · Projects 8003 · RiskAnalytics 8004 · Portals 4200/4201. **DB driver is pg8000** (pure-Python, no libpq) — see `daos/connection.py`; DAOs depend only on the DB-API surface so swapping to psycopg later is confined to that module.
 
