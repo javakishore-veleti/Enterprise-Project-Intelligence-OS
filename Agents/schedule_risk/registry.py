@@ -10,15 +10,19 @@ from __future__ import annotations
 from schedule_risk.contract import ScheduleRiskAgent
 
 _LANGGRAPH = "langgraph"
+_OPENAI_AGENTS = "openai_agents"
+# Frameworks still awaiting a real adapter (raise NotImplementedError on analyze).
 _STUBS = {
     "crewai": "CrewAIScheduleRiskAgent",
-    "openai_agents": "OpenAIAgentsScheduleRiskAgent",
     "strands": "StrandsScheduleRiskAgent",
     "google_adk": "GoogleADKScheduleRiskAgent",
     "ms_agent_framework": "MSAgentFrameworkScheduleRiskAgent",
 }
 
-SUPPORTED_FRAMEWORKS = (_LANGGRAPH, *_STUBS.keys())
+SUPPORTED_FRAMEWORKS = (_LANGGRAPH, _OPENAI_AGENTS, *_STUBS.keys())
+
+# Frameworks with a real, runnable adapter (the rest are documented stubs).
+IMPLEMENTED_FRAMEWORKS = (_LANGGRAPH, _OPENAI_AGENTS)
 
 
 def build_agent(framework: str, model: str) -> ScheduleRiskAgent:
@@ -27,6 +31,12 @@ def build_agent(framework: str, model: str) -> ScheduleRiskAgent:
         from schedule_risk.adapters.langgraph_adapter import LangGraphScheduleRiskAgent
 
         return LangGraphScheduleRiskAgent(model=model)
+    if framework == _OPENAI_AGENTS:
+        from schedule_risk.adapters.openai_agents_adapter import (
+            OpenAIAgentsScheduleRiskAgent,
+        )
+
+        return OpenAIAgentsScheduleRiskAgent(model=model)
     if framework in _STUBS:
         from schedule_risk.adapters import other_frameworks
 
