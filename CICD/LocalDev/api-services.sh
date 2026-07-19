@@ -18,7 +18,7 @@ SERVICES=(
   "Middleware/Ingestion-API:ingestion_api.api.main:app:8001"
   "Middleware/Admin-API:admin_api.api.main:app:8002"
   "Middleware/Projects-API:projects_api.api.main:app:8003"
-  # "Middleware/RiskAnalytics-API:risk_analytics_api.api.main:app:8004"
+  "Middleware/RiskAnalytics-API:risk_analytics_api.api.main:app:8004"
 )
 
 start_one() {
@@ -36,6 +36,13 @@ start_one() {
   ( cd "$path"
     [[ -d .venv ]] || python3 -m venv .venv
     ./.venv/bin/pip install -q --upgrade pip
+    # Editable path deps (sibling repo packages), one repo-relative path per line.
+    if [[ -f local-deps.txt ]]; then
+      while IFS= read -r dep || [[ -n "$dep" ]]; do
+        [[ -z "$dep" || "$dep" == \#* ]] && continue
+        ./.venv/bin/pip install -q -e "$REPO_ROOT/$dep"
+      done < local-deps.txt
+    fi
     ./.venv/bin/pip install -q -e ".[dev]"
   )
 
