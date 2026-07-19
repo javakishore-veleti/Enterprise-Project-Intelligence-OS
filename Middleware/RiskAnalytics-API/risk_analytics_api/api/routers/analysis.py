@@ -5,11 +5,13 @@ from fastapi import APIRouter, Depends, status
 
 from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
+    provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
-from risk_analytics_api.dtos.requests import StartAnalysisRequest
+from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
 from risk_analytics_api.dtos.responses import AnalysisRunResponse
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
+from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
@@ -27,6 +29,20 @@ def start_project_analysis(
     facade: StartProjectAnalysisFacade = Depends(provide_start_project_analysis_facade),
 ) -> AnalysisRunResponse:
     return facade.execute(project_key, request)
+
+
+@router.post(
+    "/portfolios/{portfolio_key}",
+    response_model=AnalysisRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="startPortfolioAnalysis",
+)
+def start_portfolio_analysis(
+    portfolio_key: str,
+    request: StartPortfolioAnalysisRequest,
+    facade: StartPortfolioAnalysisFacade = Depends(provide_start_portfolio_analysis_facade),
+) -> AnalysisRunResponse:
+    return facade.execute(portfolio_key, request)
 
 
 @router.get(

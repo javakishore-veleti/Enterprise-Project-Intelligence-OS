@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from typing import Callable
 
-from agent_core import RiskAgent, ReviewContext
+from agent_core import EvidenceMetrics, EvidencePackage, RiskAgent, ReviewContext
 
 from risk_analytics_api.common.configuration import Settings
 from risk_analytics_api.common.exceptions import AgentExecutionError, NotFoundError
 from risk_analytics_api.common.logging import get_logger
 from risk_analytics_api.common.utilities import new_id, utc_now
 from risk_analytics_api.dtos.common import AnalysisStatus
-from risk_analytics_api.dtos.requests import StartAnalysisRequest
+from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
 from risk_analytics_api.dtos.responses import AnalysisRunResponse
 from risk_analytics_api.interfaces.daos import (
     AgentConfigGateway,
@@ -128,6 +128,64 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
                                "reviewed": request.include_review, "errors": len(result.errors)}},
         )
         return self._runs.get(run_id)
+
+    #: Max projects a portfolio run resolves from the evidence store when none given.
+    PORTFOLIO_LIMIT = 25
+
+    def run_portfolio(
+        self, portfolio_key: str, request: StartPortfolioAnalysisRequest
+    ) -> AnalysisRunResponse:
+        project_keys = request.project_keys or self._evidence.list_project_keys(self.PORTFOLIO_LIMIT)
+
+        run_id = new_id()
+        started = utc_now()
+        self._runs.create(run_id, portfolio_key, request.agents, started)
+
+        specs = self._resolve_specs(request.agents)
+        aggregate: list = []
+        analyzed = 0
+        for project_key in project_keys:
+            try:
+                evidence = self._evidence.for_project(project_key)
+            except NotFoundError:
+                continue
+            result = self._manager.run(evidence, specs)
+            aggregate.extend(result.findings)
+            analyzed += 1
+
+        # Portfolio synthesis: cross-project dedup/correlation/scoring + reports.
+        # Per-finding evidence_validation and critic are skipped (they need each
+        # finding's own project evidence, which isn't in the aggregate context).
+        def _portfolio_config(agent_key: str):
+            if agent_key in ("evidence_validation", "critic"):
+                return (False, self._settings.default_agent_model, "langgraph")
+            return self._config.get(agent_key)
+
+        review = self._review_builder(_portfolio_config, self._settings.default_agent_model)
+        synth_evidence = EvidencePackage(
+            project_key=portfolio_key,
+            project_name=f"Portfolio {portfolio_key}",
+            metrics=EvidenceMetrics(),
+            observations=[f"{analyzed} projects analyzed", f"{len(aggregate)} findings aggregated"],
+        )
+        review_result = review.run(
+            ReviewContext(
+                project_key=portfolio_key, project_name=f"Portfolio {portfolio_key}",
+                evidence=synth_evidence, findings=aggregate,
+            )
+        )
+        if review_result.findings:
+            self._findings.add_many(run_id, portfolio_key, review_result.findings)
+        if review_result.reports:
+            self._reports.add_many(run_id, portfolio_key, review_result.reports)
+
+        self._runs.complete(run_id, AnalysisStatus.COMPLETED.value, utc_now())
+        _logger.info(
+            "portfolio analysis completed",
+            extra={"context": {"run_id": run_id, "portfolio_key": portfolio_key,
+                               "projects": analyzed, "findings": len(review_result.findings)}},
+        )
+        return self._runs.get(run_id).model_copy(update={"project_count": analyzed})
 
     def get_run(self, run_id: str) -> AnalysisRunResponse:
         run = self._runs.get(run_id)

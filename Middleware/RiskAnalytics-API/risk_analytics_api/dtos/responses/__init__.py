@@ -50,6 +50,8 @@ class AnalysisRunResponse(TypedModel):
     finished_at: datetime | None
     findings: list[RiskFindingResponse]
     reports: list[ReportResponse] = []
+    #: Number of projects analyzed (portfolio runs only; None for single-project).
+    project_count: int | None = None
 
 
 class HealthResponse(TypedModel):

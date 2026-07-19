@@ -17,3 +17,6 @@ class DefaultEvidenceRetrievalService(EvidenceRetrievalService):
         if package is None:
             raise NotFoundError(f"no evidence found for project '{project_key}'")
         return package
+
+    def list_project_keys(self, limit: int) -> list[str]:
+        return self._dao.list_project_keys(limit)

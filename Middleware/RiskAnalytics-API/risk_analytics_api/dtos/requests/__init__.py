@@ -18,3 +18,14 @@ class StartAnalysisRequest(TypedModel):
         description="Run the review pipeline (validate/dedup/correlate/score/critic + reports) after detection.",
     )
     requested_by: str = Field(default="system", min_length=1)
+
+
+class StartPortfolioAnalysisRequest(TypedModel):
+    """Start a portfolio (multi-project) risk analysis."""
+
+    agents: list[str] = Field(default_factory=lambda: ["schedule_risk"])
+    project_keys: list[str] = Field(
+        default_factory=list,
+        description="Projects to include. Empty -> resolve from the evidence store (bounded).",
+    )
+    requested_by: str = Field(default="system", min_length=1)

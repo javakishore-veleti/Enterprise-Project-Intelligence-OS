@@ -22,6 +22,10 @@ class EvidenceDao(ABC):
     @abstractmethod
     def build_package(self, project_key: str) -> EvidencePackage | None: ...
 
+    @abstractmethod
+    def list_project_keys(self, limit: int) -> list[str]:
+        """Return up to ``limit`` project keys (for portfolio resolution)."""
+
 
 class GraphRunDao(ABC):
     """Persistence of analysis runs (PostgreSQL)."""

@@ -97,3 +97,41 @@ def test_pipeline_with_no_processors_or_reporters() -> None:
     review = ProjectRiskReview(processors=[], reporters=[])
     result = review.run(_ctx([_finding(50)]))
     assert len(result.findings) == 1 and result.reports == []
+
+
+class _WeakenNTimesCritic(FindingProcessor):
+    """Weakens on the first `n` passes, then converges (keeps)."""
+
+    agent_key = "critic"
+
+    def __init__(self, n):
+        self._remaining = n
+        self.calls = 0
+
+    def process(self, context):
+        self.calls += 1
+        verdict = "weaken" if self._remaining > 0 else "keep"
+        self._remaining -= 1
+        return [f.model_copy(update={"meta": {**f.meta, "critic_verdict": verdict}}) for f in context.findings]
+
+
+def test_critic_loops_until_converged() -> None:
+    critic = _WeakenNTimesCritic(1)  # weaken once, then keep -> 2 passes
+    review = ProjectRiskReview(processors=[], reporters=[], critic=critic, max_critic_revisions=3)
+    result = review.run(_ctx([_finding(50)]))
+    assert critic.calls == 2  # looped once after the weaken, converged on keep
+    assert result.findings[0].meta["critic_verdict"] == "keep"
+
+
+def test_critic_loop_is_bounded_by_max_revisions() -> None:
+    critic = _WeakenNTimesCritic(99)  # never converges
+    review = ProjectRiskReview(processors=[], reporters=[], critic=critic, max_critic_revisions=2)
+    review.run(_ctx([_finding(50)]))
+    assert critic.calls == 2  # capped, does not loop forever
+
+
+def test_critic_that_keeps_immediately_runs_once() -> None:
+    critic = _WeakenNTimesCritic(0)  # keeps on first pass
+    review = ProjectRiskReview(processors=[], reporters=[], critic=critic, max_critic_revisions=3)
+    review.run(_ctx([_finding(50)]))
+    assert critic.calls == 1

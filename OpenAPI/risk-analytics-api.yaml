@@ -63,6 +63,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/portfolios/{portfolio_key}:
+    post:
+      tags:
+      - analysis
+      summary: Start Portfolio Analysis
+      operationId: startPortfolioAnalysis
+      parameters:
+      - name: portfolio_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Portfolio Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPortfolioAnalysisRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/analysis/runs/{run_id}:
     get:
       tags:
@@ -127,6 +159,11 @@ components:
           type: array
           title: Reports
           default: []
+        project_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Project Count
       additionalProperties: false
       type: object
       required:
@@ -308,6 +345,29 @@ components:
       type: object
       title: StartAnalysisRequest
       description: Start a risk analysis for a project.
+    StartPortfolioAnalysisRequest:
+      properties:
+        agents:
+          items:
+            type: string
+          type: array
+          title: Agents
+        project_keys:
+          items:
+            type: string
+          type: array
+          title: Project Keys
+          description: Projects to include. Empty -> resolve from the evidence store
+            (bounded).
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+      additionalProperties: false
+      type: object
+      title: StartPortfolioAnalysisRequest
+      description: Start a portfolio (multi-project) risk analysis.
     ValidationError:
       properties:
         loc:

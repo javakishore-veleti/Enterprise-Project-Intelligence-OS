@@ -59,3 +59,12 @@ class MongoEvidenceDao(EvidenceDao):
             metrics=metrics,
             observations=_observations(name, metrics),
         )
+
+    def list_project_keys(self, limit: int) -> list[str]:
+        cursor = (
+            self._mongo.db()["projects"]
+            .find({}, {"_id": 0, "project_key": 1})
+            .sort("project_key", 1)
+            .limit(limit)
+        )
+        return [d["project_key"] for d in cursor if d.get("project_key")]

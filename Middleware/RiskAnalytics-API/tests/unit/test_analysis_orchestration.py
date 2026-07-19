@@ -41,13 +41,17 @@ EVIDENCE = EvidencePackage(
 
 
 class FakeEvidenceService(EvidenceRetrievalService):
-    def __init__(self, package=EVIDENCE):
+    def __init__(self, package=EVIDENCE, project_keys=("APACHE",)):
         self._package = package
+        self._project_keys = list(project_keys)
 
     def for_project(self, project_key):
         if self._package is None:
             raise NotFoundError(project_key)
         return self._package
+
+    def list_project_keys(self, limit):
+        return self._project_keys[:limit]
 
 
 class FakeConfigGateway(AgentConfigGateway):
@@ -247,3 +251,38 @@ def test_detect_only_produces_no_reports() -> None:
     service, _ = _service(lambda k, fw, m: FakeAgent({}))
     result = service.run("APACHE", StartAnalysisRequest(agents=["schedule_risk"]))
     assert result.reports == []
+
+
+def test_run_portfolio_aggregates_projects_and_reports_project_count() -> None:
+    from types import SimpleNamespace
+
+    from agent_core import ReportKind, RiskReport
+    from risk_analytics_api.dtos.requests import StartPortfolioAnalysisRequest
+
+    seen = {}
+
+    class _PortfolioReview:
+        def run(self, ctx):
+            seen["agg"] = len(ctx.findings)  # aggregate across projects reached the review
+            report = RiskReport(
+                kind=ReportKind.EXECUTIVE, title="Portfolio", summary="s", sections=[],
+                source_agent="executive_reporting",
+                generated_at=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            )
+            return SimpleNamespace(findings=ctx.findings, reports=[report])
+
+    # Two projects, one finding each -> aggregate of 2 reaches the review.
+    service, _ = _service(
+        lambda k, fw, m: FakeAgent({}),
+        review_builder=lambda cg, model: _PortfolioReview(),
+    )
+    service._evidence._project_keys = ["APACHE", "SPARK"]
+
+    result = service.run_portfolio(
+        "core-platform", StartPortfolioAnalysisRequest(agents=["schedule_risk"])
+    )
+
+    assert result.status is AnalysisStatus.COMPLETED
+    assert result.project_count == 2
+    assert seen["agg"] == 2
+    assert len(result.reports) == 1 and result.reports[0].kind == "executive"
