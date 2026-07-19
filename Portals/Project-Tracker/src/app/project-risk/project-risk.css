@@ -1,0 +1,296 @@
+.risk {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.risk__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.risk__subtitle {
+  margin: 0.25rem 0 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.risk__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.risk__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 320px;
+}
+
+.risk__actions {
+  display: flex;
+}
+
+.risk__label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.risk__input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.risk__input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.risk__fieldset {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.risk__agents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.risk__check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.risk__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.risk__btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.risk__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: risk-spin 0.7s linear infinite;
+}
+
+@keyframes risk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.risk__status {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.risk__status--error {
+  color: #b91c1c;
+}
+
+.risk__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.risk__muted {
+  color: #888;
+}
+
+.risk__section-title {
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.risk__table-wrap {
+  overflow-x: auto;
+}
+
+.risk__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.risk__table th,
+.risk__table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+.risk__table thead th {
+  border-bottom: 2px solid #ddd;
+  color: #444;
+  font-weight: 600;
+}
+
+.num {
+  text-align: right;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.risk__explanation {
+  margin: 0;
+  max-width: 380px;
+}
+
+.risk__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.tag--critic {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.risk__empty {
+  text-align: center;
+  color: #999;
+  padding: 1.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.badge--critical,
+.badge--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge--high {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.badge--medium,
+.badge--running {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.badge--low,
+.badge--completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge--kind,
+.badge--status {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.risk__reports {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.report {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.report__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.report__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.report__summary {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.report__source {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.report__section {
+  border-top: 1px solid #f0f0f0;
+  padding: 0.5rem 0;
+}
+
+.report__section summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.report__section p {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  color: #333;
+  white-space: pre-wrap;
+}

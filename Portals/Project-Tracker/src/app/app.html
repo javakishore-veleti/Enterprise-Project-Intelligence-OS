@@ -1,6 +1,10 @@
 <header class="app-bar">
   <span class="app-bar__brand">Enterprise Project Intelligence OS</span>
   <span class="app-bar__portal">Project Tracker</span>
+  <nav class="app-bar__nav">
+    <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Projects</a>
+    <a routerLink="/risk" routerLinkActive="is-active">Project Risk</a>
+  </nav>
 </header>
 <main>
   <router-outlet />
