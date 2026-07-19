@@ -81,8 +81,353 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/acquisitions:
+    post:
+      tags:
+      - operations
+      summary: Start Acquisition
+      operationId: startAcquisition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcquireDatasetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/acquisitions/{acquisition_id}:
+    get:
+      tags:
+      - operations
+      summary: Get Acquisition
+      operationId: getAcquisition
+      parameters:
+      - name: acquisition_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Acquisition Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/acquisitions/{acquisition_id}/verify:
+    post:
+      tags:
+      - operations
+      summary: Verify Acquisition
+      operationId: verifyAcquisition
+      parameters:
+      - name: acquisition_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Acquisition Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyAcquisitionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionVerifyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/acquisitions/{acquisition_id}/extract:
+    post:
+      tags:
+      - operations
+      summary: Extract Acquisition
+      operationId: extractAcquisition
+      parameters:
+      - name: acquisition_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Acquisition Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquisitionExtractResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/validations:
+    post:
+      tags:
+      - operations
+      summary: Start Validation
+      operationId: startValidation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateDatasetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/validations/{validation_id}:
+    get:
+      tags:
+      - operations
+      summary: Get Validation
+      operationId: getValidation
+      parameters:
+      - name: validation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Validation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/indexes:
+    post:
+      tags:
+      - operations
+      summary: Start Indexing
+      operationId: startIndexing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexDatasetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/indexes/{index_job_id}:
+    get:
+      tags:
+      - operations
+      summary: Get Indexing
+      operationId: getIndexing
+      parameters:
+      - name: index_job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Index Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/reconciliations:
+    post:
+      tags:
+      - operations
+      summary: Start Reconciliation
+      operationId: startReconciliation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileDatasetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/reconciliations/{reconciliation_id}:
+    get:
+      tags:
+      - operations
+      summary: Get Reconciliation
+      operationId: getReconciliation
+      parameters:
+      - name: reconciliation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Reconciliation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    AcquireDatasetRequest:
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          title: Dataset Id
+        source_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Url
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      title: AcquireDatasetRequest
+    AcquisitionExtractResponse:
+      properties:
+        acquisition_id:
+          type: string
+          title: Acquisition Id
+        status:
+          type: string
+          title: Status
+        extracted:
+          type: boolean
+          title: Extracted
+        file_count:
+          type: integer
+          title: File Count
+      additionalProperties: false
+      type: object
+      required:
+      - acquisition_id
+      - status
+      - extracted
+      - file_count
+      title: AcquisitionExtractResponse
+    AcquisitionResponse:
+      properties:
+        acquisition_id:
+          type: string
+          title: Acquisition Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - acquisition_id
+      - dataset_id
+      - status
+      title: AcquisitionResponse
+    AcquisitionVerifyResponse:
+      properties:
+        acquisition_id:
+          type: string
+          title: Acquisition Id
+        status:
+          type: string
+          title: Status
+        verified:
+          type: boolean
+          title: Verified
+        actual_sha256:
+          type: string
+          title: Actual Sha256
+      additionalProperties: false
+      type: object
+      required:
+      - acquisition_id
+      - status
+      - verified
+      - actual_sha256
+      title: AcquisitionVerifyResponse
     HTTPValidationError:
       properties:
         detail:
@@ -113,6 +458,53 @@ components:
       - service
       title: HealthResponse
       description: Liveness / readiness payload.
+    IndexDatasetRequest:
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          title: Dataset Id
+        targets:
+          items:
+            type: string
+          type: array
+          title: Targets
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+        concurrently:
+          type: boolean
+          title: Concurrently
+          default: true
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      title: IndexDatasetRequest
+    IndexResponse:
+      properties:
+        index_job_id:
+          type: string
+          title: Index Job Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        indexes_created:
+          type: integer
+          title: Indexes Created
+      additionalProperties: false
+      type: object
+      required:
+      - index_job_id
+      - dataset_id
+      - status
+      - indexes_created
+      title: IndexResponse
     IngestionRunResponse:
       properties:
         run_id:
@@ -164,6 +556,55 @@ components:
       - COMPLETED
       title: IngestionStatus
       description: Lifecycle states of an ingestion run.
+    ReconcileDatasetRequest:
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          title: Dataset Id
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      title: ReconcileDatasetRequest
+    ReconciliationResponse:
+      properties:
+        reconciliation_id:
+          type: string
+          title: Reconciliation Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        source_count:
+          type: integer
+          title: Source Count
+        destination_count:
+          type: integer
+          title: Destination Count
+        mismatches:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Mismatches
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - reconciliation_id
+      - dataset_id
+      - status
+      - source_count
+      - destination_count
+      title: ReconciliationResponse
     StartIngestionRequest:
       properties:
         dataset_id:
@@ -196,6 +637,27 @@ components:
       - dataset_id
       title: StartIngestionRequest
       description: Request to start ingesting a configured dataset.
+    ValidateDatasetRequest:
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          title: Dataset Id
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+        max_invalid:
+          type: integer
+          minimum: 0.0
+          title: Max Invalid
+          default: 0
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      title: ValidateDatasetRequest
     ValidationError:
       properties:
         loc:
@@ -222,3 +684,40 @@ components:
       - msg
       - type
       title: ValidationError
+    ValidationResponse:
+      properties:
+        validation_id:
+          type: string
+          title: Validation Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        valid_count:
+          type: integer
+          title: Valid Count
+        invalid_count:
+          type: integer
+          title: Invalid Count
+      additionalProperties: false
+      type: object
+      required:
+      - validation_id
+      - dataset_id
+      - status
+      - valid_count
+      - invalid_count
+      title: ValidationResponse
+    VerifyAcquisitionRequest:
+      properties:
+        expected_sha256:
+          type: string
+          minLength: 1
+          title: Expected Sha256
+      additionalProperties: false
+      type: object
+      required:
+      - expected_sha256
+      title: VerifyAcquisitionRequest

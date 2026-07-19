@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     pg_password: str = Field(default="epi_os", alias="PG_PASSWORD")
     pg_database: str = Field(default="epi_os", alias="PG_DATABASE")
 
+    # Evidence store (read-only) — used to compute validate/index/reconcile counts.
+    mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
+    mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
+
     # Gateway to Airflow (operational workflow trigger). Stubbed in the
     # foundation slice; real deployments point this at the Airflow REST API.
     airflow_base_url: str = Field(default="http://localhost:8080", alias="AIRFLOW_BASE_URL")

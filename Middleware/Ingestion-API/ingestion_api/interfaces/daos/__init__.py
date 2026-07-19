@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ingestion_api.dtos.common import IngestionStatus
+from ingestion_api.dtos.common import IngestionStatus, OperationRecord
 from ingestion_api.dtos.responses import IngestionRunResponse
 
 
@@ -30,3 +30,29 @@ class AirflowGateway(ABC):
     @abstractmethod
     def trigger_ingestion(self, run_id: str, dataset_id: str) -> str:
         """Trigger the ingestion DAG; return the external run reference."""
+
+
+class OperationsDao(ABC):
+    """Persistence of ingestion sub-operations (PostgreSQL)."""
+
+    @abstractmethod
+    def insert(self, record: OperationRecord) -> OperationRecord: ...
+
+    @abstractmethod
+    def get(self, operation_id: str) -> OperationRecord | None: ...
+
+    @abstractmethod
+    def update_result(self, operation_id: str, status: str, result: dict) -> OperationRecord | None: ...
+
+
+class EvidenceCountsGateway(ABC):
+    """Read-only counts from the MongoDB evidence store, for validate/index/reconcile."""
+
+    @abstractmethod
+    def document_count(self) -> int: ...
+
+    @abstractmethod
+    def index_count(self) -> int: ...
+
+    @abstractmethod
+    def collection_count(self) -> int: ...
