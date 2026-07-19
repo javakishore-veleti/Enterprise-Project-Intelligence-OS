@@ -1,0 +1,224 @@
+openapi: 3.1.0
+info:
+  title: Ingestion API
+  description: Dataset ingestion management for Enterprise Project Intelligence OS.
+  version: 0.1.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/ingestion/runs:
+    post:
+      tags:
+      - ingestion
+      summary: Start Ingestion
+      operationId: startIngestion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartIngestionRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/runs/{run_id}:
+    get:
+      tags:
+      - ingestion
+      summary: Get Ingestion Status
+      operationId: getIngestionStatus
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      title: HealthResponse
+      description: Liveness / readiness payload.
+    IngestionRunResponse:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          $ref: '#/components/schemas/IngestionStatus'
+        batch_size:
+          type: integer
+          title: Batch Size
+        parallelism:
+          type: integer
+          title: Parallelism
+        requested_by:
+          type: string
+          title: Requested By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - dataset_id
+      - status
+      - batch_size
+      - parallelism
+      - requested_by
+      - created_at
+      - updated_at
+      title: IngestionRunResponse
+      description: Public view of an ingestion run.
+    IngestionStatus:
+      type: string
+      enum:
+      - PENDING
+      - RUNNING
+      - PAUSED
+      - CANCELLED
+      - FAILED
+      - COMPLETED
+      title: IngestionStatus
+      description: Lifecycle states of an ingestion run.
+    StartIngestionRequest:
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          title: Dataset Id
+          description: Configured dataset identifier.
+        batch_size:
+          type: integer
+          maximum: 100000.0
+          minimum: 1.0
+          title: Batch Size
+          description: Records per batch.
+          default: 1000
+        parallelism:
+          type: integer
+          maximum: 64.0
+          minimum: 1.0
+          title: Parallelism
+          description: Concurrent batch workers.
+          default: 4
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: system
+      additionalProperties: false
+      type: object
+      required:
+      - dataset_id
+      title: StartIngestionRequest
+      description: Request to start ingesting a configured dataset.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
