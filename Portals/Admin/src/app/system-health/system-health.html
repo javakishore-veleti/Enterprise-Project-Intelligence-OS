@@ -1,0 +1,70 @@
+<section class="panel">
+  <header class="panel__header">
+    <h1>System Health</h1>
+    <p class="panel__subtitle">Aggregate platform health as reported by the Admin-API.</p>
+  </header>
+
+  <div class="panel__toolbar">
+    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
+  </div>
+
+  @if (loading()) {
+    <p class="panel__status">Loading…</p>
+  }
+
+  @if (error()) {
+    <p class="panel__status panel__status--error">{{ error() }}</p>
+  }
+
+  @if (!loading() && !error() && health(); as h) {
+    <div class="cards">
+      <div class="card">
+        <div class="card__label">Status</div>
+        <div class="card__value">
+          <span class="badge" [class.badge--ok]="isOk(h.status)" [class.badge--bad]="!isOk(h.status)">
+            {{ h.status }}
+          </span>
+        </div>
+        <div class="card__sub mono">{{ h.service }}</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Agents</div>
+        <div class="card__value">{{ h.agent_count }}</div>
+        <div class="card__sub">configured</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Enabled Agents</div>
+        <div class="card__value">{{ h.enabled_agent_count }}</div>
+        <div class="card__sub">active</div>
+      </div>
+    </div>
+
+    <h2 class="deps-title">Dependencies</h2>
+    <div class="panel__table-wrap">
+      <table class="table deps-table">
+        <thead>
+          <tr>
+            <th>Dependency</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (dep of dependencies(); track dep.name) {
+            <tr>
+              <td class="mono">{{ dep.name }}</td>
+              <td>
+                <span class="badge" [class.badge--ok]="isOk(dep.status)" [class.badge--bad]="!isOk(dep.status)">
+                  {{ dep.status }}
+                </span>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="empty" colspan="2">No dependencies reported.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

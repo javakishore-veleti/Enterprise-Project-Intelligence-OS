@@ -1,0 +1,25 @@
+.agent-name {
+  font-weight: 600;
+}
+
+.agent-key {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.model-input {
+  width: 12rem;
+  max-width: 100%;
+}
+
+.save-ok {
+  margin-left: 0.5rem;
+  color: #15803d;
+  font-size: 0.8rem;
+}
+
+.save-err {
+  margin-left: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}

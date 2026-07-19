@@ -1,0 +1,55 @@
+<section class="panel">
+  <header class="panel__header">
+    <h1>Audit History</h1>
+    <p class="panel__subtitle">Administrative audit events from the Admin-API, newest first.</p>
+  </header>
+
+  <div class="panel__toolbar">
+    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
+    @if (!loading()) {
+      <span class="panel__count">{{ total() }} event(s)</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="panel__status">Loading…</p>
+  }
+
+  @if (error()) {
+    <p class="panel__status panel__status--error">{{ error() }}</p>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="panel__table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Action</th>
+            <th>Entity</th>
+            <th>Actor</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of events(); track event.event_id) {
+            <tr>
+              <td class="mono nowrap">{{ event.created_at }}</td>
+              <td>{{ event.action }}</td>
+              <td>
+                <span class="mono">{{ event.entity_key }}</span>
+                <span class="entity-type">{{ event.entity_type }}</span>
+              </td>
+              <td>{{ event.actor }}</td>
+              <td class="details mono">{{ formatDetails(event.details) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="empty" colspan="5">No audit events.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
