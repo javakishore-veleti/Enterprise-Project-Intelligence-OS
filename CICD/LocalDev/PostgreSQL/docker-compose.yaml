@@ -1,0 +1,21 @@
+# Operational-state database. Reuses the local postgres:16 image.
+services:
+  postgres:
+    image: postgres:16
+    container_name: local-postgres
+    environment:
+      POSTGRES_USER: ${PG_USER:-epi_os}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-epi_os}
+      POSTGRES_DB: ${PG_DATABASE:-epi_os}
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - epi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-epi_os} -d ${PG_DATABASE:-epi_os}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  epi_pgdata:

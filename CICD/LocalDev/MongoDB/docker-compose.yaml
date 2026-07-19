@@ -1,0 +1,19 @@
+# Project evidence store. Reuses the local mongo:7 image.
+# Note: an existing `local-mongodb` container may already be running on the
+# laptop; docker-all-up.sh detects and reuses it instead of recreating.
+services:
+  mongodb:
+    image: mongo:7
+    container_name: local-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - epi_mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  epi_mongodata:

@@ -1,0 +1,19 @@
+# Vector store for evidence embeddings / semantic retrieval.
+# Reuses the local chromadb/chroma:latest image. Serves on port 8000, so
+# middleware services use 8001-8004 to avoid a collision.
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: local-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - epi_chromadata:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  epi_chromadata:

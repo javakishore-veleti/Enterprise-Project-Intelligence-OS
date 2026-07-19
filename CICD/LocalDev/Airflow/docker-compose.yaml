@@ -1,0 +1,24 @@
+# Operational workflow scheduler. Reuses apache/airflow:2.10.0-python3.12.
+# Minimal single-node "standalone" for local dev (LocalExecutor). DAGs are
+# mounted from the repo Airflow/ tree. Heavier than the datastores to boot; the
+# foundation slice does not require it running.
+services:
+  airflow:
+    image: apache/airflow:2.10.0-python3.12
+    container_name: local-airflow
+    command: standalone
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
+        postgresql+psycopg2://${PG_USER:-epi_os}:${PG_PASSWORD:-epi_os}@host.docker.internal:${PG_PORT:-5432}/airflow
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-admin}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../../Airflow/dags:/opt/airflow/dags
+      - ../../../Airflow/plugins:/opt/airflow/plugins
+      - ../../../Airflow/config:/opt/airflow/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
