@@ -52,6 +52,18 @@ class MetricsComputationDao(ABC):
         """(source_issue_key, target_issue_key) for blocks/depends links in the project."""
 
     @abstractmethod
+    def avg_open_age_days(self, project_key: str, reference) -> float:
+        """Average age (days) of open issues relative to the reference date."""
+
+    @abstractmethod
+    def top_contributor_share(self, project_key: str) -> float:
+        """Top contributor's share (0-1) of comment/history activity."""
+
+    @abstractmethod
+    def critical_open_count(self, project_key: str) -> int:
+        """Open issues with Blocker/Critical priority."""
+
+    @abstractmethod
     def write_metrics(self, project_key: str, metrics: dict, computed_at) -> None: ...
 
     @abstractmethod

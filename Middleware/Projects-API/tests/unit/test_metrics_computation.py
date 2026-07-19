@@ -82,6 +82,11 @@ def service_and_db():
         {"project_key": "APACHE", "source_issue_key": "AP-0", "target_issue_key": "AP-1", "link_type": "blocks"},
         {"project_key": "APACHE", "source_issue_key": "AP-1", "target_issue_key": "AP-2", "link_type": "blocks"},
     ])
+    # comments: alice x3, bob x1 -> top contributor share 0.75
+    db["comments"].insert_many([
+        {"project_key": "APACHE", "author": a}
+        for a in ("alice", "alice", "alice", "bob")
+    ])
 
     fake = _FakeDatabase(db)
     service = DefaultMetricsComputationService(MongoMetricsComputationDao(fake), MongoProjectsDao(fake))
@@ -102,6 +107,19 @@ def test_compute_produces_grounded_metrics(service_and_db) -> None:
     assert db["project_metrics"].count_documents({"project_key": "APACHE"}) == 1
     proj = db["projects"].find_one({"project_key": "APACHE"})
     assert proj["issue_count"] == 10 and proj["open_issue_count"] == 6
+
+
+def test_compute_added_facts(service_and_db) -> None:
+    service, _ = service_and_db
+    m = service.compute("APACHE")
+    # 2 blockers open of 6 open -> 0.333
+    assert m.critical_defect_ratio == round(2 / 6, 3)
+    # 1 issue resolved in the window
+    assert m.resolution_velocity == 1.0
+    # alice 3 / (alice 3 + bob 1) = 0.75
+    assert m.contributor_concentration == 0.75
+    # reference = latest created (in-window); open ages are 0 (x3) and ~190 (x3) -> avg ~95
+    assert 90 <= m.issue_aging_days <= 100
 
 
 def test_compute_all_iterates_projects(service_and_db) -> None:

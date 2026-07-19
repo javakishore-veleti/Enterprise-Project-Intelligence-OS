@@ -26,4 +26,8 @@ class MongoProjectMetricsDao(ProjectMetricsDao):
             reopen_rate=doc.get("reopen_rate", 0.0),
             blocker_count=doc.get("blocker_count", 0),
             dependency_depth=doc.get("dependency_depth", 0),
+            issue_aging_days=doc.get("issue_aging_days", 0.0),
+            resolution_velocity=doc.get("resolution_velocity", 0.0),
+            contributor_concentration=doc.get("contributor_concentration", 0.0),
+            critical_defect_ratio=doc.get("critical_defect_ratio", 0.0),
         )

@@ -33,6 +33,10 @@ class ProjectMetricsResponse(TypedModel):
     reopen_rate: float
     blocker_count: int
     dependency_depth: int
+    issue_aging_days: float = 0.0
+    resolution_velocity: float = 0.0
+    contributor_concentration: float = 0.0
+    critical_defect_ratio: float = 0.0
 
 
 class HealthResponse(TypedModel):

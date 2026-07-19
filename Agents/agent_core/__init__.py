@@ -47,6 +47,11 @@ class EvidenceMetrics(_Frozen):
     dependency_depth: int = 0
     issue_count: int = 0
     open_issue_count: int = 0
+    #: Added facts (default 0 -> backward compatible with older evidence).
+    issue_aging_days: float = 0.0           # avg age of open issues
+    resolution_velocity: float = 0.0        # issues resolved in the recent window
+    contributor_concentration: float = 0.0  # top contributor's share of activity (0-1)
+    critical_defect_ratio: float = 0.0      # open blocker/critical issues / open issues (0-1)
 
 
 class EvidencePackage(_Frozen):

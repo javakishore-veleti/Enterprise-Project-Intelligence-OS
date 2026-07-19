@@ -259,6 +259,22 @@ components:
         dependency_depth:
           type: integer
           title: Dependency Depth
+        issue_aging_days:
+          type: number
+          title: Issue Aging Days
+          default: 0.0
+        resolution_velocity:
+          type: number
+          title: Resolution Velocity
+          default: 0.0
+        contributor_concentration:
+          type: number
+          title: Contributor Concentration
+          default: 0.0
+        critical_defect_ratio:
+          type: number
+          title: Critical Defect Ratio
+          default: 0.0
       additionalProperties: false
       type: object
       required:

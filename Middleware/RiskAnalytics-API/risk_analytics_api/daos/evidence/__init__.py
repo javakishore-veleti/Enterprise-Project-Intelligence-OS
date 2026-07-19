@@ -27,6 +27,16 @@ def _observations(name: str, m: EvidenceMetrics) -> list[str]:
         obs.append(
             f"{m.open_issue_count} of {m.issue_count} issues are open ({open_pct:.0%})."
         )
+    if m.issue_aging_days:
+        obs.append(f"Open issues average {m.issue_aging_days:.0f} days old.")
+    if m.resolution_velocity:
+        obs.append(f"Resolution velocity is {m.resolution_velocity:.0f} issues in the recent window.")
+    if m.contributor_concentration:
+        obs.append(
+            f"Top contributor accounts for {m.contributor_concentration:.0%} of activity "
+            "(resource/bus-factor concentration).")
+    if m.critical_defect_ratio:
+        obs.append(f"{m.critical_defect_ratio:.0%} of open issues are Blocker/Critical.")
     return obs
 
 
@@ -51,6 +61,10 @@ class MongoEvidenceDao(EvidenceDao):
             dependency_depth=int(metrics_doc.get("dependency_depth", 0)),
             issue_count=int(project.get("issue_count", 0)),
             open_issue_count=int(project.get("open_issue_count", 0)),
+            issue_aging_days=float(metrics_doc.get("issue_aging_days", 0.0)),
+            resolution_velocity=float(metrics_doc.get("resolution_velocity", 0.0)),
+            contributor_concentration=float(metrics_doc.get("contributor_concentration", 0.0)),
+            critical_defect_ratio=float(metrics_doc.get("critical_defect_ratio", 0.0)),
         )
         name = project.get("name", project_key)
         return EvidencePackage(

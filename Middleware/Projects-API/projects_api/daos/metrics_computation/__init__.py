@@ -14,6 +14,7 @@ from projects_api.interfaces.daos import MetricsComputationDao
 CLOSED_STATES = ["Resolved", "Closed", "Done"]
 BLOCKING_LINKS = ["blocks", "is blocked by", "depends on", "Blocks", "Depends"]
 REOPEN_VALUES = ["Reopened", "Open", "Reopen"]
+CRITICAL_PRIORITIES = ["Blocker", "Critical"]
 
 
 class MongoMetricsComputationDao(MetricsComputationDao):
@@ -63,6 +64,33 @@ class MongoMetricsComputationDao(MetricsComputationDao):
             {"_id": 0, "source_issue_key": 1, "target_issue_key": 1})
         return [(d["source_issue_key"], d["target_issue_key"])
                 for d in cursor if d.get("source_issue_key") and d.get("target_issue_key")]
+
+    def avg_open_age_days(self, project_key: str, reference) -> float:
+        cursor = self._c("issues").find(
+            {"project_key": project_key, "status": {"$nin": CLOSED_STATES},
+             "created_at": {"$ne": None}},
+            {"_id": 0, "created_at": 1})
+        ages = []
+        for d in cursor:
+            created = d.get("created_at")
+            if created is not None:
+                ages.append((reference - created).total_seconds() / 86400.0)
+        return round(sum(ages) / len(ages), 1) if ages else 0.0
+
+    def top_contributor_share(self, project_key: str) -> float:
+        counts: dict[str, int] = {}
+        for coll, field in (("comments", "author"), ("issue_histories", "author")):
+            for d in self._c(coll).find({"project_key": project_key}, {"_id": 0, field: 1}):
+                author = d.get(field)
+                if author:
+                    counts[author] = counts.get(author, 0) + 1
+        total = sum(counts.values())
+        return round(max(counts.values()) / total, 3) if total else 0.0
+
+    def critical_open_count(self, project_key: str) -> int:
+        return self._c("issues").count_documents({
+            "project_key": project_key, "status": {"$nin": CLOSED_STATES},
+            "priority": {"$in": CRITICAL_PRIORITIES}})
 
     def write_metrics(self, project_key: str, metrics: dict, computed_at) -> None:
         self._c("project_metrics").update_one(

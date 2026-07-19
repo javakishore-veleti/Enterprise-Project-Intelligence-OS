@@ -73,14 +73,22 @@ class DefaultMetricsComputationService(MetricsComputationService):
             created_w = self._dao.created_between(project_key, start, ref)
             resolved_w = self._dao.resolved_between(project_key, start, ref)
             growth = backlog_growth(created_w, resolved_w, c["open_issue_count"])
+            aging = self._dao.avg_open_age_days(project_key, ref)
         else:
             growth = 0.0
+            resolved_w = 0
+            aging = 0.0
 
+        open_count = c["open_issue_count"]
         metrics = {
             "backlog_growth": growth,
             "reopen_rate": reopen_rate(reopened, c["resolved_count"]),
             "blocker_count": c["blocker_count"],
             "dependency_depth": dependency_depth(self._dao.blocking_links(project_key)),
+            "issue_aging_days": aging,
+            "resolution_velocity": float(resolved_w),
+            "contributor_concentration": self._dao.top_contributor_share(project_key),
+            "critical_defect_ratio": round(self._dao.critical_open_count(project_key) / max(1, open_count), 3),
         }
         computed_at = utc_now()
         self._dao.write_metrics(project_key, metrics, computed_at)

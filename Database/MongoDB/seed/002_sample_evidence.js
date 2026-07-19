@@ -55,6 +55,16 @@ for (const [pk, [n, openFrac, blockers, reopened, recNew, recRes, depth]] of Obj
     links.push({ project_key: pk, source_issue_key: `${pk}-${i}`, target_issue_key: `${pk}-${i + 1}`, link_type: "blocks" });
   }
   if (links.length) db.issue_links.insertMany(links);
+
+  // comments with a concentrated author distribution (bus-factor signal)
+  db.comments.deleteMany({ project_key: pk });
+  const authors = ["alice", "alice", "alice", "bob", "carol"]; // alice dominates
+  const comments = [];
+  for (let i = 0; i < n; i++) {
+    comments.push({ project_key: pk, issue_key: `${pk}-${i % n}`,
+                    author: authors[i % authors.length], created_at: days(i % 30) });
+  }
+  db.comments.insertMany(comments);
 }
 
 print("seeded sample evidence for: " + Object.keys(plan).join(", "));
