@@ -7,3 +7,4 @@ and are applied by `../apply_migrations.py` (filename order, once each).
 |---|---|---|
 | V001 | `V001__ingestion_runs.sql` | `ingestion` schema + `ingestion_runs` table and indexes. |
 | V002 | `V002__admin_config.sql` | `admin` schema + `agent_configs` and `audit_events`; seeds the 16 agents (LangGraph, Claude defaults). |
+| V003 | `V003__risk_analysis.sql` | `risk` schema + `graph_runs` and `risk_findings` for analysis run + finding persistence. |
