@@ -11,3 +11,4 @@ and are applied by `../apply_migrations.py` (filename order, once each).
 | V004 | `V004__risk_review.sql` | `risk_findings.meta` column + `risk.reports` table for the review pipeline. |
 | V005 | `V005__ingestion_operations.sql` | `ingestion.operations` table for acquire/validate/index/reconcile sub-operations. |
 | V006 | `V006__datasets.sql` | `ingestion.datasets` dataset-acquisition status; seeds the public Jira dataset. |
+| V007 | `V007__ingestion_batches_log.sql` | `ingestion.ingestion_batches` (checkpoints) + `ingestion.ingestion_log` (progress) for resumable batch ingestion. |
