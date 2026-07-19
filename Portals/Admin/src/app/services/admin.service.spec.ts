@@ -8,6 +8,7 @@ import {
   AgentConfig,
   AgentConfigListResponse,
   DatasetStatus,
+  IngestionProgress,
   UpsertAgentConfigRequest,
 } from '../models/admin';
 
@@ -141,6 +142,62 @@ describe('AdminService', () => {
     service.triggerDatasetDownload('admin').subscribe((r) => (result = r));
 
     const req = httpMock.expectOne(`${base}/dataset/download`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ requested_by: 'admin' });
+    req.flush(response);
+
+    expect(result).toEqual(response);
+  });
+
+  it('fetches the latest ingestion progress via GET', () => {
+    const stub: IngestionProgress = {
+      run_id: null,
+      dataset_id: 'msr-issue-tracking',
+      status: 'NOT_STARTED',
+      started_at: null,
+      finished_at: null,
+      records_done: 0,
+      records_total: 0,
+      entities: [],
+      recent_log: [],
+    };
+
+    let result: IngestionProgress | undefined;
+    service.getIngestionStatus().subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(`${base}/dataset/ingestion`);
+    expect(req.request.method).toBe('GET');
+    req.flush(stub);
+
+    expect(result).toEqual(stub);
+  });
+
+  it('triggers a dataset ingestion via POST with requested_by body', () => {
+    const response: IngestionProgress = {
+      run_id: 'run-1',
+      dataset_id: 'msr-issue-tracking',
+      status: 'RUNNING',
+      started_at: '2026-07-19T01:00:00Z',
+      finished_at: null,
+      records_done: 100,
+      records_total: 2700000,
+      entities: [{ entity: 'issues', records_done: 100, records_total: 2700000, status: 'RUNNING' }],
+      recent_log: [
+        {
+          level: 'INFO',
+          entity: 'issues',
+          message: 'Ingestion started.',
+          records_done: 100,
+          records_total: 2700000,
+          created_at: '2026-07-19T01:00:00Z',
+        },
+      ],
+    };
+
+    let result: IngestionProgress | undefined;
+    service.triggerDatasetIngest('admin').subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(`${base}/dataset/ingest`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ requested_by: 'admin' });
     req.flush(response);

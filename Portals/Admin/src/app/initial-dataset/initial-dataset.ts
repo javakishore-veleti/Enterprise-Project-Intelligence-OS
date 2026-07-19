@@ -1,7 +1,13 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { Subscription, interval, switchMap } from 'rxjs';
 
-import { DatasetState, DatasetStatus } from '../models/admin';
+import {
+  DatasetState,
+  DatasetStatus,
+  IngestionProgress,
+  IngestionStatus,
+} from '../models/admin';
 import { AdminService } from '../services/admin.service';
 
 const POLL_INTERVAL_MS = 4000;
@@ -43,14 +49,75 @@ export class InitialDataset implements OnInit, OnDestroy {
 
   private pollSub: Subscription | null = null;
 
+  // --- Ingestion into the evidence store -----------------------------------
+
+  protected readonly ingestion = signal<IngestionProgress | null>(null);
+  protected readonly ingesting = signal(false);
+  protected readonly ingestionError = signal<string | null>(null);
+
+  /** True while an ingestion run is actively pending/running. */
+  protected readonly ingestionActive = computed(() => {
+    const s = this.ingestion()?.status;
+    return s === 'PENDING' || s === 'RUNNING';
+  });
+
+  /**
+   * The ingest button is enabled ONLY when the dataset is DOWNLOADED and no run
+   * is in flight — i.e. ingestion is NOT_STARTED or FAILED (retry).
+   */
+  protected readonly ingestDisabled = computed(() => {
+    if (this.ingesting()) {
+      return true;
+    }
+    if (this.status()?.state !== 'DOWNLOADED') {
+      return true;
+    }
+    const status = this.ingestion()?.status ?? 'NOT_STARTED';
+    return !(status === 'NOT_STARTED' || status === 'FAILED');
+  });
+
+  /** Context-appropriate label for the ingest button. */
+  protected readonly ingestLabel = computed(() => {
+    if (this.ingesting()) {
+      return 'Starting…';
+    }
+    if (this.status()?.state !== 'DOWNLOADED') {
+      return 'Download the dataset first';
+    }
+    const status = this.ingestion()?.status ?? 'NOT_STARTED';
+    if (status === 'RUNNING' || status === 'PENDING') {
+      return 'Ingestion in progress…';
+    }
+    if (status === 'COMPLETED') {
+      return 'Ingestion complete';
+    }
+    if (status === 'FAILED') {
+      return 'Retry ingestion';
+    }
+    return 'Ingest into evidence store';
+  });
+
+  /** Overall ingestion progress percentage (0–100). */
+  protected readonly ingestionPct = computed(() => {
+    const i = this.ingestion();
+    if (!i || i.records_total <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((i.records_done / i.records_total) * 100));
+  });
+
+  private ingestionPollSub: Subscription | null = null;
+
   constructor(private readonly adminService: AdminService) {}
 
   ngOnInit(): void {
     this.load();
+    this.loadIngestion();
   }
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.stopIngestionPolling();
   }
 
   load(): void {
@@ -118,6 +185,105 @@ export class InitialDataset implements OnInit, OnDestroy {
   private stopPolling(): void {
     this.pollSub?.unsubscribe();
     this.pollSub = null;
+  }
+
+  loadIngestion(): void {
+    this.ingestionError.set(null);
+    this.adminService.getIngestionStatus().subscribe({
+      next: (response) => this.applyIngestion(response),
+      error: () => {
+        this.ingestionError.set(
+          'Unable to load ingestion status. Is the Admin-API running on :8002?',
+        );
+        this.ingestion.set(null);
+        this.stopIngestionPolling();
+      },
+    });
+  }
+
+  ingest(): void {
+    this.ingesting.set(true);
+    this.ingestionError.set(null);
+    this.adminService.triggerDatasetIngest('admin').subscribe({
+      next: (response) => {
+        this.applyIngestion(response);
+        this.ingesting.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 409) {
+          this.ingestionError.set('Download the dataset before ingesting into the evidence store.');
+        } else {
+          this.ingestionError.set(
+            'Unable to start ingestion. Is the Admin-API running on :8002?',
+          );
+        }
+        this.ingesting.set(false);
+      },
+    });
+  }
+
+  /** Store a fresh ingestion progress and (re)configure polling. */
+  private applyIngestion(progress: IngestionProgress): void {
+    this.ingestion.set(progress);
+    if (progress.status === 'PENDING' || progress.status === 'RUNNING') {
+      this.startIngestionPolling();
+    } else {
+      this.stopIngestionPolling();
+    }
+  }
+
+  private startIngestionPolling(): void {
+    if (this.ingestionPollSub) {
+      return;
+    }
+    this.ingestionPollSub = interval(POLL_INTERVAL_MS)
+      .pipe(switchMap(() => this.adminService.getIngestionStatus()))
+      .subscribe({
+        next: (response) => {
+          this.ingestion.set(response);
+          if (response.status === 'COMPLETED' || response.status === 'FAILED') {
+            this.stopIngestionPolling();
+          }
+        },
+        error: () => {
+          this.ingestionError.set(
+            'Lost contact with the Admin-API while polling ingestion. Retry with Refresh.',
+          );
+          this.stopIngestionPolling();
+        },
+      });
+  }
+
+  private stopIngestionPolling(): void {
+    this.ingestionPollSub?.unsubscribe();
+    this.ingestionPollSub = null;
+  }
+
+  /** Percentage complete for a single entity row (0–100). */
+  entityPct(done: number, total: number): number {
+    if (total <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((done / total) * 100));
+  }
+
+  /** CSS modifier for an ingestion status badge. */
+  ingestionBadgeClass(status: IngestionStatus | string): string {
+    return `badge badge--ing-${String(status).toLowerCase().replace(/_/g, '-')}`;
+  }
+
+  /** Human-readable count, e.g. 2.7M. */
+  formatCount(value: number): string {
+    if (value == null || value <= 0) {
+      return '0';
+    }
+    if (value >= 1_000_000) {
+      return `${Math.round((value / 1_000_000) * 10) / 10}M`;
+    }
+    if (value >= 1_000) {
+      return `${Math.round((value / 1_000) * 10) / 10}K`;
+    }
+    return `${value}`;
   }
 
   /** Human-readable byte size, e.g. 5.8 GB. */

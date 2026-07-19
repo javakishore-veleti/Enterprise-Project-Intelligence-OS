@@ -81,4 +81,121 @@
       }
     </div>
   }
+
+  <div class="ingestion">
+    <header class="ingestion__header">
+      <h2 class="ingestion__title">Ingestion into evidence store</h2>
+      <p class="ingestion__subtitle">
+        Batch-ingest the downloaded dataset into the MongoDB evidence store. Progress is polled from
+        the Admin-API while a run is in flight.
+      </p>
+    </header>
+
+    <div class="panel__toolbar">
+      <button type="button" class="btn" (click)="loadIngestion()">Refresh ingestion</button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="ingestDisabled()"
+        (click)="ingest()"
+      >
+        {{ ingestLabel() }}
+      </button>
+    </div>
+
+    @if (ingestionError()) {
+      <p class="panel__status panel__status--error">{{ ingestionError() }}</p>
+    }
+
+    @if (ingestion(); as i) {
+      <div class="ingestion__body">
+        <div class="ingestion__overall">
+          <div class="ingestion__status-row">
+            <span [class]="ingestionBadgeClass(i.status)">{{ i.status }}</span>
+            @if (i.run_id) {
+              <span class="mono ingestion__run">Run {{ i.run_id }}</span>
+            }
+          </div>
+
+          <div class="progress">
+            <div class="progress__labels">
+              <span>
+                {{ formatCount(i.records_done) }} / {{ formatCount(i.records_total) }} records
+              </span>
+              <span>{{ ingestionPct() }}%</span>
+            </div>
+            <div class="progress__track">
+              <div
+                class="progress__bar"
+                role="progressbar"
+                [attr.aria-valuenow]="ingestionPct()"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [style.width.%]="ingestionPct()"
+              ></div>
+            </div>
+          </div>
+
+          <dl class="ingestion__meta">
+            <dt>Started</dt>
+            <dd class="mono nowrap">{{ i.started_at || '—' }}</dd>
+            <dt>Finished</dt>
+            <dd class="mono nowrap">{{ i.finished_at || '—' }}</dd>
+          </dl>
+        </div>
+
+        @if (i.entities.length > 0) {
+          <table class="ing-table">
+            <thead>
+              <tr>
+                <th>Entity</th>
+                <th>Records</th>
+                <th class="ing-table__bar-col">Progress</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of i.entities; track e.entity) {
+                <tr>
+                  <td class="mono">{{ e.entity }}</td>
+                  <td>{{ formatCount(e.records_done) }} / {{ formatCount(e.records_total) }}</td>
+                  <td class="ing-table__bar-col">
+                    <div class="progress__track progress__track--sm">
+                      <div
+                        class="progress__bar"
+                        role="progressbar"
+                        [attr.aria-valuenow]="entityPct(e.records_done, e.records_total)"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [style.width.%]="entityPct(e.records_done, e.records_total)"
+                      ></div>
+                    </div>
+                  </td>
+                  <td><span [class]="ingestionBadgeClass(e.status)">{{ e.status }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (i.recent_log.length > 0) {
+          <div class="ing-log">
+            <h3 class="ing-log__title">Recent activity</h3>
+            <ul class="ing-log__list">
+              @for (line of i.recent_log; track $index) {
+                <li class="ing-log__item">
+                  <span class="ing-log__level ing-log__level--{{ line.level.toLowerCase() }}">
+                    {{ line.level }}
+                  </span>
+                  <span class="mono ing-log__entity">{{ line.entity }}</span>
+                  <span class="ing-log__msg">{{ line.message }}</span>
+                  <span class="mono nowrap ing-log__time">{{ line.created_at }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
+  </div>
 </section>

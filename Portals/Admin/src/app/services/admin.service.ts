@@ -8,6 +8,7 @@ import {
   AgentConfigListResponse,
   AuditListResponse,
   DatasetStatus,
+  IngestionProgress,
   SystemHealth,
   TriggerDatasetDownloadRequest,
   UpsertAgentConfigRequest,
@@ -74,5 +75,14 @@ export class AdminService {
   triggerDatasetDownload(requestedBy = 'admin'): Observable<DatasetStatus> {
     const body: TriggerDatasetDownloadRequest = { requested_by: requestedBy };
     return this.http.post<DatasetStatus>(`${this.baseUrl}/dataset/download`, body);
+  }
+
+  getIngestionStatus(): Observable<IngestionProgress> {
+    return this.http.get<IngestionProgress>(`${this.baseUrl}/dataset/ingestion`);
+  }
+
+  triggerDatasetIngest(requestedBy = 'admin'): Observable<IngestionProgress> {
+    const body: TriggerDatasetDownloadRequest = { requested_by: requestedBy };
+    return this.http.post<IngestionProgress>(`${this.baseUrl}/dataset/ingest`, body);
   }
 }

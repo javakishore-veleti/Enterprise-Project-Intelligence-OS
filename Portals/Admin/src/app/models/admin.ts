@@ -103,3 +103,49 @@ export interface DatasetStatus {
 export interface TriggerDatasetDownloadRequest {
   requested_by: string;
 }
+
+/** Lifecycle status of a batch-ingestion run into the evidence store. */
+export type IngestionStatus = 'NOT_STARTED' | 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+/** The five ingestion statuses, in contract order. */
+export const INGESTION_STATUSES: IngestionStatus[] = [
+  'NOT_STARTED',
+  'PENDING',
+  'RUNNING',
+  'COMPLETED',
+  'FAILED',
+];
+
+/** Per-entity progress within an ingestion run. */
+export interface IngestionEntityProgress {
+  entity: string;
+  records_done: number;
+  records_total: number;
+  status: string;
+}
+
+/** A single line in the ingestion activity log. */
+export interface IngestionLogEntry {
+  level: string;
+  entity: string;
+  message: string;
+  records_done: number;
+  records_total: number;
+  created_at: string;
+}
+
+/**
+ * Progress of a batch ingestion of the downloaded dataset into the MongoDB
+ * evidence store, from the Admin-API on :8002.
+ */
+export interface IngestionProgress {
+  run_id: string | null;
+  dataset_id: string;
+  status: IngestionStatus;
+  started_at: string | null;
+  finished_at: string | null;
+  records_done: number;
+  records_total: number;
+  entities: IngestionEntityProgress[];
+  recent_log: IngestionLogEntry[];
+}

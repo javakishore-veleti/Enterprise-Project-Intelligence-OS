@@ -86,3 +86,179 @@
   border-radius: 999px;
   transition: width 0.4s ease;
 }
+
+.progress__track--sm {
+  height: 0.4rem;
+}
+
+/* --- Ingestion section --- */
+
+.ingestion {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1.5rem;
+}
+
+.ingestion__header {
+  margin-bottom: 1rem;
+}
+
+.ingestion__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.ingestion__subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.ingestion__body {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.ingestion__status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ingestion__run {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.ingestion__meta {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.35rem 1rem;
+  margin: 1rem 0 0;
+}
+
+.ingestion__meta dt {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.ingestion__meta dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ing-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.25rem;
+  font-size: 0.88rem;
+}
+
+.ing-table th,
+.ing-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ing-table th {
+  color: #666;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.ing-table__bar-col {
+  width: 30%;
+  min-width: 8rem;
+}
+
+.ing-log {
+  margin-top: 1.5rem;
+}
+
+.ing-log__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.ing-log__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ing-log__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.ing-log__level {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: #6b7280;
+}
+
+.ing-log__level--info {
+  background: #2563eb;
+}
+
+.ing-log__level--warn,
+.ing-log__level--warning {
+  background: #b45309;
+}
+
+.ing-log__level--error {
+  background: #b91c1c;
+}
+
+.ing-log__entity {
+  flex: 0 0 auto;
+  color: #444;
+}
+
+.ing-log__msg {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.ing-log__time {
+  flex: 0 0 auto;
+  color: #999;
+  font-size: 0.75rem;
+}
+
+.badge--ing-not-started {
+  background: #6b7280;
+}
+
+.badge--ing-pending {
+  background: #6366f1;
+}
+
+.badge--ing-running {
+  background: #2563eb;
+}
+
+.badge--ing-completed {
+  background: #15803d;
+}
+
+.badge--ing-failed {
+  background: #b91c1c;
+}
