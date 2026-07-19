@@ -1,14 +1,14 @@
-# Enterprise-Project-Intelligence-OS
+# Enterprise Project Intelligence OS
 
-Enterprise Jira Intelligence OS is an AI-driven project and portfolio intelligence platform that analyzes Jira activity, identifies emerging delivery risks, explains the supporting evidence, recommends mitigation actions, and presents actionable insights through administrative and project-tracking experiences.
+Enterprise Project Intelligence OS is an AI-driven project and portfolio intelligence platform that analyzes project activity, identifies emerging delivery risks, explains the supporting evidence, recommends mitigation actions, and presents actionable insights through administrative and project-tracking experiences.
 
-The platform is designed around a large public Jira dataset containing 1,822 projects, 2.7 million issues, 32 million historical changes, 9 million comments, and 1 million issue links.
+The platform is designed around a large public issue-tracking dataset containing 1,822 projects, 2.7 million issues, 32 million historical changes, 9 million comments, and 1 million issue links.
 
 ## Product Capabilities
 
 ### Project Intelligence
 
-- Search and explore Jira projects
+- Search and explore projects
 - Review project status and delivery health
 - Analyze backlog growth and issue aging
 - Monitor sprint and milestone progress
@@ -38,7 +38,7 @@ Every material risk finding is designed to include:
 - Probability and impact
 - Severity and overall score
 - Confidence level
-- Supporting Jira evidence
+- Supporting project evidence
 - Affected issues or projects
 - Explanation and assumptions
 - Recommended mitigation actions
@@ -107,13 +107,13 @@ The project-tracking experience provides:
 ## How the Platform Works
 
 ```text
-Public Jira Dataset
+Public Issue-Tracking Dataset
         |
         v
 Batch Ingestion and Operational Workflows
         |
         v
-Jira Evidence Store
+Project Evidence Store
         |
         v
 Governed Middleware APIs
@@ -142,7 +142,7 @@ FastAPI middleware services provide the governed boundary between user applicati
 | Multi-agent orchestration | LangGraph |
 | Middleware APIs | Python and FastAPI |
 | User interfaces | Angular |
-| Jira evidence storage | MongoDB |
+| Project evidence storage | MongoDB |
 | Operational tracking | PostgreSQL |
 | Database schema management | Version-controlled migrations |
 | API contracts | OpenAPI and Swagger |
@@ -223,7 +223,7 @@ The complete dataset is never loaded into application memory at once.
 
 ## Data Responsibilities
 
-### Jira Evidence
+### Project Evidence
 
 MongoDB serves as the authoritative evidence store for:
 
@@ -333,10 +333,10 @@ Airflow invokes the risk-analysis capability through a governed application boun
 
 ## Evidence-Grounded Analysis
 
-The platform does not send millions of Jira records to a language model.
+The platform does not send millions of issue-tracking records to a language model.
 
 ```text
-Jira Records
+Issue-Tracking Records
       |
       v
 Indexed Queries and Deterministic Metrics
@@ -429,10 +429,9 @@ Agents interpret these facts, retrieve supporting evidence, identify risks, chal
 
 ## Dataset
 
-This project uses **The Public Jira Dataset**:
+This project uses a public issue-tracking research dataset created by Lloyd Montgomery, Clara Lüders, and Walid Maalej:
 
 > Montgomery, L., Lüders, C., and Maalej, W.  
-> “An Alternative Issue Tracking Dataset of Public Jira Repositories.”  
 > 2022 IEEE/ACM 19th International Conference on Mining Software  
 > Repositories (MSR), pp. 73–77.
 
@@ -449,12 +448,6 @@ The dataset remains subject to its own license, usage requirements, and attribut
 This project is under active development. APIs, schemas, agent workflows, user interfaces, and operational processes may change as implementation progresses.
 
 It is not currently intended for production use.
-
-## Trademark Notice
-
-Jira is a trademark of Atlassian Pty Ltd.
-
-This independent project is not affiliated with, sponsored by, or endorsed by Atlassian.
 
 ## Copyright and Use
 
