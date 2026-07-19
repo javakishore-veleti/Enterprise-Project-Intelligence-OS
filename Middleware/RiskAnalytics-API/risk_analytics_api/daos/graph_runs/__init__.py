@@ -6,14 +6,16 @@ import json
 from risk_analytics_api.daos.connection import PostgresDatabase
 from risk_analytics_api.dtos.common import AnalysisStatus
 from risk_analytics_api.dtos.responses import AnalysisRunResponse
-from risk_analytics_api.interfaces.daos import RiskFindingDao
-from risk_analytics_api.interfaces.daos import GraphRunDao
+from risk_analytics_api.interfaces.daos import GraphRunDao, ReportDao, RiskFindingDao
 
 
 class PostgresGraphRunDao(GraphRunDao):
-    def __init__(self, database: PostgresDatabase, findings_dao: RiskFindingDao) -> None:
+    def __init__(
+        self, database: PostgresDatabase, findings_dao: RiskFindingDao, reports_dao: ReportDao
+    ) -> None:
         self._db = database
         self._findings = findings_dao
+        self._reports = reports_dao
 
     def create(self, run_id, project_key, agent_keys, started_at) -> None:
         with self._db.connection() as conn:
@@ -54,4 +56,5 @@ class PostgresGraphRunDao(GraphRunDao):
             started_at=row[4],
             finished_at=row[5],
             findings=self._findings.list_for_run(run_id),
+            reports=self._reports.list_for_run(run_id),
         )

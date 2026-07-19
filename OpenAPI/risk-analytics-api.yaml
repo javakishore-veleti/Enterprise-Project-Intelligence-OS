@@ -121,6 +121,12 @@ components:
             $ref: '#/components/schemas/RiskFindingResponse'
           type: array
           title: Findings
+        reports:
+          items:
+            $ref: '#/components/schemas/ReportResponse'
+          type: array
+          title: Reports
+          default: []
       additionalProperties: false
       type: object
       required:
@@ -132,7 +138,7 @@ components:
       - finished_at
       - findings
       title: AnalysisRunResponse
-      description: A multi-agent analysis run and its findings.
+      description: A multi-agent analysis run, its findings, and any review reports.
     AnalysisStatus:
       type: string
       enum:
@@ -169,6 +175,45 @@ components:
       - status
       - service
       title: HealthResponse
+    ReportResponse:
+      properties:
+        report_id:
+          type: string
+          title: Report Id
+        kind:
+          type: string
+          title: Kind
+        title:
+          type: string
+          title: Title
+        summary:
+          type: string
+          title: Summary
+        sections:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Sections
+        source_agent:
+          type: string
+          title: Source Agent
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+      additionalProperties: false
+      type: object
+      required:
+      - report_id
+      - kind
+      - title
+      - summary
+      - sections
+      - source_agent
+      - generated_at
+      title: ReportResponse
+      description: A generated narrative report over a run's findings.
     RiskFindingResponse:
       properties:
         finding_id:
@@ -217,6 +262,11 @@ components:
           type: string
           format: date-time
           title: Analysis Timestamp
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+          default: {}
       additionalProperties: false
       type: object
       required:
@@ -242,7 +292,13 @@ components:
             type: string
           type: array
           title: Agents
-          description: Agent keys to run. Only implemented agents execute.
+          description: Detector agent keys to run. Only implemented agents execute.
+        include_review:
+          type: boolean
+          title: Include Review
+          description: Run the review pipeline (validate/dedup/correlate/score/critic
+            + reports) after detection.
+          default: false
         requested_by:
           type: string
           minLength: 1

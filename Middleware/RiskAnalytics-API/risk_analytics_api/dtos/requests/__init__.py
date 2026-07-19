@@ -11,6 +11,10 @@ class StartAnalysisRequest(TypedModel):
 
     agents: list[str] = Field(
         default_factory=lambda: ["schedule_risk"],
-        description="Agent keys to run. Only implemented agents execute.",
+        description="Detector agent keys to run. Only implemented agents execute.",
+    )
+    include_review: bool = Field(
+        default=False,
+        description="Run the review pipeline (validate/dedup/correlate/score/critic + reports) after detection.",
     )
     requested_by: str = Field(default="system", min_length=1)

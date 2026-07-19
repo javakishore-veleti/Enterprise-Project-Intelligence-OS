@@ -8,6 +8,7 @@ from risk_analytics_api.daos.agent_config_gateway import PostgresAgentConfigGate
 from risk_analytics_api.daos.connection import MongoDatabaseFactory, PostgresDatabase
 from risk_analytics_api.daos.evidence import MongoEvidenceDao
 from risk_analytics_api.daos.graph_runs import PostgresGraphRunDao
+from risk_analytics_api.daos.reports import PostgresReportDao
 from risk_analytics_api.daos.risk_findings import PostgresRiskFindingDao
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
@@ -31,11 +32,13 @@ def get_mongo() -> MongoDatabaseFactory:
 def _orchestration_service() -> DefaultAnalysisOrchestrationService:
     pg = get_postgres()
     findings_dao = PostgresRiskFindingDao(pg)
+    reports_dao = PostgresReportDao(pg)
     return DefaultAnalysisOrchestrationService(
         evidence_service=DefaultEvidenceRetrievalService(MongoEvidenceDao(get_mongo())),
         agent_config_gateway=PostgresAgentConfigGateway(pg),
-        graph_run_dao=PostgresGraphRunDao(pg, findings_dao),
+        graph_run_dao=PostgresGraphRunDao(pg, findings_dao, reports_dao),
         risk_finding_dao=findings_dao,
+        report_dao=reports_dao,
         agent_factory=build_specialist,
         settings=get_settings(),
     )

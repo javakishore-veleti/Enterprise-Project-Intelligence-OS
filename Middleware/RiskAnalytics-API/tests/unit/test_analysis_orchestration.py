@@ -94,7 +94,28 @@ class InMemoryFindingDao(RiskFindingDao):
                 probability=f.probability, impact=f.impact, severity=f.severity.value,
                 score=f.score, confidence=f.confidence, explanation=f.explanation,
                 assumptions=f.assumptions, recommended_actions=f.recommended_actions,
-                affected=f.affected, analysis_timestamp=f.analysis_timestamp,
+                affected=f.affected, analysis_timestamp=f.analysis_timestamp, meta=f.meta,
+            ))
+        return ids
+
+    def list_for_run(self, run_id):
+        return self.by_run.get(run_id, [])
+
+
+class InMemoryReportDao:
+    def __init__(self):
+        self.by_run: dict[str, list] = {}
+
+    def add_many(self, run_id, project_key, reports):
+        from risk_analytics_api.dtos.responses import ReportResponse
+        rows = self.by_run.setdefault(run_id, [])
+        ids = []
+        for i, rep in enumerate(reports):
+            rid = f"{run_id}-rep-{i}"
+            ids.append(rid)
+            rows.append(ReportResponse(
+                report_id=rid, kind=rep.kind.value, title=rep.title, summary=rep.summary,
+                sections=rep.sections, source_agent=rep.source_agent, generated_at=rep.generated_at,
             ))
         return ids
 
@@ -103,9 +124,10 @@ class InMemoryFindingDao(RiskFindingDao):
 
 
 class InMemoryGraphRunDao(GraphRunDao):
-    def __init__(self, findings: InMemoryFindingDao):
+    def __init__(self, findings: InMemoryFindingDao, reports: InMemoryReportDao):
         self.rows: dict[str, dict] = {}
         self._findings = findings
+        self._reports = reports
 
     def create(self, run_id, project_key, agent_keys, started_at):
         self.rows[run_id] = {"project_key": project_key, "status": "RUNNING",
@@ -123,19 +145,25 @@ class InMemoryGraphRunDao(GraphRunDao):
             run_id=run_id, project_key=r["project_key"], status=AnalysisStatus(r["status"]),
             agent_keys=r["agent_keys"], started_at=r["started_at"], finished_at=r["finished_at"],
             findings=self._findings.list_for_run(run_id),
+            reports=self._reports.list_for_run(run_id),
         )
 
 
-def _service(agent_factory, evidence=EVIDENCE, cfg=(True, "claude-opus-4-8", "langgraph")):
+def _service(agent_factory, evidence=EVIDENCE, cfg=(True, "claude-opus-4-8", "langgraph"),
+             review_builder=None):
     findings = InMemoryFindingDao()
-    runs = InMemoryGraphRunDao(findings)
+    reports = InMemoryReportDao()
+    runs = InMemoryGraphRunDao(findings, reports)
+    kwargs = {} if review_builder is None else {"review_builder": review_builder}
     return DefaultAnalysisOrchestrationService(
         evidence_service=FakeEvidenceService(evidence),
         agent_config_gateway=FakeConfigGateway(cfg),
         graph_run_dao=runs,
         risk_finding_dao=findings,
+        report_dao=reports,
         agent_factory=agent_factory,
         settings=Settings(),
+        **kwargs,
     ), runs
 
 
@@ -183,3 +211,39 @@ def test_get_run_missing_raises() -> None:
     service, _ = _service(lambda k, fw, m: FakeAgent({}))
     with pytest.raises(NotFoundError):
         service.get_run("nope")
+
+
+def test_include_review_runs_pipeline_and_persists_reports() -> None:
+    from types import SimpleNamespace
+
+    from agent_core import ReportKind, RiskReport
+
+    captured = {}
+
+    class _FakeReview:
+        def run(self, ctx):
+            captured["ctx_findings"] = ctx.findings
+            reviewed = [ctx.findings[0].model_copy(update={"meta": {"priority_rank": 1}})]
+            report = RiskReport(
+                kind=ReportKind.PROJECT, title="Report", summary="ok", sections=[],
+                source_agent="project_reporting",
+                generated_at=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            )
+            return SimpleNamespace(findings=reviewed, reports=[report])
+
+    service, _ = _service(lambda k, fw, m: FakeAgent({}), review_builder=lambda cg, model: _FakeReview())
+
+    result = service.run(
+        "APACHE", StartAnalysisRequest(agents=["schedule_risk"], include_review=True)
+    )
+
+    assert result.status is AnalysisStatus.COMPLETED
+    assert captured["ctx_findings"]  # review received the detector findings
+    assert result.findings[0].meta.get("priority_rank") == 1  # reviewed findings persisted
+    assert len(result.reports) == 1 and result.reports[0].kind == "project"
+
+
+def test_detect_only_produces_no_reports() -> None:
+    service, _ = _service(lambda k, fw, m: FakeAgent({}))
+    result = service.run("APACHE", StartAnalysisRequest(agents=["schedule_risk"]))
+    assert result.reports == []

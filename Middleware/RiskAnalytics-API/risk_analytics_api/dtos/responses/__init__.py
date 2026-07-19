@@ -23,10 +23,24 @@ class RiskFindingResponse(TypedModel):
     recommended_actions: list[str]
     affected: list[str]
     analysis_timestamp: datetime
+    #: Review-pipeline annotations (priority_rank, correlation_group, critic_verdict, ...).
+    meta: dict = {}
+
+
+class ReportResponse(TypedModel):
+    """A generated narrative report over a run's findings."""
+
+    report_id: str
+    kind: str  # mitigation | project | executive
+    title: str
+    summary: str
+    sections: list[dict]
+    source_agent: str
+    generated_at: datetime
 
 
 class AnalysisRunResponse(TypedModel):
-    """A multi-agent analysis run and its findings."""
+    """A multi-agent analysis run, its findings, and any review reports."""
 
     run_id: str
     project_key: str
@@ -35,6 +49,7 @@ class AnalysisRunResponse(TypedModel):
     started_at: datetime
     finished_at: datetime | None
     findings: list[RiskFindingResponse]
+    reports: list[ReportResponse] = []
 
 
 class HealthResponse(TypedModel):

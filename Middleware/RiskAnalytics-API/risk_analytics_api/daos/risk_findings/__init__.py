@@ -13,7 +13,7 @@ from risk_analytics_api.interfaces.daos import RiskFindingDao
 _COLUMNS = (
     "finding_id, run_id, project_key, agent_key, risk_category, probability, impact, "
     "severity, score, confidence, explanation, assumptions, recommended_actions, "
-    "affected, analysis_timestamp"
+    "affected, analysis_timestamp, meta"
 )
 
 
@@ -22,6 +22,11 @@ def _to_response(r: tuple) -> RiskFindingResponse:
         if isinstance(v, str):
             v = json.loads(v)
         return list(v or [])
+
+    def _jsonobj(v):
+        if isinstance(v, str):
+            v = json.loads(v)
+        return dict(v or {})
 
     return RiskFindingResponse(
         finding_id=r[0],
@@ -37,6 +42,7 @@ def _to_response(r: tuple) -> RiskFindingResponse:
         recommended_actions=_jsonlist(r[12]),
         affected=_jsonlist(r[13]),
         analysis_timestamp=r[14],
+        meta=_jsonobj(r[15]),
     )
 
 
@@ -53,12 +59,12 @@ class PostgresRiskFindingDao(RiskFindingDao):
                 ids.append(fid)
                 cur.execute(
                     f"INSERT INTO risk.risk_findings ({_COLUMNS}) VALUES "
-                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s)",
+                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s::jsonb)",
                     (
                         fid, run_id, project_key, f.source_agent, f.risk_category.value,
                         f.probability, f.impact, f.severity.value, f.score, f.confidence,
                         f.explanation, json.dumps(f.assumptions), json.dumps(f.recommended_actions),
-                        json.dumps(f.affected), f.analysis_timestamp,
+                        json.dumps(f.affected), f.analysis_timestamp, json.dumps(f.meta),
                     ),
                 )
         return ids

@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from agent_core import EvidencePackage, RiskFinding
+from agent_core import EvidencePackage, RiskFinding, RiskReport
 
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunResponse, ReportResponse
 
 
 class AgentConfigGateway(ABC):
@@ -47,3 +47,13 @@ class RiskFindingDao(ABC):
     @abstractmethod
     def list_for_run(self, run_id: str) -> list["RiskFindingResponse"]:
         """Return the persisted findings for a run."""
+
+
+class ReportDao(ABC):
+    """Persistence of generated review reports (PostgreSQL)."""
+
+    @abstractmethod
+    def add_many(self, run_id: str, project_key: str, reports: list[RiskReport]) -> list[str]: ...
+
+    @abstractmethod
+    def list_for_run(self, run_id: str) -> list[ReportResponse]: ...

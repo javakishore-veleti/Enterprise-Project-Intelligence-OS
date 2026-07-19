@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from agent_core import RiskAgent
+from agent_core import RiskAgent, ReviewContext
 
 from risk_analytics_api.common.configuration import Settings
 from risk_analytics_api.common.exceptions import AgentExecutionError, NotFoundError
@@ -21,9 +21,11 @@ from risk_analytics_api.dtos.responses import AnalysisRunResponse
 from risk_analytics_api.interfaces.daos import (
     AgentConfigGateway,
     GraphRunDao,
+    ReportDao,
     RiskFindingDao,
 )
 from risk_analytics_api.graphs.project_risk_manager import ProjectRiskManager
+from risk_analytics_api.graphs.risk_review import ProjectRiskReview, build_review
 from risk_analytics_api.interfaces.services import (
     AnalysisOrchestrationService,
     EvidenceRetrievalService,
@@ -31,6 +33,8 @@ from risk_analytics_api.interfaces.services import (
 
 # (agent_key, framework, model) -> RiskAgent, or None if the agent_key is not implemented.
 AgentFactory = Callable[[str, str, str], "RiskAgent | None"]
+# config_get, default_model -> ProjectRiskReview
+ReviewBuilder = Callable[..., ProjectRiskReview]
 
 _logger = get_logger(__name__)
 
@@ -42,16 +46,20 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
         agent_config_gateway: AgentConfigGateway,
         graph_run_dao: GraphRunDao,
         risk_finding_dao: RiskFindingDao,
+        report_dao: ReportDao,
         agent_factory: AgentFactory,
         settings: Settings,
+        review_builder: ReviewBuilder = build_review,
     ) -> None:
         self._evidence = evidence_service
         self._config = agent_config_gateway
         self._runs = graph_run_dao
         self._findings = risk_finding_dao
+        self._reports = report_dao
         self._factory = agent_factory
         self._manager = ProjectRiskManager(agent_factory)
         self._settings = settings
+        self._review_builder = review_builder
 
     def _resolve_specs(self, agent_keys: list[str]) -> list[tuple[str, str, str]]:
         """Resolve each requested agent's (key, framework, model) from Admin config."""
@@ -81,8 +89,6 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
 
         # Fan out across specialists via the LangGraph manager graph.
         result = self._manager.run(evidence, specs)
-        if result.findings:
-            self._findings.add_many(run_id, project_key, result.findings)
         for err in result.errors:
             _logger.warning("agent failed", extra={"context": err})
 
@@ -93,11 +99,33 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
                 "analysis failed: " + "; ".join(e.get("error", "") for e in result.errors)
             )
 
+        findings = result.findings
+        n_reports = 0
+        # Optionally run the review pipeline (validate/dedup/correlate/score/critic + reports).
+        if request.include_review and findings:
+            review = self._review_builder(self._config.get, self._settings.default_agent_model)
+            review_result = review.run(
+                ReviewContext(
+                    project_key=project_key,
+                    project_name=evidence.project_name,
+                    evidence=evidence,
+                    findings=findings,
+                )
+            )
+            findings = review_result.findings
+            if review_result.reports:
+                self._reports.add_many(run_id, project_key, review_result.reports)
+                n_reports = len(review_result.reports)
+
+        if findings:
+            self._findings.add_many(run_id, project_key, findings)
+
         self._runs.complete(run_id, AnalysisStatus.COMPLETED.value, utc_now())
         _logger.info(
             "analysis completed",
             extra={"context": {"run_id": run_id, "agents": [s[0] for s in specs],
-                               "findings": len(result.findings), "errors": len(result.errors)}},
+                               "findings": len(findings), "reports": n_reports,
+                               "reviewed": request.include_review, "errors": len(result.errors)}},
         )
         return self._runs.get(run_id)
 
