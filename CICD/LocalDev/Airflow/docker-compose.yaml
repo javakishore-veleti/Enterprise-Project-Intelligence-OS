@@ -19,6 +19,7 @@ services:
       # The acquire DAG reports status to the host Ingestion-API and writes the
       # download to a mounted data dir.
       INGESTION_API_BASE_URL: http://host.docker.internal:8001
+      PROJECTS_API_BASE_URL: http://host.docker.internal:8003
       DATASET_DATA_DIR: /opt/airflow/data
       # The ingest DAG batch-writes evidence directly to MongoDB (operational tier).
       MONGO_URI: mongodb://host.docker.internal:27017/epi_os
