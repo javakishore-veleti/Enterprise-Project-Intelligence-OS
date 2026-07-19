@@ -33,8 +33,11 @@ start_one() {
   fi
 
   echo "install  $name deps ..."
+  # Python 3.12 matches the service Dockerfiles and supports every agentic
+  # framework we target (LangGraph, CrewAI, OpenAI Agents, Strands, ADK, ...).
+  local PY; PY="$(command -v python3.12 || command -v python3)"
   ( cd "$path"
-    [[ -d .venv ]] || python3 -m venv .venv
+    [[ -d .venv ]] || "$PY" -m venv .venv
     ./.venv/bin/pip install -q --upgrade pip
     # Editable path deps (sibling repo packages), one repo-relative path per line.
     if [[ -f local-deps.txt ]]; then
