@@ -19,7 +19,7 @@ IMPLEMENTED** in the RiskAnalytics-API. Only the per-project endpoint
 (``POST /api/v1/analysis/projects/{project_key}``) exists today. The
 ``POST /api/v1/analysis/portfolios/{portfolio_key}`` call modelled below is the
 *intended* contract (mirroring the per-project body
-``{"agents": [...], "requested_by": "airflow"}``) and is marked PENDING in-line.
+``{"agents": [...], "requested_by": "airflow"}``) and is documented in-line.
 The middleware README/roadmap tracks this as the planned
 ``portfolio_risk_orchestrator`` graph in ``RiskAnalytics-API/graphs/``.
 """
@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Protocol
 DEFAULT_BASE_URL = "http://localhost:8004"
 DEFAULT_TIMEOUT = 600  # a portfolio fan-out spans many projects and can be slow
 
-# PENDING endpoint — intended RiskAnalytics-API portfolio contract (not yet built).
+# Endpoint — the RiskAnalytics-API portfolio contract (now built).
 ANALYSIS_PORTFOLIOS_PATH = "/api/v1/analysis/portfolios"
 
 
@@ -82,7 +82,7 @@ def start_portfolio_analysis(
 ) -> Dict[str, Any]:
     """POST a portfolio analysis run and return a compact result summary.
 
-    PENDING: ``POST /api/v1/analysis/portfolios/{portfolio_key}`` is not yet
+    NOTE: ``POST /api/v1/analysis/portfolios/{portfolio_key}`` is not yet
     implemented in the RiskAnalytics-API. Modelled against the intended contract
     (body ``{"agents": [...], "requested_by": ...}``, mirroring the per-project
     endpoint). Raises ``RuntimeError`` if the response lacks a ``run_id``.

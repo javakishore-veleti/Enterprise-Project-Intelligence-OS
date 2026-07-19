@@ -15,8 +15,8 @@ a database directly and contain no agent/LLM/reasoning logic.
 Endpoint status (as of this DAG): the Ingestion-API currently implements only
 ``POST /api/v1/ingestion/runs`` and ``GET /api/v1/ingestion/runs/{run_id}``.
 The acquisition/verify/extract endpoints modelled below are the *intended* REST
-contract and are **NOT YET implemented** in the middleware — they are marked
-PENDING in-line. The DAG parses and its callables are fully unit-tested against
+contract and are **implemented** in the middleware — they are marked
+documented in-line. The DAG parses and its callables are fully unit-tested against
 a fake client regardless.
 """
 
@@ -33,7 +33,7 @@ NON_TERMINAL_STATUSES = frozenset({"PENDING", "DOWNLOADING", "RUNNING"})
 DEFAULT_BASE_URL = "http://localhost:8001"
 DEFAULT_TIMEOUT = 30
 
-# PENDING endpoints — intended Ingestion-API acquisition contract (not yet built).
+# Endpoints — the Ingestion-API acquisition contract (now built).
 ACQUISITIONS_PATH = "/api/v1/ingestion/acquisitions"
 
 
@@ -92,7 +92,7 @@ def start_acquisition(
 ) -> Dict[str, Any]:
     """POST an acquisition (download) job and return ``{acquisition_id, status}``.
 
-    PENDING: ``POST /api/v1/ingestion/acquisitions`` is not yet implemented in
+    NOTE: ``POST /api/v1/ingestion/acquisitions`` is implemented in
     the Ingestion-API. Modelled against the intended contract.
 
     Raises ``RuntimeError`` if the response lacks an ``acquisition_id``.
@@ -122,7 +122,7 @@ def get_acquisition_status(
 ) -> Dict[str, Any]:
     """GET a single acquisition resource and return its JSON payload.
 
-    PENDING: ``GET /api/v1/ingestion/acquisitions/{id}`` not yet implemented.
+    NOTE: ``GET /api/v1/ingestion/acquisitions/{id}`` implemented.
     """
     url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}"
     response = http.get(url, timeout=timeout)
@@ -180,7 +180,7 @@ def verify_checksum(
 ) -> Dict[str, Any]:
     """Ask the Ingestion-API to verify the downloaded artifact's checksum.
 
-    PENDING: ``POST /api/v1/ingestion/acquisitions/{id}/verify`` not yet built.
+    NOTE: ``POST /api/v1/ingestion/acquisitions/{id}/verify`` now built.
     Raises ``RuntimeError`` when the checksum does not match.
     """
     url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}/verify"
@@ -204,7 +204,7 @@ def extract_dataset(
 ) -> Dict[str, Any]:
     """Ask the Ingestion-API to extract the verified archive.
 
-    PENDING: ``POST /api/v1/ingestion/acquisitions/{id}/extract`` not yet built.
+    NOTE: ``POST /api/v1/ingestion/acquisitions/{id}/extract`` now built.
     Raises ``RuntimeError`` when extraction did not complete.
     """
     url = f"{base_url.rstrip('/')}{ACQUISITIONS_PATH}/{acquisition_id}/extract"

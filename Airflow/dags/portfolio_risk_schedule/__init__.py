@@ -6,6 +6,6 @@ RiskAnalytics-API FastAPI boundary over HTTP — they never touch the databases
 directly and never contain any agent/LLM/reasoning logic.
 
 NOTE: the portfolio analysis endpoint is *planned* and may not yet exist in the
-RiskAnalytics-API. This DAG models the intended call and marks it PENDING; see
+RiskAnalytics-API. This DAG calls the implemented endpoint; see
 ``tasks.py``.
 """

@@ -13,8 +13,17 @@ POST /api/v1/analysis/projects/{key}
   3. Framework toggle     — build the agent via its registry (langgraph default)
   4. Agent reasoning      — LangGraph graph -> Claude (langchain-anthropic) -> typed RiskFinding[]
   5. Persist             — risk.graph_runs + risk.risk_findings (PostgreSQL)
-GET  /api/v1/analysis/runs/{run_id}    — read a run and its findings
+GET  /api/v1/analysis/runs/{run_id}    — read a run, its findings, and reports
+POST /api/v1/analysis/portfolios/{key} — cross-project analysis + portfolio reports
 ```
+
+With `include_review: true`, the review pipeline runs after detection:
+`validate → dedup → correlate → score → [critic loop] → report`, producing
+refined findings (annotated in `meta`) and mitigation/project/executive reports.
+The critic is a bounded revision loop (re-runs until it converges or hits its
+max). Which review agents run — and their model — comes from Admin-API config.
+Portfolio runs analyze each project (detection) then synthesize the aggregate
+(cross-project dedup/correlation/scoring + reports).
 
 Specialist agents live in the repo `Agents/` package (`epi-agents`), behind a
 framework-agnostic port. This service depends on it (see `local-deps.txt`); only

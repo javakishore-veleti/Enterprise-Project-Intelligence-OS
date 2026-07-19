@@ -4,6 +4,17 @@ Dataset ingestion management service for Enterprise Project Intelligence OS.
 Runs on **port 8001**. This service is the **reference implementation** of the
 platform's middleware layering — new microservices should mirror its structure.
 
+## Endpoints
+
+- Ingestion runs: `POST /api/v1/ingestion/runs`, `GET /api/v1/ingestion/runs/{run_id}`.
+- **Operational sub-operations** (called by the Airflow DAGs over the boundary):
+  `POST/GET /api/v1/ingestion/acquisitions` (+ `/{id}/verify`, `/{id}/extract`),
+  `/validations`, `/indexes`, `/reconciliations`. Each runs synchronously and is
+  persisted to `ingestion.operations`. `validate`/`index`/`reconcile` report real
+  counts from the MongoDB evidence store; acquisition download/verify/extract are
+  stubbed (no live 5.8 GB dataset).
+- `GET /health/live`, `GET /health/ready` (readiness pings Postgres).
+
 ## Layering
 
 ```

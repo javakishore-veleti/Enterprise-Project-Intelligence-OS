@@ -15,7 +15,7 @@ boundary. They never touch a database directly and contain no agent/LLM logic.
 Endpoint status: the Ingestion-API currently implements only
 ``POST /api/v1/ingestion/runs`` and ``GET /api/v1/ingestion/runs/{run_id}``.
 The reconciliation endpoints modelled below are the *intended* REST contract and
-are **NOT YET implemented** in the middleware — marked PENDING in-line.
+are **implemented** in the middleware — documented in-line.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ NON_TERMINAL_STATUSES = frozenset({"PENDING", "RUNNING"})
 DEFAULT_BASE_URL = "http://localhost:8001"
 DEFAULT_TIMEOUT = 30
 
-# PENDING endpoints — intended Ingestion-API reconciliation contract (not yet built).
+# Endpoints — the Ingestion-API reconciliation contract (now built).
 RECONCILIATIONS_PATH = "/api/v1/ingestion/reconciliations"
 
 
@@ -84,7 +84,7 @@ def start_reconciliation(
 ) -> Dict[str, Any]:
     """POST a reconciliation job and return ``{reconciliation_id, status}``.
 
-    PENDING: ``POST /api/v1/ingestion/reconciliations`` not yet implemented.
+    NOTE: ``POST /api/v1/ingestion/reconciliations`` implemented.
     Raises ``RuntimeError`` if the response lacks a ``reconciliation_id``.
     """
     url = f"{base_url.rstrip('/')}{RECONCILIATIONS_PATH}"
@@ -111,7 +111,7 @@ def get_reconciliation_status(
 ) -> Dict[str, Any]:
     """GET a single reconciliation resource and return its JSON payload.
 
-    PENDING: ``GET /api/v1/ingestion/reconciliations/{id}`` not yet implemented.
+    NOTE: ``GET /api/v1/ingestion/reconciliations/{id}`` implemented.
     """
     url = f"{base_url.rstrip('/')}{RECONCILIATIONS_PATH}/{reconciliation_id}"
     response = http.get(url, timeout=timeout)

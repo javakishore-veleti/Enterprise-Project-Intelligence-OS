@@ -15,7 +15,7 @@ database directly and contain no agent/LLM/reasoning logic.
 Endpoint status: the Ingestion-API currently implements only
 ``POST /api/v1/ingestion/runs`` and ``GET /api/v1/ingestion/runs/{run_id}``.
 The validation endpoints modelled below are the *intended* REST contract and are
-**NOT YET implemented** in the middleware — marked PENDING in-line.
+**implemented** in the middleware — documented in-line.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ NON_TERMINAL_STATUSES = frozenset({"PENDING", "RUNNING"})
 DEFAULT_BASE_URL = "http://localhost:8001"
 DEFAULT_TIMEOUT = 30
 
-# PENDING endpoints — intended Ingestion-API validation contract (not yet built).
+# Endpoints — the Ingestion-API validation contract (now built).
 VALIDATIONS_PATH = "/api/v1/ingestion/validations"
 
 
@@ -86,7 +86,7 @@ def start_validation(
 ) -> Dict[str, Any]:
     """POST a validation job and return ``{validation_id, status}``.
 
-    PENDING: ``POST /api/v1/ingestion/validations`` not yet implemented.
+    NOTE: ``POST /api/v1/ingestion/validations`` implemented.
     Raises ``RuntimeError`` if the response lacks a ``validation_id``.
     """
     url = f"{base_url.rstrip('/')}{VALIDATIONS_PATH}"
@@ -110,7 +110,7 @@ def get_validation_status(
 ) -> Dict[str, Any]:
     """GET a single validation resource and return its JSON payload.
 
-    PENDING: ``GET /api/v1/ingestion/validations/{id}`` not yet implemented.
+    NOTE: ``GET /api/v1/ingestion/validations/{id}`` implemented.
     """
     url = f"{base_url.rstrip('/')}{VALIDATIONS_PATH}/{validation_id}"
     response = http.get(url, timeout=timeout)

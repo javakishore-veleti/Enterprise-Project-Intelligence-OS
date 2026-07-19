@@ -13,7 +13,7 @@ Ingestion-API FastAPI boundary.
 
 NOTE: the validation endpoints this DAG calls are the *intended* Ingestion-API
 contract and are **not yet implemented** in the middleware. See ``tasks.py``
-PENDING markers.
+endpoint notes.
 
 Triggered on demand (``schedule=None``).
 """

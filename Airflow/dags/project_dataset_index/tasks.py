@@ -15,7 +15,7 @@ directly (the middleware issues the actual DDL) and contain no agent/LLM logic.
 Endpoint status: the Ingestion-API currently implements only
 ``POST /api/v1/ingestion/runs`` and ``GET /api/v1/ingestion/runs/{run_id}``.
 The indexing endpoints modelled below are the *intended* REST contract and are
-**NOT YET implemented** in the middleware — marked PENDING in-line.
+**implemented** in the middleware — documented in-line.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ NON_TERMINAL_STATUSES = frozenset({"PENDING", "RUNNING"})
 DEFAULT_BASE_URL = "http://localhost:8001"
 DEFAULT_TIMEOUT = 30
 
-# PENDING endpoints — intended Ingestion-API indexing contract (not yet built).
+# Endpoints — the Ingestion-API indexing contract (now built).
 INDEXES_PATH = "/api/v1/ingestion/indexes"
 
 
@@ -84,7 +84,7 @@ def start_indexing(
 ) -> Dict[str, Any]:
     """POST an index-creation job and return ``{index_job_id, status}``.
 
-    PENDING: ``POST /api/v1/ingestion/indexes`` not yet implemented.
+    NOTE: ``POST /api/v1/ingestion/indexes`` implemented.
     Raises ``RuntimeError`` if the response lacks an ``index_job_id``.
     """
     url = f"{base_url.rstrip('/')}{INDEXES_PATH}"
@@ -108,7 +108,7 @@ def get_index_status(
 ) -> Dict[str, Any]:
     """GET a single indexing resource and return its JSON payload.
 
-    PENDING: ``GET /api/v1/ingestion/indexes/{id}`` not yet implemented.
+    NOTE: ``GET /api/v1/ingestion/indexes/{id}`` implemented.
     """
     url = f"{base_url.rstrip('/')}{INDEXES_PATH}/{index_job_id}"
     response = http.get(url, timeout=timeout)

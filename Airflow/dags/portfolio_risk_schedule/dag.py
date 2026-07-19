@@ -13,7 +13,7 @@ LangGraph orchestration.
 
 NOTE: the portfolio analysis endpoint is *planned* and **not yet implemented**
 in the RiskAnalytics-API (only the per-project endpoint exists today). This DAG
-models the intended call; see ``tasks.py`` PENDING markers.
+calls the implemented endpoint; see ``tasks.py``.
 
 Runs on a weekly cron schedule.
 """
