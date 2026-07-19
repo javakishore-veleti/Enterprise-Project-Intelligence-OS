@@ -31,6 +31,9 @@ class FakeTrackingDao(IngestionTrackingDao):
     def update_status(self, run_id, status):  # pragma: no cover - unused here
         return self.rows.get(run_id)
 
+    def latest_run_for_dataset(self, dataset_id):  # pragma: no cover - unused here
+        return None
+
 
 class FakeAirflow(AirflowGateway):
     def __init__(self) -> None:

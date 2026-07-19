@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # The dataset the "Initial Dataset" download manages.
     default_dataset_id: str = Field(default="public-jira", alias="DEFAULT_DATASET_ID")
     acquire_dag_id: str = Field(default="project_dataset_acquire", alias="ACQUIRE_DAG_ID")
+    ingest_dag_id: str = Field(default="project_dataset_ingest", alias="INGEST_DAG_ID")
 
 
 @lru_cache

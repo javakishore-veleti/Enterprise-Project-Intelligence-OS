@@ -58,3 +58,31 @@ class UpdateDatasetStatusRequest(TypedModel):
     downloaded_bytes: int | None = Field(default=None, ge=0)
     downloaded_path: str | None = None
     message: str | None = None
+
+
+class StartDatasetIngestionRequest(TypedModel):
+    """Request to (Airflow-driven) batch-ingest a downloaded dataset into Mongo."""
+
+    requested_by: str = Field(default="admin", min_length=1)
+    batch_size: int = Field(default=1000, ge=1, le=100_000)
+    parallelism: int = Field(default=4, ge=1, le=64)
+
+
+class ReportBatchProgressRequest(TypedModel):
+    """A per-batch checkpoint + progress event posted by the ingest DAG."""
+
+    entity: str = Field(..., min_length=1)
+    batch_no: int = Field(..., ge=0)
+    source_offset: int = Field(default=0, ge=0)
+    record_count: int = Field(default=0, ge=0)
+    records_done: int = Field(default=0, ge=0)     # cumulative for this entity
+    records_total: int = Field(default=0, ge=0)    # total for this entity
+    level: str = "INFO"
+    message: str = ""
+
+
+class UpdateRunStatusRequest(TypedModel):
+    """Run-level status finalization posted by the ingest DAG."""
+
+    status: str = Field(..., min_length=1)  # RUNNING|COMPLETED|FAILED
+    message: str | None = None

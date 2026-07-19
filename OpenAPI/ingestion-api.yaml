@@ -429,6 +429,159 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/datasets/{dataset_id}/ingest:
+    post:
+      tags:
+      - ingestion
+      summary: Start Ingestion
+      operationId: startDatasetIngestion
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartDatasetIngestionRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/datasets/{dataset_id}/ingestion:
+    get:
+      tags:
+      - ingestion
+      summary: Get Ingestion Progress
+      operationId: getDatasetIngestionProgress
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/runs/{run_id}/progress:
+    post:
+      tags:
+      - ingestion
+      summary: Report Batch Progress
+      description: Per-batch checkpoint + progress event posted by the ingest DAG.
+      operationId: reportBatchProgress
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportBatchProgressRequest'
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/runs/{run_id}/status:
+    put:
+      tags:
+      - ingestion
+      summary: Finalize Run
+      description: Run-level status finalization posted by the ingest DAG.
+      operationId: finalizeIngestionRun
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRunStatusRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ingestion/runs/{run_id}/entities/{entity}/committed-batches:
+    get:
+      tags:
+      - ingestion
+      summary: Committed Batches
+      description: "Batch numbers already committed for (run, entity) \u2014 the DAG\
+        \ skips these to resume."
+      operationId: getCommittedBatches
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: entity
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AcquireDatasetRequest:
@@ -574,6 +727,28 @@ components:
       title: DatasetStatusResponse
       description: Acquisition status of a configured dataset (the Initial Dataset
         feature).
+    EntityProgress:
+      properties:
+        entity:
+          type: string
+          title: Entity
+        records_done:
+          type: integer
+          title: Records Done
+        records_total:
+          type: integer
+          title: Records Total
+        status:
+          type: string
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - entity
+      - records_done
+      - records_total
+      - status
+      title: EntityProgress
     HTTPValidationError:
       properties:
         detail:
@@ -651,6 +826,93 @@ components:
       - status
       - indexes_created
       title: IndexResponse
+    IngestionLogEntry:
+      properties:
+        level:
+          type: string
+          title: Level
+        entity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entity
+        message:
+          type: string
+          title: Message
+        records_done:
+          type: integer
+          title: Records Done
+        records_total:
+          type: integer
+          title: Records Total
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - level
+      - entity
+      - message
+      - records_done
+      - records_total
+      - created_at
+      title: IngestionLogEntry
+    IngestionProgressResponse:
+      properties:
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        dataset_id:
+          type: string
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        records_done:
+          type: integer
+          title: Records Done
+          default: 0
+        records_total:
+          type: integer
+          title: Records Total
+          default: 0
+        entities:
+          items:
+            $ref: '#/components/schemas/EntityProgress'
+          type: array
+          title: Entities
+          default: []
+        recent_log:
+          items:
+            $ref: '#/components/schemas/IngestionLogEntry'
+          type: array
+          title: Recent Log
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - dataset_id
+      - status
+      title: IngestionProgressResponse
+      description: Aggregated batch-ingestion progress for a dataset (polled by the
+        Admin UI).
     IngestionRunResponse:
       properties:
         run_id:
@@ -751,6 +1013,75 @@ components:
       - source_count
       - destination_count
       title: ReconciliationResponse
+    ReportBatchProgressRequest:
+      properties:
+        entity:
+          type: string
+          minLength: 1
+          title: Entity
+        batch_no:
+          type: integer
+          minimum: 0.0
+          title: Batch No
+        source_offset:
+          type: integer
+          minimum: 0.0
+          title: Source Offset
+          default: 0
+        record_count:
+          type: integer
+          minimum: 0.0
+          title: Record Count
+          default: 0
+        records_done:
+          type: integer
+          minimum: 0.0
+          title: Records Done
+          default: 0
+        records_total:
+          type: integer
+          minimum: 0.0
+          title: Records Total
+          default: 0
+        level:
+          type: string
+          title: Level
+          default: INFO
+        message:
+          type: string
+          title: Message
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - entity
+      - batch_no
+      title: ReportBatchProgressRequest
+      description: A per-batch checkpoint + progress event posted by the ingest DAG.
+    StartDatasetIngestionRequest:
+      properties:
+        requested_by:
+          type: string
+          minLength: 1
+          title: Requested By
+          default: admin
+        batch_size:
+          type: integer
+          maximum: 100000.0
+          minimum: 1.0
+          title: Batch Size
+          default: 1000
+        parallelism:
+          type: integer
+          maximum: 64.0
+          minimum: 1.0
+          title: Parallelism
+          default: 4
+      additionalProperties: false
+      type: object
+      title: StartDatasetIngestionRequest
+      description: Request to (Airflow-driven) batch-ingest a downloaded dataset into
+        Mongo.
     StartIngestionRequest:
       properties:
         dataset_id:
@@ -811,6 +1142,23 @@ components:
       - state
       title: UpdateDatasetStatusRequest
       description: State update posted by the Airflow acquire DAG as it progresses.
+    UpdateRunStatusRequest:
+      properties:
+        status:
+          type: string
+          minLength: 1
+          title: Status
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      title: UpdateRunStatusRequest
+      description: Run-level status finalization posted by the ingest DAG.
     ValidateDatasetRequest:
       properties:
         dataset_id:

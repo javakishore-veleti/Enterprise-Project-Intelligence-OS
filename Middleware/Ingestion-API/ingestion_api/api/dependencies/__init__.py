@@ -9,16 +9,22 @@ from functools import lru_cache
 
 from ingestion_api.common.configuration import Settings, get_settings
 from ingestion_api.daos.airflow_gateway import HttpAirflowGateway
-from ingestion_api.daos.airflow_gateway.dataset_acquisition import AirflowDatasetAcquisitionGateway
+from ingestion_api.daos.airflow_gateway.dataset_acquisition import (
+    AirflowDatasetAcquisitionGateway,
+    AirflowDatasetIngestionGateway,
+)
 from ingestion_api.daos.connection import Database
 from ingestion_api.daos.datasets import PostgresDatasetsDao
 from ingestion_api.daos.evidence_counts import MongoEvidenceCountsGateway
+from ingestion_api.daos.ingestion_progress import PostgresIngestionProgressDao
 from ingestion_api.daos.ingestion_tracking import PostgresIngestionTrackingDao
 from ingestion_api.daos.operations import PostgresOperationsDao
 from ingestion_api.facades.dataset_operations import DatasetOperationsFacade
 from ingestion_api.facades.get_ingestion_status import GetIngestionStatusFacade
 from ingestion_api.facades.manage_dataset import ManageDatasetFacade
+from ingestion_api.facades.manage_ingestion import ManageIngestionFacade
 from ingestion_api.facades.start_ingestion import StartIngestionFacade
+from ingestion_api.services.dataset_ingestion import DefaultDatasetIngestionService
 from ingestion_api.services.datasets import DefaultDatasetService
 from ingestion_api.services.ingestion_orchestration import (
     DefaultIngestionOrchestrationService,
@@ -63,3 +69,15 @@ def provide_manage_dataset_facade() -> ManageDatasetFacade:
         AirflowDatasetAcquisitionGateway(settings),
     )
     return ManageDatasetFacade(service)
+
+
+def provide_manage_ingestion_facade() -> ManageIngestionFacade:
+    settings = get_settings()
+    db = get_database()
+    service = DefaultDatasetIngestionService(
+        PostgresDatasetsDao(db),
+        PostgresIngestionTrackingDao(db),
+        PostgresIngestionProgressDao(db),
+        AirflowDatasetIngestionGateway(settings),
+    )
+    return ManageIngestionFacade(service)

@@ -8,11 +8,18 @@ from ingestion_api.dtos.requests import (
     AcquireDatasetRequest,
     IndexDatasetRequest,
     ReconcileDatasetRequest,
+    ReportBatchProgressRequest,
+    StartDatasetIngestionRequest,
     StartIngestionRequest,
     UpdateDatasetStatusRequest,
+    UpdateRunStatusRequest,
     ValidateDatasetRequest,
 )
-from ingestion_api.dtos.responses import DatasetStatusResponse, IngestionRunResponse
+from ingestion_api.dtos.responses import (
+    DatasetStatusResponse,
+    IngestionProgressResponse,
+    IngestionRunResponse,
+)
 
 
 class IngestionOrchestrationService(ABC):
@@ -64,3 +71,29 @@ class DatasetService(ABC):
     def update_status(
         self, dataset_id: str, request: UpdateDatasetStatusRequest
     ) -> DatasetStatusResponse: ...
+
+
+class DatasetIngestionService(ABC):
+    """Batch ingestion of a downloaded dataset into the evidence store."""
+
+    @abstractmethod
+    def start(
+        self, dataset_id: str, request: StartDatasetIngestionRequest
+    ) -> IngestionProgressResponse:
+        """Create an ingestion run and trigger the Airflow batch-ingest DAG."""
+
+    @abstractmethod
+    def progress(self, dataset_id: str) -> IngestionProgressResponse:
+        """Aggregated progress of the latest ingestion run for the dataset."""
+
+    @abstractmethod
+    def report_batch(self, run_id: str, request: ReportBatchProgressRequest) -> None:
+        """Record a batch checkpoint + progress (called by the ingest DAG)."""
+
+    @abstractmethod
+    def finalize_run(self, run_id: str, request: UpdateRunStatusRequest) -> IngestionRunResponse:
+        """Set run-level status (called by the ingest DAG)."""
+
+    @abstractmethod
+    def committed_batches(self, run_id: str, entity: str) -> list[int]:
+        """Batch numbers already committed for (run, entity) — the DAG skips these to resume."""

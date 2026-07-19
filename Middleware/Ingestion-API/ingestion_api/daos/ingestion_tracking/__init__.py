@@ -66,3 +66,14 @@ class PostgresIngestionTrackingDao(IngestionTrackingDao):
             )
             row = cur.fetchone()
             return _row_to_response(row) if row else None
+
+    def latest_run_for_dataset(self, dataset_id: str) -> IngestionRunResponse | None:
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT {_COLUMNS} FROM ingestion.ingestion_runs "
+                "WHERE dataset_id = %s ORDER BY created_at DESC LIMIT 1",
+                (dataset_id,),
+            )
+            row = cur.fetchone()
+            return _row_to_response(row) if row else None

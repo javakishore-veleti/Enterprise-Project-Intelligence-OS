@@ -36,6 +36,9 @@ class _FakeDao(IngestionTrackingDao):
     def update_status(self, run_id, status):
         return self.rows.get(run_id)
 
+    def latest_run_for_dataset(self, dataset_id):
+        return None
+
 
 class _FakeAirflow(AirflowGateway):
     def trigger_ingestion(self, run_id, dataset_id):

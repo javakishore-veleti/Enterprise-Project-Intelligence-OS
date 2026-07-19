@@ -19,6 +19,32 @@ class IngestionTrackingDao(ABC):
     @abstractmethod
     def update_status(self, run_id: str, status: IngestionStatus) -> IngestionRunResponse | None: ...
 
+    @abstractmethod
+    def latest_run_for_dataset(self, dataset_id: str) -> IngestionRunResponse | None: ...
+
+
+class IngestionProgressDao(ABC):
+    """Batch checkpoints + progress log (resumable ingestion)."""
+
+    @abstractmethod
+    def record_batch(
+        self, run_id: str, entity: str, batch_no: int, source_offset: int,
+        record_count: int, records_done: int, records_total: int, level: str, message: str,
+    ) -> None:
+        """Upsert a batch checkpoint and append a progress log entry (idempotent)."""
+
+    @abstractmethod
+    def committed_batch_numbers(self, run_id: str, entity: str) -> set[int]:
+        """Batch numbers already committed for (run, entity) — used to resume."""
+
+    @abstractmethod
+    def entity_progress(self, run_id: str) -> list[tuple[str, int, int]]:
+        """Latest (entity, records_done, records_total) per entity."""
+
+    @abstractmethod
+    def recent_log(self, run_id: str, limit: int) -> list[tuple]:
+        """(level, entity, message, records_done, records_total, created_at), newest first."""
+
 
 class AirflowGateway(ABC):
     """Gateway that triggers operational workflows in Apache Airflow.
@@ -70,6 +96,14 @@ class DatasetAcquisitionGateway(ABC):
     @abstractmethod
     def trigger_acquire(self, dataset_id: str) -> str:
         """Trigger the acquire DAG; return the external dag-run reference."""
+
+
+class DatasetIngestionGateway(ABC):
+    """Triggers the Airflow batch-ingestion DAG (operational scheduler)."""
+
+    @abstractmethod
+    def trigger_ingest(self, dataset_id: str, run_id: str) -> str:
+        """Trigger the ingest DAG for a run; return the external dag-run reference."""
 
 
 class EvidenceCountsGateway(ABC):

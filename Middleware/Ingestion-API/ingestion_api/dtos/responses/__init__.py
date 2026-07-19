@@ -74,6 +74,36 @@ class ReconciliationResponse(TypedModel):
     mismatches: list[dict] = []
 
 
+class EntityProgress(TypedModel):
+    entity: str
+    records_done: int
+    records_total: int
+    status: str
+
+
+class IngestionLogEntry(TypedModel):
+    level: str
+    entity: str | None
+    message: str
+    records_done: int
+    records_total: int
+    created_at: datetime
+
+
+class IngestionProgressResponse(TypedModel):
+    """Aggregated batch-ingestion progress for a dataset (polled by the Admin UI)."""
+
+    run_id: str | None
+    dataset_id: str
+    status: str  # NOT_STARTED|PENDING|RUNNING|COMPLETED|FAILED
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    records_done: int = 0
+    records_total: int = 0
+    entities: list[EntityProgress] = []
+    recent_log: list[IngestionLogEntry] = []
+
+
 class DatasetStatusResponse(TypedModel):
     """Acquisition status of a configured dataset (the Initial Dataset feature)."""
 

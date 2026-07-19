@@ -4,7 +4,13 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from ingestion_api.api.exception_handlers import register_exception_handlers
-from ingestion_api.api.routers import datasets, health, ingestion, operations
+from ingestion_api.api.routers import (
+    dataset_ingestion,
+    datasets,
+    health,
+    ingestion,
+    operations,
+)
 from ingestion_api.common.configuration import get_settings
 from ingestion_api.common.logging import configure_logging
 
@@ -26,6 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(ingestion.router)
     app.include_router(operations.router)
     app.include_router(datasets.router)
+    app.include_router(dataset_ingestion.router)
     return app
 
 
