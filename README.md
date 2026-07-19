@@ -1,4 +1,4 @@
-# Enterprise Jira Intelligence OS
+# Enterprise-Project-Intelligence-OS
 
 Enterprise Jira Intelligence OS is an AI-driven project and portfolio intelligence platform that analyzes Jira activity, identifies emerging delivery risks, explains the supporting evidence, recommends mitigation actions, and presents actionable insights through administrative and project-tracking experiences.
 
