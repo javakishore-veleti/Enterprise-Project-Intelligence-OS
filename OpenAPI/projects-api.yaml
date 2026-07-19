@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  title: Projects API
+  description: Project intelligence queries over the evidence store for Enterprise
+    Project Intelligence OS.
+  version: 0.1.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/projects:
+    get:
+      tags:
+      - projects
+      summary: Search Projects
+      operationId: searchProjects
+      parameters:
+      - name: query
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Query
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSearchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_key}:
+    get:
+      tags:
+      - projects
+      summary: Get Project
+      operationId: getProject
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_key}/metrics:
+    get:
+      tags:
+      - projects
+      summary: Get Project Metrics
+      operationId: getProjectMetrics
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMetricsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      title: HealthResponse
+      description: Liveness / readiness payload.
+    PageMeta:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      title: PageMeta
+      description: Standard pagination metadata returned with list responses.
+    ProjectMetricsResponse:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        computed_at:
+          type: string
+          format: date-time
+          title: Computed At
+        backlog_growth:
+          type: number
+          title: Backlog Growth
+        reopen_rate:
+          type: number
+          title: Reopen Rate
+        blocker_count:
+          type: integer
+          title: Blocker Count
+        dependency_depth:
+          type: integer
+          title: Dependency Depth
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - computed_at
+      - backlog_growth
+      - reopen_rate
+      - blocker_count
+      - dependency_depth
+      title: ProjectMetricsResponse
+      description: Latest computed delivery-health metrics for a project.
+    ProjectResponse:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        name:
+          type: string
+          title: Name
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        issue_count:
+          type: integer
+          title: Issue Count
+          default: 0
+        open_issue_count:
+          type: integer
+          title: Open Issue Count
+          default: 0
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - name
+      title: ProjectResponse
+      description: Public view of a project in the evidence store.
+    ProjectSearchResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+          type: array
+          title: Items
+        page:
+          $ref: '#/components/schemas/PageMeta'
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - page
+      title: ProjectSearchResponse
+      description: Paginated project search result.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
