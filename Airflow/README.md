@@ -22,30 +22,38 @@ WITH_AIRFLOW=1 bash CICD/LocalDev/docker-all-up.sh   # serves on :8080
 The local compose uses `apache/airflow:2.10.0-python3.12` (standalone,
 LocalExecutor) and expects an `airflow` metadata database in the local Postgres.
 
-## `project_dataset_ingest` DAG
+## `project_dataset_ingest` DAG (mongorestore + normalize)
 
-`dags/project_dataset_ingest/` triggers and monitors dataset ingestion through
-the **Ingestion-API** FastAPI boundary (`:8001`) — it never touches a database
-directly and contains no agent/LLM logic. Triggered on demand (`schedule=None`).
+The public Jira dataset ships as a **MongoDB dump** (`3. DataDump/
+mongodump-JiraReposAnon.archive` — `mongodump --gzip --archive` of `JiraReposAnon`,
+one collection per Jira repo with issues + embedded changelog/comments/links).
+So ingestion restores the dump and normalizes it into our evidence collections.
 
 Task flow:
 
 ```
-read_metadata -> check_disk_space -> start_ingestion -> poll_status -> finalize
+prepare -> restore -> discover -> normalize (dynamic-mapped per repo) -> finalize
 ```
 
-- `read_metadata` — validate/shape the run request from DAG params
-  (`dataset_id`, `batch_size`, `parallelism`, `requested_by`).
-- `check_disk_space` — fail fast if the worker lacks free disk.
-- `start_ingestion` — `POST /api/v1/ingestion/runs`, returns `run_id`.
-- `poll_status` — `GET /api/v1/ingestion/runs/{run_id}` until a terminal status
-  (`COMPLETED`/`FAILED`/`CANCELLED`).
-- `finalize` — succeed on `COMPLETED`, otherwise fail the DAG.
+- `prepare`   — extract the downloaded zip; locate the `*.archive` mongodump.
+- `restore`   — `mongorestore --gzip --archive=… --nsFrom=JiraReposAnon.* --nsTo=jira_repos.*`
+  into the `jira_repos` staging DB.
+- `discover`  — list the restored repo collections (one per project).
+- `normalize` — per repo (parallel): stream issues in bounded batches, transform each
+  Jira issue into our evidence rows (issues/histories/comments/links/projects),
+  idempotent-upsert into Mongo, skip already-committed batches (resume), and report a
+  checkpoint + progress per batch to the Ingestion-API.
+- `finalize`  — mark the run `COMPLETED` (which auto-triggers `project_metrics_compute`).
 
-The base URL comes from the `INGESTION_API_BASE_URL` env var (default
-`http://localhost:8001`). The task logic lives in `tasks.py` as pure functions
-that take the base URL + an HTTP client (injected as `requests` in the DAG), so
-they are unit-testable with a fake client — no network, scheduler, or live API.
+Evidence writes go straight to Mongo; run/batch/log status stays governed via the
+Ingestion-API. The transform (`tasks.transform_issue`) is a pure function unit-tested
+against sample Jira documents.
+
+> **Requires `mongorestore`** (mongodb-database-tools) on the Airflow worker. The
+> stock `apache/airflow` image does not include it — install it in a derived image
+> or via the worker's `PIP_ADDITIONAL_REQUIREMENTS` companion (OS package
+> `mongodb-database-tools`) before a real run. `MONGO_URI`/`MONGO_DATABASE` and
+> `INGESTION_API_BASE_URL` come from the environment (set in the compose).
 
 Trigger with params, e.g.:
 

@@ -1,31 +1,28 @@
-"""Pure, importable task callables for the real batch-ingestion DAG.
+"""Pure task callables for the real batch-ingestion DAG (mongorestore + normalize).
 
-Airflow owns operational batch work: this DAG extracts the downloaded archive,
-discovers per-entity record files, and streams them into MongoDB in bounded,
-idempotent batches — committing a durable checkpoint + progress event per batch
-so a failed/paused run resumes from the last committed batch. The complete
-dataset is never loaded into memory at once.
+The public Jira dataset ships as a MongoDB dump
+(``3. DataDump/mongodump-JiraReposAnon.archive``: ``mongodump --gzip --archive``
+of the ``JiraReposAnon`` DB — one collection per Jira repo, each holding standard
+Jira issue documents with changelog / comments / links embedded).
 
-Design (see CLAUDE.md): evidence writes go straight to Mongo (throughput; the
-operational tier), while run/batch/log status is reported through the governed
-Ingestion-API boundary. The callables are Airflow-free and unit-testable with a
-fake HTTP client, a temp dir, and a fake Mongo collection.
-
-Record files are read as JSON Lines (``.jsonl``/``.ndjson``), one JSON object
-per line; the entity name is the file stem. The discover mapping can be adjusted
-once the real archive's internal layout is known.
+So ingestion is: extract the zip -> ``mongorestore`` the archive into a staging
+DB -> **normalize** each repo collection's issues into our clean evidence
+collections (projects / issues / issue_histories / comments / issue_links), in
+bounded, idempotent, checkpointed batches. Metrics + agents read those normalized
+collections unchanged. Callables are Airflow-free and unit-testable with fakes.
 """
 from __future__ import annotations
 
-import json
+import glob
 import os
-import zipfile
+import subprocess
+from datetime import datetime
 from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, Tuple
 
 DEFAULT_BASE_URL = "http://localhost:8001"
 DEFAULT_TIMEOUT = 60
 DEFAULT_BATCH_SIZE = 1000
-RECORD_SUFFIXES = (".jsonl", ".ndjson")
+STAGING_DB = "jira_repos"
 
 
 class HttpClient(Protocol):
@@ -36,6 +33,10 @@ class HttpClient(Protocol):
 
 def get_base_url() -> str:
     return (os.environ.get("INGESTION_API_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+
+
+def get_mongo_uri() -> str:
+    return os.environ.get("MONGO_URI") or "mongodb://localhost:27017/epi_os"
 
 
 # --- Ingestion-API status callbacks (governed boundary) ------------------- #
@@ -53,8 +54,7 @@ def report_batch(base_url: str, http: HttpClient, run_id: str, *, entity: str, b
         json={"entity": entity, "batch_no": batch_no, "source_offset": source_offset,
               "record_count": record_count, "records_done": records_done,
               "records_total": records_total, "message": message, "level": level},
-        timeout=DEFAULT_TIMEOUT,
-    )
+        timeout=DEFAULT_TIMEOUT)
     resp.raise_for_status()
 
 
@@ -67,84 +67,137 @@ def finalize_run(base_url: str, http: HttpClient, run_id: str, status: str, mess
 def committed_batches(base_url: str, http: HttpClient, run_id: str, entity: str) -> set:
     resp = http.get(
         f"{base_url}/api/v1/ingestion/runs/{run_id}/entities/{entity}/committed-batches",
-        timeout=DEFAULT_TIMEOUT,
-    )
+        timeout=DEFAULT_TIMEOUT)
     resp.raise_for_status()
     return set(resp.json().get("batch_numbers", []))
 
 
-# --- Extraction + discovery ---------------------------------------------- #
+# --- Extract + restore ---------------------------------------------------- #
 def extract_archive(zip_path: str, work_dir: str) -> str:
-    """Extract ``zip_path`` into ``work_dir`` (idempotent) and return the dir."""
+    import zipfile
     os.makedirs(work_dir, exist_ok=True)
     with zipfile.ZipFile(zip_path) as zf:
         zf.extractall(work_dir)
     return work_dir
 
 
-def discover_entities(work_dir: str) -> List[Tuple[str, str, int]]:
-    """Return [(entity, file_path, record_total)] for each record file found.
-
-    Streams the line count so nothing large is held in memory.
-    """
-    found: List[Tuple[str, str, int]] = []
-    for root, _dirs, files in os.walk(work_dir):
-        for name in sorted(files):
-            if name.lower().endswith(RECORD_SUFFIXES):
-                path = os.path.join(root, name)
-                entity = os.path.splitext(name)[0].lower()
-                found.append((entity, path, _count_lines(path)))
-    return sorted(found)
+def find_mongodump_archive(work_dir: str) -> str:
+    """Locate the ``*.archive`` mongodump file inside the extracted dataset."""
+    matches = glob.glob(os.path.join(work_dir, "**", "*.archive"), recursive=True)
+    if not matches:
+        raise FileNotFoundError(f"no mongodump *.archive found under {work_dir}")
+    return sorted(matches, key=os.path.getsize, reverse=True)[0]
 
 
-def _count_lines(path: str) -> int:
-    total = 0
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                total += 1
-    return total
+def build_mongorestore_cmd(archive_path: str, mongo_uri: str, staging_db: str = STAGING_DB) -> List[str]:
+    """mongorestore the gzipped archive into the staging DB (ns-remapped)."""
+    return [
+        "mongorestore", "--gzip", f"--archive={archive_path}", f"--uri={mongo_uri}",
+        "--nsFrom=JiraReposAnon.*", f"--nsTo={staging_db}.*", "--drop",
+    ]
 
 
-def iter_batches(path: str, batch_size: int = DEFAULT_BATCH_SIZE) -> Iterator[Tuple[int, int, List[dict]]]:
-    """Yield (batch_no, start_line_offset, records) streaming a JSON-lines file."""
+def run_mongorestore(cmd: List[str], runner: Callable[[List[str]], Any] = None) -> None:
+    """Execute mongorestore. ``runner`` is injectable for tests."""
+    run = runner or (lambda c: subprocess.run(c, check=True, capture_output=True))
+    run(cmd)
+
+
+# --- Normalize Jira issues -> evidence collections ------------------------ #
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if not value or not isinstance(value, str):
+        return value if isinstance(value, datetime) else None
+    v = value.replace("Z", "+00:00")
+    # Jira uses e.g. 2021-01-02T03:04:05.000+0000 -> normalize the offset.
+    if len(v) >= 5 and (v[-5] in "+-") and v[-3] != ":":
+        v = v[:-2] + ":" + v[-2:]
+    try:
+        return datetime.fromisoformat(v)
+    except ValueError:
+        return None
+
+
+def _get(d: dict, *path, default=None):
+    cur = d
+    for p in path:
+        if not isinstance(cur, dict):
+            return default
+        cur = cur.get(p)
+    return cur if cur is not None else default
+
+
+def transform_issue(issue: dict, project_key: str) -> Dict[str, List[dict]]:
+    """Map one Jira issue document to our normalized evidence rows."""
+    key = issue.get("key") or issue.get("id")
+    fields = issue.get("fields", {}) or {}
+    out: Dict[str, List[dict]] = {"issues": [], "issue_histories": [], "comments": [], "issue_links": []}
+
+    out["issues"].append({
+        "issue_key": key, "project_key": project_key,
+        "status": _get(fields, "status", "name", default="Unknown"),
+        "priority": _get(fields, "priority", "name"),
+        "created_at": _parse_dt(fields.get("created")),
+        "resolved_at": _parse_dt(fields.get("resolutiondate")),
+    })
+
+    for hist in _get(issue, "changelog", "histories", default=[]) or []:
+        changed_at = _parse_dt(hist.get("created"))
+        author = _get(hist, "author", "name") or _get(hist, "author", "displayName")
+        for item in hist.get("items", []) or []:
+            if item.get("field") == "status":
+                out["issue_histories"].append({
+                    "issue_key": key, "project_key": project_key, "field": "status",
+                    "to_value": item.get("toString"), "changed_at": changed_at, "author": author})
+
+    for c in _get(fields, "comment", "comments", default=[]) or []:
+        out["comments"].append({
+            "issue_key": key, "project_key": project_key,
+            "author": _get(c, "author", "name") or _get(c, "author", "displayName"),
+            "created_at": _parse_dt(c.get("created"))})
+
+    for link in fields.get("issuelinks", []) or []:
+        target = _get(link, "outwardIssue", "key") or _get(link, "inwardIssue", "key")
+        if target:
+            out["issue_links"].append({
+                "source_issue_key": key, "target_issue_key": target,
+                "link_type": _get(link, "type", "name", default="relates"), "project_key": project_key})
+    return out
+
+
+def iter_issue_batches(collection, batch_size: int = DEFAULT_BATCH_SIZE) -> Iterator[Tuple[int, int, List[dict]]]:
+    """Stream issue docs from a staging collection in batches (batch_no, offset, docs)."""
     batch: List[dict] = []
     batch_no = 0
-    start_offset = 0
-    line_no = 0
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line_no += 1
-            line = line.strip()
-            if not line:
-                continue
-            batch.append(json.loads(line))
-            if len(batch) >= batch_size:
-                yield batch_no, start_offset, batch
-                batch_no += 1
-                start_offset = line_no
-                batch = []
+    offset = 0
+    seen = 0
+    for doc in collection.find({}):
+        batch.append(doc)
+        seen += 1
+        if len(batch) >= batch_size:
+            yield batch_no, offset, batch
+            batch_no += 1
+            offset = seen
+            batch = []
     if batch:
-        yield batch_no, start_offset, batch
+        yield batch_no, offset, batch
 
 
-def natural_key(entity: str) -> str:
-    """The field used for idempotent upserts, by entity (best-effort default)."""
-    return {
-        "projects": "project_key", "issues": "issue_key", "issue_links": "link_id",
-        "comments": "comment_id", "issue_histories": "history_id",
-    }.get(entity, "id")
-
-
-def upsert_batch(collection: Any, records: List[dict], key_field: str) -> int:
-    """Idempotent upsert of a batch into a Mongo collection. Returns count written.
-
-    Records without the key field fall back to insert. ``collection`` mirrors a
-    pymongo collection (``update_one(filter, {"$set":...}, upsert=True)``).
-    """
-    for rec in records:
-        if key_field in rec:
-            collection.update_one({key_field: rec[key_field]}, {"$set": rec}, upsert=True)
-        else:
-            collection.insert_one(rec)
-    return len(records)
+def upsert_evidence(target_db, project_key: str, issues: List[dict]) -> int:
+    """Normalize a batch of Jira issues and idempotently upsert evidence rows."""
+    agg: Dict[str, List[dict]] = {"issues": [], "issue_histories": [], "comments": [], "issue_links": []}
+    for issue in issues:
+        for coll, rows in transform_issue(issue, project_key).items():
+            agg[coll].extend(rows)
+    for issue in agg["issues"]:
+        target_db["issues"].update_one({"issue_key": issue["issue_key"]}, {"$set": issue}, upsert=True)
+    # Replace child rows for these issues to stay idempotent on re-runs.
+    keys = [i["issue_key"] for i in agg["issues"]]
+    for coll in ("issue_histories", "comments", "issue_links"):
+        field = "source_issue_key" if coll == "issue_links" else "issue_key"
+        target_db[coll].delete_many({field: {"$in": keys}})
+        if agg[coll]:
+            target_db[coll].insert_many(agg[coll])
+    target_db["projects"].update_one(
+        {"project_key": project_key},
+        {"$set": {"project_key": project_key, "name": project_key}}, upsert=True)
+    return len(agg["issues"])
