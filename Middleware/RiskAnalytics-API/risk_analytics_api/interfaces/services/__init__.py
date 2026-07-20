@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from agent_core import EvidencePackage
 
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunListResponse, AnalysisRunResponse
 
 
 class EvidenceRetrievalService(ABC):
@@ -28,3 +28,6 @@ class AnalysisOrchestrationService(ABC):
 
     @abstractmethod
     def get_run(self, run_id: str) -> AnalysisRunResponse: ...
+
+    @abstractmethod
+    def list_runs(self, project_key: str, limit: int) -> AnalysisRunListResponse: ...

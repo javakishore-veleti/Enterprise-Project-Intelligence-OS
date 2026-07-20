@@ -17,7 +17,7 @@ from risk_analytics_api.common.logging import get_logger
 from risk_analytics_api.common.utilities import new_id, utc_now
 from risk_analytics_api.dtos.common import AnalysisStatus
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunListResponse, AnalysisRunResponse
 from risk_analytics_api.interfaces.daos import (
     AgentConfigGateway,
     GraphRunDao,
@@ -192,3 +192,7 @@ class DefaultAnalysisOrchestrationService(AnalysisOrchestrationService):
         if run is None:
             raise NotFoundError(f"analysis run '{run_id}' not found")
         return run
+
+    def list_runs(self, project_key: str, limit: int) -> AnalysisRunListResponse:
+        return AnalysisRunListResponse(
+            project_key=project_key, runs=self._runs.list_for_project(project_key, limit))

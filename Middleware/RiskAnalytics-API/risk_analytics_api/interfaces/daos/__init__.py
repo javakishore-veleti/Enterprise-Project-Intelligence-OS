@@ -5,7 +5,11 @@ from abc import ABC, abstractmethod
 
 from agent_core import EvidencePackage, RiskFinding, RiskReport
 
-from risk_analytics_api.dtos.responses import AnalysisRunResponse, ReportResponse
+from risk_analytics_api.dtos.responses import (
+    AnalysisRunResponse,
+    AnalysisRunSummary,
+    ReportResponse,
+)
 
 
 class AgentConfigGateway(ABC):
@@ -39,6 +43,10 @@ class GraphRunDao(ABC):
     @abstractmethod
     def get(self, run_id: str) -> AnalysisRunResponse | None:
         """Return the run with its findings, or None."""
+
+    @abstractmethod
+    def list_for_project(self, project_key: str, limit: int) -> list["AnalysisRunSummary"]:
+        """Recent run summaries (with finding/report counts) for a project, newest first."""
 
 
 class RiskFindingDao(ABC):

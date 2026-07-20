@@ -54,6 +54,24 @@ class AnalysisRunResponse(TypedModel):
     project_count: int | None = None
 
 
+class AnalysisRunSummary(TypedModel):
+    """Compact view of a past analysis run (for the history list)."""
+
+    run_id: str
+    project_key: str
+    status: AnalysisStatus
+    agent_keys: list[str]
+    started_at: datetime
+    finished_at: datetime | None
+    finding_count: int
+    report_count: int
+
+
+class AnalysisRunListResponse(TypedModel):
+    project_key: str
+    runs: list[AnalysisRunSummary]
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str

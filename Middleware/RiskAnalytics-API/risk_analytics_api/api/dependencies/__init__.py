@@ -11,6 +11,7 @@ from risk_analytics_api.daos.graph_runs import PostgresGraphRunDao
 from risk_analytics_api.daos.reports import PostgresReportDao
 from risk_analytics_api.daos.risk_findings import PostgresRiskFindingDao
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
+from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 from risk_analytics_api.graphs.project_risk_manager import build_agent as build_specialist
@@ -55,3 +56,7 @@ def provide_start_portfolio_analysis_facade() -> StartPortfolioAnalysisFacade:
 
 def provide_get_analysis_run_facade() -> GetAnalysisRunFacade:
     return GetAnalysisRunFacade(_orchestration_service())
+
+
+def provide_list_analysis_runs_facade() -> ListAnalysisRunsFacade:
+    return ListAnalysisRunsFacade(_orchestration_service())

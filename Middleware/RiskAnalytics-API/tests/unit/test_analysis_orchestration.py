@@ -152,6 +152,18 @@ class InMemoryGraphRunDao(GraphRunDao):
             reports=self._reports.list_for_run(run_id),
         )
 
+    def list_for_project(self, project_key, limit):
+        from risk_analytics_api.dtos.responses import AnalysisRunSummary
+        out = []
+        for run_id, r in self.rows.items():
+            if r["project_key"] == project_key:
+                out.append(AnalysisRunSummary(
+                    run_id=run_id, project_key=project_key, status=AnalysisStatus(r["status"]),
+                    agent_keys=r["agent_keys"], started_at=r["started_at"], finished_at=r["finished_at"],
+                    finding_count=len(self._findings.list_for_run(run_id)),
+                    report_count=len(self._reports.list_for_run(run_id))))
+        return out[:limit]
+
 
 def _service(agent_factory, evidence=EVIDENCE, cfg=(True, "claude-opus-4-8", "langgraph"),
              review_builder=None):
@@ -251,6 +263,18 @@ def test_detect_only_produces_no_reports() -> None:
     service, _ = _service(lambda k, fw, m: FakeAgent({}))
     result = service.run("APACHE", StartAnalysisRequest(agents=["schedule_risk"]))
     assert result.reports == []
+
+
+def test_list_runs_returns_project_history() -> None:
+    service, _ = _service(lambda k, fw, m: FakeAgent({}))
+    service.run("APACHE", StartAnalysisRequest(agents=["schedule_risk"]))
+    service.run("APACHE", StartAnalysisRequest(agents=["schedule_risk"]))
+    service.run("SPARK", StartAnalysisRequest(agents=["schedule_risk"]))
+
+    result = service.list_runs("APACHE", limit=10)
+    assert result.project_key == "APACHE"
+    assert len(result.runs) == 2
+    assert result.runs[0].finding_count == 1
 
 
 def test_run_portfolio_aggregates_projects_and_reports_project_count() -> None:

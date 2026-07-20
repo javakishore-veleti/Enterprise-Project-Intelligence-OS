@@ -3,18 +3,32 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
 
+from fastapi import Query
+
 from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
+    provide_list_analysis_runs_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunListResponse, AnalysisRunResponse
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
+from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
+
+
+@router.get("/projects/{project_key}/runs", response_model=AnalysisRunListResponse,
+            operation_id="listProjectAnalysisRuns")
+def list_project_runs(
+    project_key: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    facade: ListAnalysisRunsFacade = Depends(provide_list_analysis_runs_facade),
+) -> AnalysisRunListResponse:
+    return facade.execute(project_key, limit)
 
 
 @router.post(

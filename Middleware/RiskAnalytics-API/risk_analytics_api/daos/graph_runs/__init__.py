@@ -5,7 +5,7 @@ import json
 
 from risk_analytics_api.daos.connection import PostgresDatabase
 from risk_analytics_api.dtos.common import AnalysisStatus
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunResponse, AnalysisRunSummary
 from risk_analytics_api.interfaces.daos import GraphRunDao, ReportDao, RiskFindingDao
 
 
@@ -58,3 +58,26 @@ class PostgresGraphRunDao(GraphRunDao):
             findings=self._findings.list_for_run(run_id),
             reports=self._reports.list_for_run(run_id),
         )
+
+    def list_for_project(self, project_key: str, limit: int) -> list[AnalysisRunSummary]:
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT g.run_id, g.project_key, g.status, g.agent_keys, g.started_at, g.finished_at, "
+                "  (SELECT count(*) FROM risk.risk_findings f WHERE f.run_id = g.run_id), "
+                "  (SELECT count(*) FROM risk.reports r WHERE r.run_id = g.run_id) "
+                "FROM risk.graph_runs g WHERE g.project_key = %s "
+                "ORDER BY g.started_at DESC LIMIT %s",
+                (project_key, limit),
+            )
+            rows = cur.fetchall()
+        summaries = []
+        for r in rows:
+            agent_keys = r[3]
+            if isinstance(agent_keys, str):
+                agent_keys = json.loads(agent_keys)
+            summaries.append(AnalysisRunSummary(
+                run_id=r[0], project_key=r[1], status=AnalysisStatus(r[2]),
+                agent_keys=list(agent_keys or []), started_at=r[4], finished_at=r[5],
+                finding_count=r[6], report_count=r[7]))
+        return summaries

@@ -31,6 +31,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /api/v1/analysis/projects/{project_key}/runs:
+    get:
+      tags:
+      - analysis
+      summary: List Project Runs
+      operationId: listProjectAnalysisRuns
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisRunListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/analysis/projects/{project_key}:
     post:
       tags:
@@ -123,6 +158,22 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    AnalysisRunListResponse:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        runs:
+          items:
+            $ref: '#/components/schemas/AnalysisRunSummary'
+          type: array
+          title: Runs
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - runs
+      title: AnalysisRunListResponse
     AnalysisRunResponse:
       properties:
         run_id:
@@ -176,6 +227,50 @@ components:
       - findings
       title: AnalysisRunResponse
       description: A multi-agent analysis run, its findings, and any review reports.
+    AnalysisRunSummary:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        project_key:
+          type: string
+          title: Project Key
+        status:
+          $ref: '#/components/schemas/AnalysisStatus'
+        agent_keys:
+          items:
+            type: string
+          type: array
+          title: Agent Keys
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        finding_count:
+          type: integer
+          title: Finding Count
+        report_count:
+          type: integer
+          title: Report Count
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - project_key
+      - status
+      - agent_keys
+      - started_at
+      - finished_at
+      - finding_count
+      - report_count
+      title: AnalysisRunSummary
+      description: Compact view of a past analysis run (for the history list).
     AnalysisStatus:
       type: string
       enum:
