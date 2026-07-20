@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     default_agent_model: str = Field(default="claude-opus-4-8", alias="AGENT_MODEL")
     default_agent_framework: str = Field(default="langgraph", alias="AGENT_FRAMEWORK")
 
+    # LangSmith tracing (LangChain/LangGraph auto-trace when enabled + LANGSMITH_API_KEY
+    # is in the environment). The key itself is read from the env, never stored here.
+    langsmith_tracing: bool = Field(default=False, alias="LANGSMITH_TRACING")
+    langsmith_project: str = Field(
+        default="enterprise-project-intelligence-os", alias="LANGSMITH_PROJECT")
+
 
 @lru_cache
 def get_settings() -> Settings:

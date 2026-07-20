@@ -7,11 +7,13 @@ from risk_analytics_api.api.exception_handlers import register_exception_handler
 from risk_analytics_api.api.routers import analysis, health
 from risk_analytics_api.common.configuration import get_settings
 from risk_analytics_api.common.logging import configure_logging
+from risk_analytics_api.common.tracing import configure_tracing
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    configure_tracing(settings)  # LangSmith (no-op unless enabled + key present)
 
     app = FastAPI(
         title="Risk Analytics API",
