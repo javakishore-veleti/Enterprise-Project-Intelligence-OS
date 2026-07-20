@@ -50,6 +50,7 @@ class EvidenceMetrics(_Frozen):
     #: Added facts (default 0 -> backward compatible with older evidence).
     issue_aging_days: float = 0.0           # avg age of open issues
     resolution_velocity: float = 0.0        # issues resolved in the recent window
+    resolution_velocity_trend: float = 0.0  # recent window minus prior window (>0 = speeding up)
     contributor_concentration: float = 0.0  # top contributor's share of activity (0-1)
     critical_defect_ratio: float = 0.0      # open blocker/critical issues / open issues (0-1)
 

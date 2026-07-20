@@ -11,6 +11,7 @@ from projects_api.api.dependencies import (
 )
 from projects_api.dtos.requests import SearchProjectsRequest
 from projects_api.dtos.responses import (
+    ProjectMetricsHistoryResponse,
     ProjectMetricsResponse,
     ProjectResponse,
     ProjectSearchResponse,
@@ -71,3 +72,17 @@ def get_project_metrics(
     facade: GetProjectMetricsFacade = Depends(provide_get_project_metrics_facade),
 ) -> ProjectMetricsResponse:
     return facade.execute(project_key)
+
+
+@router.get(
+    "/{project_key}/metrics/history",
+    response_model=ProjectMetricsHistoryResponse,
+    operation_id="getProjectMetricsHistory",
+)
+def get_project_metrics_history(
+    project_key: str,
+    limit: int = Query(default=50, ge=1, le=500),
+    facade: GetProjectMetricsFacade = Depends(provide_get_project_metrics_facade),
+) -> ProjectMetricsHistoryResponse:
+    return ProjectMetricsHistoryResponse(
+        project_key=project_key, history=facade.history(project_key, limit))

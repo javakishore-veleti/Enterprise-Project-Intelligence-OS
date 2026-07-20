@@ -16,3 +16,6 @@ class DefaultProjectMetricsService(ProjectMetricsService):
         if metrics is None:
             raise NotFoundError(f"no computed metrics for project '{project_key}'")
         return metrics
+
+    def history(self, project_key: str, limit: int) -> list[ProjectMetricsResponse]:
+        return self._dao.history(project_key, limit)

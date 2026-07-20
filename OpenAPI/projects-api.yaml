@@ -187,6 +187,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_key}/metrics/history:
+    get:
+      tags:
+      - projects
+      summary: Get Project Metrics History
+      operationId: getProjectMetricsHistory
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMetricsHistoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     HTTPValidationError:
@@ -238,6 +273,23 @@ components:
       - offset
       title: PageMeta
       description: Standard pagination metadata returned with list responses.
+    ProjectMetricsHistoryResponse:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        history:
+          items:
+            $ref: '#/components/schemas/ProjectMetricsResponse'
+          type: array
+          title: History
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - history
+      title: ProjectMetricsHistoryResponse
+      description: Time series of a project's computed metrics (newest first).
     ProjectMetricsResponse:
       properties:
         project_key:
@@ -266,6 +318,10 @@ components:
         resolution_velocity:
           type: number
           title: Resolution Velocity
+          default: 0.0
+        resolution_velocity_trend:
+          type: number
+          title: Resolution Velocity Trend
           default: 0.0
         contributor_concentration:
           type: number

@@ -23,6 +23,10 @@ class ProjectMetricsDao(ABC):
     @abstractmethod
     def latest(self, project_key: str) -> ProjectMetricsResponse | None: ...
 
+    @abstractmethod
+    def history(self, project_key: str, limit: int) -> list[ProjectMetricsResponse]:
+        """Past metric snapshots for a project (newest first) — the time series."""
+
 
 class MetricsComputationDao(ABC):
     """Reads raw evidence + writes computed metrics (MongoDB). Deterministic — no LLM."""

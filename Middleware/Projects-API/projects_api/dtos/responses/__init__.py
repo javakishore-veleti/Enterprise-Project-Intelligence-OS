@@ -35,8 +35,16 @@ class ProjectMetricsResponse(TypedModel):
     dependency_depth: int
     issue_aging_days: float = 0.0
     resolution_velocity: float = 0.0
+    resolution_velocity_trend: float = 0.0
     contributor_concentration: float = 0.0
     critical_defect_ratio: float = 0.0
+
+
+class ProjectMetricsHistoryResponse(TypedModel):
+    """Time series of a project's computed metrics (newest first)."""
+
+    project_key: str
+    history: list[ProjectMetricsResponse]
 
 
 class HealthResponse(TypedModel):

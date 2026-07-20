@@ -48,6 +48,10 @@ class _FakeMetricsDao(ProjectMetricsDao):
             dependency_depth=3,
         )
 
+    def history(self, project_key, limit):
+        m = self.latest(project_key)
+        return [m] if m else []
+
 
 def _client() -> TestClient:
     app = create_app()

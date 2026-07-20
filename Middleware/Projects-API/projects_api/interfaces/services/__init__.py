@@ -23,6 +23,9 @@ class ProjectMetricsService(ABC):
     @abstractmethod
     def latest(self, project_key: str) -> ProjectMetricsResponse: ...
 
+    @abstractmethod
+    def history(self, project_key: str, limit: int) -> list[ProjectMetricsResponse]: ...
+
 
 class MetricsComputationService(ABC):
     @abstractmethod

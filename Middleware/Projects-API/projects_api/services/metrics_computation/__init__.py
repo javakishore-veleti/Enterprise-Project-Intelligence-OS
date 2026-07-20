@@ -70,13 +70,15 @@ class DefaultMetricsComputationService(MetricsComputationService):
         ref = self._dao.reference_date(project_key)
         if ref is not None:
             start = ref - timedelta(days=WINDOW_DAYS)
+            prior_start = ref - timedelta(days=2 * WINDOW_DAYS)
             created_w = self._dao.created_between(project_key, start, ref)
             resolved_w = self._dao.resolved_between(project_key, start, ref)
+            resolved_prior = self._dao.resolved_between(project_key, prior_start, start)
             growth = backlog_growth(created_w, resolved_w, c["open_issue_count"])
             aging = self._dao.avg_open_age_days(project_key, ref)
         else:
             growth = 0.0
-            resolved_w = 0
+            resolved_w = resolved_prior = 0
             aging = 0.0
 
         open_count = c["open_issue_count"]
@@ -87,6 +89,7 @@ class DefaultMetricsComputationService(MetricsComputationService):
             "dependency_depth": dependency_depth(self._dao.blocking_links(project_key)),
             "issue_aging_days": aging,
             "resolution_velocity": float(resolved_w),
+            "resolution_velocity_trend": float(resolved_w - resolved_prior),
             "contributor_concentration": self._dao.top_contributor_share(project_key),
             "critical_defect_ratio": round(self._dao.critical_open_count(project_key) / max(1, open_count), 3),
         }

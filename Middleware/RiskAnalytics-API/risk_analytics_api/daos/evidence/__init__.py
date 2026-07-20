@@ -30,7 +30,12 @@ def _observations(name: str, m: EvidenceMetrics) -> list[str]:
     if m.issue_aging_days:
         obs.append(f"Open issues average {m.issue_aging_days:.0f} days old.")
     if m.resolution_velocity:
-        obs.append(f"Resolution velocity is {m.resolution_velocity:.0f} issues in the recent window.")
+        trend = ""
+        if m.resolution_velocity_trend > 0:
+            trend = f" (up {m.resolution_velocity_trend:.0f} vs the prior window)"
+        elif m.resolution_velocity_trend < 0:
+            trend = f" (down {abs(m.resolution_velocity_trend):.0f} vs the prior window)"
+        obs.append(f"Resolution velocity is {m.resolution_velocity:.0f} issues in the recent window{trend}.")
     if m.contributor_concentration:
         obs.append(
             f"Top contributor accounts for {m.contributor_concentration:.0%} of activity "
@@ -63,6 +68,7 @@ class MongoEvidenceDao(EvidenceDao):
             open_issue_count=int(project.get("open_issue_count", 0)),
             issue_aging_days=float(metrics_doc.get("issue_aging_days", 0.0)),
             resolution_velocity=float(metrics_doc.get("resolution_velocity", 0.0)),
+            resolution_velocity_trend=float(metrics_doc.get("resolution_velocity_trend", 0.0)),
             contributor_concentration=float(metrics_doc.get("contributor_concentration", 0.0)),
             critical_defect_ratio=float(metrics_doc.get("critical_defect_ratio", 0.0)),
         )
