@@ -100,16 +100,24 @@ def project_dataset_ingest():
             entity = spec["entity"]
             already = tasks.committed_batches(base, requests, run_id, entity)
             done = 0
+            coverage = {"docs": 0, "unmapped": 0, "present": {}}
             for batch_no, offset, docs in tasks.iter_issue_batches(staging[entity], BATCH_SIZE):
                 done += len(docs)
                 if batch_no in already:
                     continue
+                bcov = tasks.batch_coverage(docs)
+                coverage = tasks.merge_coverage(coverage, bcov) if coverage["docs"] else bcov
                 tasks.upsert_evidence(evidence, entity, docs)
+                # WARN (through the governed log) the moment a batch has docs whose
+                # shape transform_issue can't map — a real-restore mapping mismatch.
+                unmapped = bcov["unmapped"]
                 tasks.report_batch(base, requests, run_id, entity=entity, batch_no=batch_no,
                                    source_offset=offset, record_count=len(docs),
                                    records_done=done, records_total=spec["total"],
-                                   message=f"{entity} batch {batch_no}")
-            return {"entity": entity, "records": done}
+                                   message=(f"{entity} batch {batch_no}" if not unmapped
+                                            else f"{entity} batch {batch_no}: {unmapped}/{len(docs)} docs unmapped (schema mismatch?)"),
+                                   level="WARNING" if unmapped else "INFO")
+            return {"entity": entity, "records": done, "coverage": coverage}
         finally:
             client.close()
 

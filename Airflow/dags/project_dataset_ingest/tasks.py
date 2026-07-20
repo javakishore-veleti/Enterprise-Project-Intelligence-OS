@@ -164,6 +164,57 @@ def transform_issue(issue: dict, project_key: str) -> Dict[str, List[dict]]:
     return out
 
 
+# --- Schema-mapping coverage (confirm the real dump matches transform_issue) - #
+# The paths ``transform_issue`` reads out of a Jira issue document. If the real
+# anonymized dump renames/flattens any of these, the corresponding evidence rows
+# come out empty *without erroring* — so we measure presence explicitly and
+# surface it (probe script offline; the normalize task through the governed log).
+EXPECTED_PATHS: Dict[str, Callable[[dict], Any]] = {
+    "key": lambda i: i.get("key") or i.get("id"),
+    "fields": lambda i: i.get("fields") if isinstance(i.get("fields"), dict) else None,
+    "fields.status.name": lambda i: _get(i, "fields", "status", "name"),
+    "fields.priority.name": lambda i: _get(i, "fields", "priority", "name"),
+    "fields.created": lambda i: _get(i, "fields", "created"),
+    "fields.resolutiondate": lambda i: _get(i, "fields", "resolutiondate"),
+    "changelog.histories": lambda i: _get(i, "changelog", "histories"),
+    "fields.comment.comments": lambda i: _get(i, "fields", "comment", "comments"),
+    "fields.issuelinks": lambda i: _get(i, "fields", "issuelinks"),
+}
+
+
+def field_presence(issue: dict) -> Dict[str, bool]:
+    """Which of the paths transform_issue reads are actually present + truthy."""
+    return {name: bool(fn(issue)) for name, fn in EXPECTED_PATHS.items()}
+
+
+def issue_is_mapped(issue: dict) -> bool:
+    """A doc is 'recognized' if we can pull an identity and a fields block from it.
+
+    False means transform_issue would emit only a stub issue row (status Unknown,
+    no dates/history/comments/links) — a shape mismatch, not a genuinely sparse issue.
+    """
+    return bool((issue.get("key") or issue.get("id")) and isinstance(issue.get("fields"), dict))
+
+
+def batch_coverage(issues: List[dict]) -> Dict[str, Any]:
+    """Aggregate path presence + unmapped count over a batch of raw issue docs."""
+    present: Dict[str, int] = {name: 0 for name in EXPECTED_PATHS}
+    unmapped = 0
+    for issue in issues:
+        if not issue_is_mapped(issue):
+            unmapped += 1
+        for name, is_present in field_presence(issue).items():
+            if is_present:
+                present[name] += 1
+    return {"docs": len(issues), "unmapped": unmapped, "present": present}
+
+
+def merge_coverage(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
+    """Combine two batch_coverage results into a running total."""
+    present = {name: a["present"].get(name, 0) + b["present"].get(name, 0) for name in EXPECTED_PATHS}
+    return {"docs": a["docs"] + b["docs"], "unmapped": a["unmapped"] + b["unmapped"], "present": present}
+
+
 def iter_issue_batches(collection, batch_size: int = DEFAULT_BATCH_SIZE) -> Iterator[Tuple[int, int, List[dict]]]:
     """Stream issue docs from a staging collection in batches (batch_no, offset, docs)."""
     batch: List[dict] = []

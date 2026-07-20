@@ -3,12 +3,16 @@
 No network, no live Ingestion-API, no scheduler, no mongorestore, no Mongo server.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
-from project_dataset_ingest import tasks
+import pytest
+
+from project_dataset_ingest import probe_schema, tasks
 
 DAGS_DIR = Path(__file__).resolve().parents[2] / "dags"
+FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
 
 
 class FakeResponse:
@@ -148,3 +152,80 @@ def test_status_callbacks():
     tasks.finalize_run("http://b", http, "r", "COMPLETED")
     assert http.posts[0][0].endswith("/runs/r/progress")
     assert http.puts[0][1]["status"] == "COMPLETED"
+
+
+# --- Schema-mapping coverage (confirm the real dump matches transform_issue) - #
+def test_field_presence_full_and_sparse():
+    full = tasks.field_presence(_JIRA_ISSUE)
+    assert full["key"] and full["fields.status.name"] and full["changelog.histories"]
+    assert full["fields.comment.comments"] and full["fields.issuelinks"]
+    sparse = tasks.field_presence({"id": "X-1", "fields": {"summary": "s"}})
+    assert sparse["key"] and sparse["fields"]
+    assert not sparse["fields.status.name"] and not sparse["changelog.histories"]
+
+
+def test_issue_is_mapped():
+    assert tasks.issue_is_mapped(_JIRA_ISSUE) is True
+    assert tasks.issue_is_mapped({"id": "X-1", "fields": {}}) is True   # recognized, just sparse
+    assert tasks.issue_is_mapped({"summary": "renamed shape"}) is False  # no key/id + no fields
+    assert tasks.issue_is_mapped({"key": "X-1"}) is False                # no fields block
+
+
+def test_batch_coverage_counts_unmapped_and_presence():
+    docs = [_JIRA_ISSUE, {"id": "X-1", "fields": {}}, {"weird": "shape"}]
+    cov = tasks.batch_coverage(docs)
+    assert cov["docs"] == 3 and cov["unmapped"] == 1
+    assert cov["present"]["fields.status.name"] == 1   # only the full issue
+    assert cov["present"]["key"] == 2                  # full + sparse have identity
+
+
+def test_merge_coverage_sums():
+    a = tasks.batch_coverage([_JIRA_ISSUE])
+    b = tasks.batch_coverage([{"weird": "shape"}])
+    m = tasks.merge_coverage(a, b)
+    assert m["docs"] == 2 and m["unmapped"] == 1
+    assert m["present"]["fields.status.name"] == 1
+
+
+class FakeCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    def limit(self, n):
+        return iter(self._docs[:n])
+
+
+class FakeSampleCollection:
+    def __init__(self, docs):
+        self._docs = docs
+
+    def find(self, flt=None):
+        return FakeCursor(self._docs)
+
+
+def test_probe_collection_and_problem_detection():
+    clean = probe_schema.probe_collection(FakeSampleCollection([_JIRA_ISSUE]), sample=10)
+    assert clean["coverage"]["unmapped"] == 0
+    assert probe_schema.collection_has_problem(clean) is False
+    assert "example doc" not in probe_schema.format_report("APACHE", clean)
+
+    broken = probe_schema.probe_collection(FakeSampleCollection([{"weird": "shape"}]), sample=10)
+    assert probe_schema.collection_has_problem(broken) is True
+    report = probe_schema.format_report("BROKEN", broken)
+    assert "CORE PATH ABSENT" in report
+
+
+def test_real_jira_issue_fixture_maps_cleanly():
+    """Drop a real anonymized doc at tests/fixtures/real_jira_issue.json to lock the mapping.
+
+    Skips until a real sample exists (see fixtures/README.md); once present it
+    regression-guards transform_issue against the true dataset shape.
+    """
+    fixture = FIXTURES_DIR / "real_jira_issue.json"
+    if not fixture.exists():
+        pytest.skip("no real_jira_issue.json fixture yet (add one after a partial restore)")
+    issue = json.loads(fixture.read_text())
+    assert tasks.issue_is_mapped(issue), "real doc shape not recognized — update transform_issue"
+    out = tasks.transform_issue(issue, "REAL")
+    assert out["issues"] and out["issues"][0]["issue_key"]
+    assert out["issues"][0]["status"] != "Unknown", "status path missed the real shape"
