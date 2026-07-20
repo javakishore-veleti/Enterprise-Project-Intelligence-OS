@@ -60,3 +60,21 @@ export interface StartAnalysisRequest {
   include_review: boolean;
   requested_by: string;
 }
+
+/** One row in a project's analysis-run history (lightweight run header). */
+export interface AnalysisRunSummary {
+  run_id: string;
+  project_key: string;
+  status: AnalysisStatus;
+  agent_keys: string[];
+  started_at: string;
+  finished_at: string | null;
+  finding_count: number;
+  report_count: number;
+}
+
+/** Response for GET /api/v1/analysis/projects/{project_key}/runs. */
+export interface AnalysisRunsResponse {
+  project_key: string;
+  runs: AnalysisRunSummary[];
+}

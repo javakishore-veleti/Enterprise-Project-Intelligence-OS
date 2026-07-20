@@ -17,9 +17,18 @@
           name="projectKey"
           placeholder="APACHE"
           [disabled]="loading()"
+          (blur)="loadProjectContext()"
           aria-label="Project key"
         />
       </label>
+      <button
+        type="button"
+        class="risk__btn risk__btn--ghost"
+        (click)="loadProjectContext()"
+        [disabled]="loading() || projectKey.trim().length === 0"
+      >
+        Load metrics &amp; history
+      </button>
     </div>
 
     <fieldset class="risk__fieldset" [disabled]="loading()">
@@ -65,6 +74,82 @@
     <p class="risk__status risk__status--error">{{ error() }}</p>
   }
 
+  <!-- Computed metrics panel -->
+  @if (metricsLoading()) {
+    <p class="risk__status">Loading computed metrics…</p>
+  } @else if (metricsError()) {
+    <p class="risk__status risk__status--error">{{ metricsError() }}</p>
+  } @else if (metricsMissing()) {
+    <p class="risk__status">No metrics yet — run ingestion + compute for this project.</p>
+  } @else if (metrics(); as m) {
+    <h2 class="risk__section-title">Computed metrics</h2>
+    <p class="risk__muted">computed {{ m.computed_at }}</p>
+    <div class="risk__tiles">
+      @for (tile of metricTiles(); track tile.label) {
+        <div class="tile">
+          <span class="tile__label">{{ tile.label }}</span>
+          <span class="tile__value">{{ tile.value }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Analysis history -->
+  @if (historyLoading()) {
+    <p class="risk__status">Loading analysis history…</p>
+  } @else if (historyError()) {
+    <p class="risk__status risk__status--error">{{ historyError() }}</p>
+  } @else if (runs().length > 0) {
+    <h2 class="risk__section-title">Analysis history ({{ runs().length }})</h2>
+    <div class="risk__table-wrap">
+      <table class="risk__table">
+        <thead>
+          <tr>
+            <th>Started</th>
+            <th>Status</th>
+            <th>Agents</th>
+            <th class="num">Findings</th>
+            <th class="num">Reports</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (summary of runs(); track summary.run_id) {
+            <tr>
+              <td class="mono">{{ summary.started_at }}</td>
+              <td>
+                <span class="badge badge--{{ severityClass(summary.status) }}">{{ summary.status }}</span>
+              </td>
+              <td>
+                <div class="risk__tags">
+                  @for (agent of summary.agent_keys; track agent) {
+                    <span class="tag">{{ agent }}</span>
+                  }
+                </div>
+              </td>
+              <td class="num">{{ summary.finding_count }}</td>
+              <td class="num">{{ summary.report_count }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="risk__btn risk__btn--ghost risk__btn--sm"
+                  (click)="viewRun(summary.run_id)"
+                  [disabled]="runLoading()"
+                >
+                  View
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (runLoading()) {
+    <p class="risk__status">Loading run…</p>
+  }
+
   @if (run(); as current) {
     <div class="risk__meta">
       <span class="badge badge--status badge--{{ current.status.toLowerCase() }}">{{ current.status }}</span>
@@ -72,6 +157,19 @@
       <span class="risk__muted">run {{ current.run_id }}</span>
       <span class="risk__muted">{{ current.agent_keys.join(', ') }}</span>
     </div>
+
+    @if (agentBreakdown().length > 0) {
+      <h2 class="risk__section-title">Agent execution ({{ agentBreakdown().length }})</h2>
+      <div class="risk__tiles">
+        @for (row of agentBreakdown(); track row.agent_key) {
+          <div class="tile">
+            <span class="tile__label mono">{{ row.agent_key }}</span>
+            <span class="tile__value">{{ row.count }}</span>
+            <span class="badge badge--{{ severityClass(row.max_severity) }}">{{ row.max_severity }}</span>
+          </div>
+        }
+      </div>
+    }
 
     <h2 class="risk__section-title">Findings ({{ sortedFindings().length }})</h2>
     <div class="risk__table-wrap">

@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { AnalysisRun, StartAnalysisRequest } from '../models/analysis';
+import { AnalysisRun, AnalysisRunsResponse, StartAnalysisRequest } from '../models/analysis';
 
 export interface StartAnalysisOptions {
   agents: string[];
@@ -43,6 +43,18 @@ export class RiskAnalyticsService {
   getRun(runId: string): Observable<AnalysisRun> {
     return this.http.get<AnalysisRun>(
       `${this.baseUrl}/analysis/runs/${encodeURIComponent(runId)}`,
+    );
+  }
+
+  /**
+   * List the most recent analysis runs for a project (newest first),
+   * as lightweight run summaries for the history table.
+   */
+  listRuns(projectKey: string, limit = 20): Observable<AnalysisRunsResponse> {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<AnalysisRunsResponse>(
+      `${this.baseUrl}/analysis/projects/${encodeURIComponent(projectKey)}/runs`,
+      { params },
     );
   }
 }

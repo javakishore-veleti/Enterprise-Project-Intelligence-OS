@@ -29,4 +29,8 @@ export interface ProjectMetrics {
   reopen_rate: number;
   blocker_count: number;
   dependency_depth: number;
+  issue_aging_days: number;
+  resolution_velocity: number;
+  contributor_concentration: number;
+  critical_defect_ratio: number;
 }

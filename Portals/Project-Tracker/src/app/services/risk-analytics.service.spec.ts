@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { environment } from '../../environments/environment';
 import { RiskAnalyticsService } from './risk-analytics.service';
-import { AnalysisRun } from '../models/analysis';
+import { AnalysisRun, AnalysisRunsResponse } from '../models/analysis';
 
 describe('RiskAnalyticsService', () => {
   let service: RiskAnalyticsService;
@@ -62,5 +62,34 @@ describe('RiskAnalyticsService', () => {
     );
     expect(req.request.method).toBe('GET');
     req.flush(runStub);
+  });
+
+  it('lists run summaries for a project with a limit param', () => {
+    const runsStub: AnalysisRunsResponse = {
+      project_key: 'APACHE',
+      runs: [
+        {
+          run_id: 'run-9',
+          project_key: 'APACHE',
+          status: 'COMPLETED',
+          agent_keys: ['schedule_risk'],
+          started_at: '2026-07-19T00:00:00Z',
+          finished_at: '2026-07-19T00:01:00Z',
+          finding_count: 2,
+          report_count: 1,
+        },
+      ],
+    };
+
+    let result: AnalysisRunsResponse | undefined;
+    service.listRuns('APACHE', 20).subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(
+      `${environment.riskApiBaseUrl}/api/v1/analysis/projects/APACHE/runs?limit=20`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(runsStub);
+
+    expect(result).toEqual(runsStub);
   });
 });
