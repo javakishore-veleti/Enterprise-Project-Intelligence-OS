@@ -3,10 +3,13 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from fastapi import Depends
+
 from risk_analytics_api.api.exception_handlers import register_exception_handlers
 from risk_analytics_api.api.routers import analysis, health
 from risk_analytics_api.common.configuration import get_settings
 from risk_analytics_api.common.logging import configure_logging
+from risk_analytics_api.common.security import authenticate
 from risk_analytics_api.common.tracing import configure_tracing
 
 
@@ -25,7 +28,7 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(health.router)
-    app.include_router(analysis.router)
+    app.include_router(analysis.router, dependencies=[Depends(authenticate)])  # opt-in auth
     return app
 
 

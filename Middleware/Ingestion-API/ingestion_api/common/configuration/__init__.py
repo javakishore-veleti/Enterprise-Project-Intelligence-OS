@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     service_port: int = Field(default=8001, alias="INGESTION_API_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # API-key auth (opt-in). When enabled, business endpoints require X-API-Key.
+    auth_enabled: bool = Field(default=False, alias="AUTH_ENABLED")
+    api_key: str = Field(default="", alias="API_KEY")
+
     pg_host: str = Field(default="localhost", alias="PG_HOST")
     pg_port: int = Field(default=5432, alias="PG_PORT")
     pg_user: str = Field(default="epi_os", alias="PG_USER")

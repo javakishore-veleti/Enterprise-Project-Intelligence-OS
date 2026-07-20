@@ -4,9 +4,12 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from admin_api.api.exception_handlers import register_exception_handlers
+from fastapi import Depends
+
 from admin_api.api.routers import agents, dataset, health, system
 from admin_api.common.configuration import get_settings
 from admin_api.common.logging import configure_logging
+from admin_api.common.security import authenticate
 
 
 def create_app() -> FastAPI:
@@ -23,9 +26,10 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(health.router)
-    app.include_router(agents.router)
-    app.include_router(system.router)
-    app.include_router(dataset.router)
+    secured = [Depends(authenticate)]  # opt-in API-key auth (no-op unless AUTH_ENABLED)
+    app.include_router(agents.router, dependencies=secured)
+    app.include_router(system.router, dependencies=secured)
+    app.include_router(dataset.router, dependencies=secured)
     return app
 
 

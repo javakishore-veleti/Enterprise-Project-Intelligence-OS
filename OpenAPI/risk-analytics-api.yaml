@@ -53,6 +53,14 @@ paths:
           minimum: 1
           default: 20
           title: Limit
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -79,6 +87,14 @@ paths:
         schema:
           type: string
           title: Project Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -111,6 +127,14 @@ paths:
         schema:
           type: string
           title: Portfolio Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -143,6 +167,14 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response

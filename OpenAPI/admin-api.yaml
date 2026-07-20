@@ -55,6 +55,14 @@ paths:
           minimum: 0
           default: 0
           title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -81,6 +89,14 @@ paths:
         schema:
           type: string
           title: Agent Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -106,6 +122,14 @@ paths:
         schema:
           type: string
           title: Agent Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -149,6 +173,14 @@ paths:
           minimum: 0
           default: 0
           title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -168,6 +200,15 @@ paths:
       - system
       summary: Get System Health
       operationId: getSystemHealth
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -175,12 +216,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemHealthResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/admin/dataset/status:
     get:
       tags:
       - dataset
       summary: Get Dataset Status
       operationId: getDatasetStatus
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -188,6 +244,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/admin/dataset/download:
     post:
       tags:
@@ -196,6 +258,15 @@ paths:
       description: Trigger the Airflow-driven dataset download (via the Ingestion
         API).
       operationId: downloadDataset
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -203,12 +274,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/admin/dataset/ingestion:
     get:
       tags:
       - dataset
       summary: Get Dataset Ingestion
       operationId: getDatasetIngestion
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -216,6 +302,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IngestionProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/admin/dataset/ingest:
     post:
       tags:
@@ -223,6 +315,15 @@ paths:
       summary: Ingest Dataset
       description: Trigger the Airflow-driven batch ingestion into the evidence store.
       operationId: ingestDataset
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '202':
           description: Successful Response
@@ -230,6 +331,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IngestionProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AgentConfigListResponse:

@@ -1,7 +1,7 @@
 """FastAPI application factory for the Ingestion API."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from ingestion_api.api.exception_handlers import register_exception_handlers
 from ingestion_api.api.routers import (
@@ -13,6 +13,7 @@ from ingestion_api.api.routers import (
 )
 from ingestion_api.common.configuration import get_settings
 from ingestion_api.common.logging import configure_logging
+from ingestion_api.common.security import authenticate
 
 
 def create_app() -> FastAPI:
@@ -28,11 +29,12 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
-    app.include_router(health.router)
-    app.include_router(ingestion.router)
-    app.include_router(operations.router)
-    app.include_router(datasets.router)
-    app.include_router(dataset_ingestion.router)
+    app.include_router(health.router)  # public
+    secured = [Depends(authenticate)]  # opt-in API-key auth (no-op unless AUTH_ENABLED)
+    app.include_router(ingestion.router, dependencies=secured)
+    app.include_router(operations.router, dependencies=secured)
+    app.include_router(datasets.router, dependencies=secured)
+    app.include_router(dataset_ingestion.router, dependencies=secured)
     return app
 
 

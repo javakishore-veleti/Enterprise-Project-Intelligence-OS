@@ -36,12 +36,21 @@ paths:
       - ingestion
       summary: Start Ingestion
       operationId: startIngestion
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/StartIngestionRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -68,6 +77,14 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -87,12 +104,21 @@ paths:
       - operations
       summary: Start Acquisition
       operationId: startAcquisition
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AcquireDatasetRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -119,6 +145,14 @@ paths:
         schema:
           type: string
           title: Acquisition Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -145,6 +179,14 @@ paths:
         schema:
           type: string
           title: Acquisition Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -177,6 +219,14 @@ paths:
         schema:
           type: string
           title: Acquisition Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -196,12 +246,21 @@ paths:
       - operations
       summary: Start Validation
       operationId: startValidation
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ValidateDatasetRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -228,6 +287,14 @@ paths:
         schema:
           type: string
           title: Validation Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -247,12 +314,21 @@ paths:
       - operations
       summary: Start Indexing
       operationId: startIndexing
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IndexDatasetRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -279,6 +355,14 @@ paths:
         schema:
           type: string
           title: Index Job Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -298,12 +382,21 @@ paths:
       - operations
       summary: Start Reconciliation
       operationId: startReconciliation
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ReconcileDatasetRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -330,6 +423,14 @@ paths:
         schema:
           type: string
           title: Reconciliation Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -356,6 +457,14 @@ paths:
         schema:
           type: string
           title: Dataset Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -383,6 +492,14 @@ paths:
         schema:
           type: string
           title: Dataset Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '202':
           description: Successful Response
@@ -410,6 +527,14 @@ paths:
         schema:
           type: string
           title: Dataset Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -442,6 +567,14 @@ paths:
         schema:
           type: string
           title: Dataset Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -474,6 +607,14 @@ paths:
         schema:
           type: string
           title: Dataset Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response
@@ -501,6 +642,14 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -530,6 +679,14 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       requestBody:
         required: true
         content:
@@ -570,6 +727,14 @@ paths:
         schema:
           type: string
           title: Entity
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
       responses:
         '200':
           description: Successful Response

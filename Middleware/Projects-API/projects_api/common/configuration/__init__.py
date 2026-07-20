@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     service_port: int = Field(default=8003, alias="PROJECTS_API_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    auth_enabled: bool = Field(default=False, alias="AUTH_ENABLED")
+    api_key: str = Field(default="", alias="API_KEY")
+
     mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
     mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
 

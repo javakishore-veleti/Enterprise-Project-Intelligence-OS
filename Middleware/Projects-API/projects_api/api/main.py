@@ -1,12 +1,13 @@
 """FastAPI application factory for the Projects API."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from projects_api.api.exception_handlers import register_exception_handlers
 from projects_api.api.routers import health, projects
 from projects_api.common.configuration import get_settings
 from projects_api.common.logging import configure_logging
+from projects_api.common.security import authenticate
 
 
 def create_app() -> FastAPI:
@@ -23,7 +24,7 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(health.router)
-    app.include_router(projects.router)
+    app.include_router(projects.router, dependencies=[Depends(authenticate)])  # opt-in auth
     return app
 
 
