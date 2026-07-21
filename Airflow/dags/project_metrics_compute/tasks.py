@@ -22,10 +22,20 @@ def get_base_url() -> str:
     return (os.environ.get("PROJECTS_API_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
 
 
-def list_project_keys(base_url: str, http: HttpClient, limit: int = 1000) -> List[str]:
-    resp = http.get(f"{base_url}/api/v1/projects?limit={limit}&offset=0", timeout=DEFAULT_TIMEOUT)
-    resp.raise_for_status()
-    return [p["project_key"] for p in resp.json().get("items", [])]
+def list_project_keys(base_url: str, http: HttpClient, page_size: int = 200) -> List[str]:
+    """All project keys, paginated (the list endpoint caps ``limit`` at 200)."""
+    keys: List[str] = []
+    offset = 0
+    while True:
+        resp = http.get(
+            f"{base_url}/api/v1/projects?limit={page_size}&offset={offset}", timeout=DEFAULT_TIMEOUT)
+        resp.raise_for_status()
+        items = resp.json().get("items", [])
+        keys.extend(p["project_key"] for p in items)
+        if len(items) < page_size:
+            break
+        offset += page_size
+    return keys
 
 
 def compute_project(base_url: str, http: HttpClient, project_key: str) -> Dict[str, Any]:
