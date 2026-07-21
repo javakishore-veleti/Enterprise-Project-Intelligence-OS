@@ -4,7 +4,11 @@
 # foundation slice does not require it running.
 services:
   airflow:
-    image: apache/airflow:2.10.0-python3.12
+    # Custom image = base Airflow + mongorestore + pymongo/requests (see Dockerfile).
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: epi-airflow:2.10.0-python3.12
     container_name: local-airflow
     command: standalone
     environment:
@@ -24,7 +28,7 @@ services:
       # The ingest DAG batch-writes evidence directly to MongoDB (operational tier).
       MONGO_URI: mongodb://host.docker.internal:27017/epi_os
       MONGO_DATABASE: epi_os
-      PIP_ADDITIONAL_REQUIREMENTS: "requests>=2.31.0 pymongo>=4.8"
+      # requests + pymongo are baked into the image (Dockerfile); no runtime pip.
     ports:
       - "8080:8080"
     volumes:
