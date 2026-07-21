@@ -92,12 +92,19 @@ def find_mongodump_archive(work_dir: str) -> str:
     return sorted(matches, key=os.path.getsize, reverse=True)[0]
 
 
-def build_mongorestore_cmd(archive_path: str, mongo_uri: str, staging_db: str = STAGING_DB) -> List[str]:
-    """mongorestore the gzipped archive into the staging DB (ns-remapped)."""
-    return [
-        "mongorestore", "--gzip", f"--archive={archive_path}", f"--uri={mongo_uri}",
-        "--nsFrom=JiraReposAnon.*", f"--nsTo={staging_db}.*", "--drop",
-    ]
+def build_mongorestore_cmd(archive_path: str, mongo_uri: str, staging_db: str = STAGING_DB,
+                           repos: Optional[List[str]] = None) -> List[str]:
+    """mongorestore the gzipped archive into the staging DB (ns-remapped).
+
+    ``repos`` optionally limits the restore to specific Jira repos (collections) —
+    a bounded/selective ingest (e.g. dev runs, or when disk can't hold all ~60 GB).
+    When omitted, the full ``JiraReposAnon`` DB is restored.
+    """
+    cmd = ["mongorestore", "--gzip", f"--archive={archive_path}", f"--uri={mongo_uri}"]
+    for repo in repos or []:
+        cmd.append(f"--nsInclude=JiraReposAnon.{repo}")
+    cmd += ["--nsFrom=JiraReposAnon.*", f"--nsTo={staging_db}.*", "--drop"]
+    return cmd
 
 
 def run_mongorestore(cmd: List[str], runner: Callable[[List[str]], Any] = None) -> None:

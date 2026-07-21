@@ -102,8 +102,11 @@ class DatasetIngestionGateway(ABC):
     """Triggers the Airflow batch-ingestion DAG (operational scheduler)."""
 
     @abstractmethod
-    def trigger_ingest(self, dataset_id: str, run_id: str) -> str:
-        """Trigger the ingest DAG for a run; return the external dag-run reference."""
+    def trigger_ingest(self, dataset_id: str, run_id: str, repos: list[str] | None = None) -> str:
+        """Trigger the ingest DAG for a run; return the external dag-run reference.
+
+        ``repos`` optionally limits ingestion to specific Jira repos (bounded ingest).
+        """
 
 
 class MetricsComputeGateway(ABC):

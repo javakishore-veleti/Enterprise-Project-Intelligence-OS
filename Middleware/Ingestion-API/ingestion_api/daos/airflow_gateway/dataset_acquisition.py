@@ -22,11 +22,11 @@ class AirflowDatasetIngestionGateway(DatasetIngestionGateway):
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def trigger_ingest(self, dataset_id: str, run_id: str) -> str:
-        return trigger_dag(
-            self._settings, self._settings.ingest_dag_id,
-            {"dataset_id": dataset_id, "run_id": run_id},
-        )
+    def trigger_ingest(self, dataset_id: str, run_id: str, repos: list[str] | None = None) -> str:
+        conf = {"dataset_id": dataset_id, "run_id": run_id}
+        if repos:
+            conf["repos"] = repos
+        return trigger_dag(self._settings, self._settings.ingest_dag_id, conf)
 
 
 class AirflowMetricsComputeGateway(MetricsComputeGateway):

@@ -85,8 +85,8 @@ class FakeGateway(DatasetIngestionGateway):
         self.fail = fail
         self.calls = []
 
-    def trigger_ingest(self, dataset_id, run_id):
-        self.calls.append((dataset_id, run_id))
+    def trigger_ingest(self, dataset_id, run_id, repos=None):
+        self.calls.append((dataset_id, run_id, repos))
         if self.fail:
             raise DependencyUnavailableError("airflow down")
         return "run-xyz"

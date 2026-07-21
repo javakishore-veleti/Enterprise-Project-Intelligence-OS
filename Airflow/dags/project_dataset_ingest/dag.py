@@ -66,12 +66,16 @@ def project_dataset_ingest():
         zip_path = dataset.get("downloaded_path") or os.path.join(data_dir, dataset["file_name"])
         work_dir = os.path.join(data_dir, "extracted", dataset_id)
         tasks.extract_archive(zip_path, work_dir)
+        # Optional bounded ingest: conf {"repos": ["Mindville", ...]} restores only
+        # those repos (e.g. when disk can't hold the full ~60 GB). None = all repos.
         return {"dataset_id": dataset_id, "run_id": _conf(context).get("run_id"),
+                "repos": _conf(context).get("repos"),
                 "archive_path": tasks.find_mongodump_archive(work_dir)}
 
     @task
     def restore(prep: dict) -> dict:
-        cmd = tasks.build_mongorestore_cmd(prep["archive_path"], tasks.get_mongo_uri())
+        cmd = tasks.build_mongorestore_cmd(prep["archive_path"], tasks.get_mongo_uri(),
+                                           repos=prep.get("repos"))
         tasks.run_mongorestore(cmd)
         return prep
 

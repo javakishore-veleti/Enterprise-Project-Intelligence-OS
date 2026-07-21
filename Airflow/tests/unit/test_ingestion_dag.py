@@ -121,6 +121,14 @@ def test_build_mongorestore_cmd():
     assert cmd[0] == "mongorestore" and "--gzip" in cmd
     assert "--archive=/data/d.archive" in cmd
     assert "--nsFrom=JiraReposAnon.*" in cmd and "--nsTo=jira_repos.*" in cmd
+    assert not any(a.startswith("--nsInclude") for a in cmd)  # full restore by default
+
+
+def test_build_mongorestore_cmd_bounded_repos():
+    cmd = tasks.build_mongorestore_cmd("/d.archive", "mongodb://h/epi_os", repos=["Mindville", "Sakai"])
+    assert "--nsInclude=JiraReposAnon.Mindville" in cmd
+    assert "--nsInclude=JiraReposAnon.Sakai" in cmd
+    assert "--nsFrom=JiraReposAnon.*" in cmd and "--nsTo=jira_repos.*" in cmd  # still remapped
 
 
 def test_run_mongorestore_uses_injected_runner():

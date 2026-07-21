@@ -66,6 +66,8 @@ class StartDatasetIngestionRequest(TypedModel):
     requested_by: str = Field(default="admin", min_length=1)
     batch_size: int = Field(default=1000, ge=1, le=100_000)
     parallelism: int = Field(default=4, ge=1, le=64)
+    # Optional bounded ingest: restrict to specific Jira repos (None/empty = all).
+    repos: list[str] | None = Field(default=None)
 
 
 class ReportBatchProgressRequest(TypedModel):

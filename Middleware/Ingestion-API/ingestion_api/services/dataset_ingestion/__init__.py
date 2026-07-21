@@ -67,7 +67,7 @@ class DefaultDatasetIngestionService(DatasetIngestionService):
             requested_by=request.requested_by, created_at=utc_now(), updated_at=utc_now(),
         ))
         try:
-            dag_run = self._airflow.trigger_ingest(dataset_id, run.run_id)
+            dag_run = self._airflow.trigger_ingest(dataset_id, run.run_id, repos=request.repos)
         except Exception:
             self._tracking.update_status(run.run_id, IngestionStatus.FAILED)
             raise
