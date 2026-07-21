@@ -31,7 +31,10 @@ services:
       - ../../../Airflow/dags:/opt/airflow/dags
       - ../../../Airflow/plugins:/opt/airflow/plugins
       - ../../../Airflow/config:/opt/airflow/config
-      - epi_dataset_data:/opt/airflow/data
+      # Dataset dir: defaults to a Docker-managed named volume, but set
+      # AIRFLOW_DATA_MOUNT to an absolute host path to keep the (large) archive
+      # on local disk (also lets host-side mongorestore read it directly).
+      - ${AIRFLOW_DATA_MOUNT:-epi_dataset_data}:/opt/airflow/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

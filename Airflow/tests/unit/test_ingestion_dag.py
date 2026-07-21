@@ -216,10 +216,12 @@ def test_probe_collection_and_problem_detection():
 
 
 def test_real_jira_issue_fixture_maps_cleanly():
-    """Drop a real anonymized doc at tests/fixtures/real_jira_issue.json to lock the mapping.
+    """Lock transform_issue against the CONFIRMED real dataset shape.
 
-    Skips until a real sample exists (see fixtures/README.md); once present it
-    regression-guards transform_issue against the true dataset shape.
+    fixtures/real_jira_issue.json mirrors the structure verified 2026-07-21 against
+    a live Mindville restore of the public JiraReposAnon mongodump (anonymized
+    author tokens, changelog.histories[].items[].toString, issuelinks[].type.name).
+    Values are synthetic so the dataset stays out of the repo (see fixtures/README.md).
     """
     fixture = FIXTURES_DIR / "real_jira_issue.json"
     if not fixture.exists():
@@ -227,5 +229,14 @@ def test_real_jira_issue_fixture_maps_cleanly():
     issue = json.loads(fixture.read_text())
     assert tasks.issue_is_mapped(issue), "real doc shape not recognized — update transform_issue"
     out = tasks.transform_issue(issue, "REAL")
-    assert out["issues"] and out["issues"][0]["issue_key"]
-    assert out["issues"][0]["status"] != "Unknown", "status path missed the real shape"
+
+    row = out["issues"][0]
+    assert row["issue_key"] and row["status"] != "Unknown", "status path missed the real shape"
+    assert row["priority"] and row["created_at"] and row["resolved_at"], "priority/date paths missed"
+    # changelog -> status history: only the status item, with its toString value.
+    assert [h["to_value"] for h in out["issue_histories"]] == ["Closed"], "changelog status mapping wrong"
+    assert out["issue_histories"][0]["author"], "anonymized author token not carried through"
+    # issuelinks -> outwardIssue.key + type.name.
+    assert out["issue_links"] and out["issue_links"][0]["link_type"], "issuelinks mapping wrong"
+    # The real dataset carries no fields.comment, so comments are expected to be empty.
+    assert out["comments"] == [], "real dataset has no comments — mapping should yield none"

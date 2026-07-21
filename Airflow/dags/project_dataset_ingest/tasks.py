@@ -3,7 +3,10 @@
 The public Jira dataset ships as a MongoDB dump
 (``3. DataDump/mongodump-JiraReposAnon.archive``: ``mongodump --gzip --archive``
 of the ``JiraReposAnon`` DB — one collection per Jira repo, each holding standard
-Jira issue documents with changelog / comments / links embedded).
+Jira REST-v2 issue documents with an embedded ``changelog`` and ``issuelinks``.
+Confirmed live (2026-07-21, Mindville restore): status changes live in
+``changelog.histories[].items[]`` and links in ``fields.issuelinks[]``; the dump
+carries **no** ``fields.comment`` — comments are absent dataset-wide).
 
 So ingestion is: extract the zip -> ``mongorestore`` the archive into a staging
 DB -> **normalize** each repo collection's issues into our clean evidence

@@ -1,0 +1,31 @@
+{
+  "_comment": "SYNTHETIC doc that mirrors the CONFIRMED real shape of the public Jira dataset (JiraReposAnon mongodump), verified 2026-07-21 against a live restore of the Mindville repo. Values are fabricated (the dataset stays out of the repo per its license); the STRUCTURE — including the anonymized <<|author_*|uuid|>> token format, changelog.histories[].items[].toString, and fields.issuelinks[].type.name/outwardIssue.key — is faithful to what transform_issue must map. Note: the real dataset carries NO fields.comment, so none is present here either.",
+  "id": "99001",
+  "key": "DEMO-41",
+  "self": "https://jira.example.com/rest/api/2/issue/99001",
+  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+  "fields": {
+    "issuetype": {"id": "10006", "name": "Bug", "subtask": false},
+    "project": {"id": "10102", "key": "DEMO", "name": "Demo Project", "projectTypeKey": "software"},
+    "priority": {"id": "5", "name": "Lowest"},
+    "status": {"id": "6", "name": "Closed", "statusCategory": {"key": "done", "name": "Done"}},
+    "resolution": {"id": "3", "name": "Duplicate"},
+    "created": "2019-01-09T19:24:36.000+0000",
+    "updated": "2019-01-09T19:28:05.000+0000",
+    "resolutiondate": "2019-01-09T19:28:05.000+0000",
+    "creator": {"name": "<<|author_name|e8d3bf89-ce26-4043-89d9-e0ae382e2fa3|>>", "displayName": "<<|author_displayName|8dec7f5e-1d95-425b-aaaa-870f8b14348c|>>", "active": true},
+    "reporter": {"name": "<<|author_name|f8f8fa5e-d906-4bd3-b76d-9104539a9d0a|>>", "displayName": "<<|author_displayName|f8f8fa5e-d906-4bd3-b76d-9104539a9d0a|>>", "active": true},
+    "issuelinks": [
+      {"id": "10201", "type": {"id": "10002", "name": "Duplicate", "inward": "is duplicated by", "outward": "duplicates"}, "outwardIssue": {"id": "10986", "key": "DEMO-26", "fields": {"status": {"name": "Open"}}}}
+    ]
+  },
+  "changelog": {
+    "startAt": 0,
+    "maxResults": 2,
+    "total": 2,
+    "histories": [
+      {"id": "14646", "author": {"name": "<<|author_name|e8d3bf89-ce26-4043-89d9-e0ae382e2fa3|>>", "displayName": "<<|author_displayName|8dec7f5e-1d95-425b-aaaa-870f8b14348c|>>", "active": true}, "created": "2019-01-09T19:25:10.000+0000", "items": [{"field": "assignee", "fieldtype": "jira", "from": null, "fromString": null, "to": "u1", "toString": "<<|item_toString|assignee|>>"}]},
+      {"id": "14647", "author": {"name": "<<|author_name|e8d3bf89-ce26-4043-89d9-e0ae382e2fa3|>>", "displayName": "<<|author_displayName|8dec7f5e-1d95-425b-aaaa-870f8b14348c|>>", "active": true}, "created": "2019-01-09T19:28:05.000+0000", "items": [{"field": "status", "fieldtype": "jira", "from": "1", "fromString": "Open", "to": "6", "toString": "Closed"}, {"field": "resolution", "fieldtype": "jira", "from": null, "fromString": null, "to": "3", "toString": "Duplicate"}]}
+    ]
+  }
+}

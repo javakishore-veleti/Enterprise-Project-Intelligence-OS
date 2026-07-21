@@ -1,14 +1,25 @@
 # Airflow test fixtures
 
-## `real_jira_issue.json` (add after a partial restore)
+## `real_jira_issue.json` — CONFIRMED real shape (verified 2026-07-21)
 
-`test_real_jira_issue_fixture_maps_cleanly` **skips** until this file exists.
+`test_real_jira_issue_fixture_maps_cleanly` locks `transform_issue` against the
+real dataset's document shape. The file is **synthetic** (fabricated values) but
+its **structure is faithful** to what was verified live against a Mindville
+restore of the public `JiraReposAnon` mongodump — the dataset itself stays out of
+the repo per its license, so we commit the shape, not the data.
 
-The DAG's `transform_issue` maps standard Jira-REST-v2 issue documents into our
-evidence rows. The real Zenodo dataset is an **anonymized** `mongodump`
-(`JiraReposAnon`), so before a full ingest we confirm the real document shape
-matches what the mapper reads. To capture a real sample without the full
-~60 GB restore:
+**What the live probe confirmed:** the dump is
+`mongodump --db=JiraReposAnon --gzip --archive` (one collection per repo).
+`key` / `fields.status.name` / `fields.created` at 100%; `priority` /
+`resolutiondate` / `issuelinks` present where expected; status changes come from
+`changelog.histories[].items[]` where `field=="status"` (`toString`), authors are
+anonymized `<<|author_*|uuid|>>` tokens, links from `issuelinks[].type.name` +
+`outwardIssue.key`. **The dataset has NO `fields.comment`** — comments are absent
+everywhere, so the fixture omits them and the test asserts zero comments.
+
+## Re-verifying (another repo, or after a fresh download)
+
+The mapping was confirmed without the full ~60 GB restore — probe one repo:
 
 ```bash
 # 1. Get the archive local (Admin portal -> Initial Dataset, or a direct Zenodo pull).
