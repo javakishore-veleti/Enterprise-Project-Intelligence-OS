@@ -1,12 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 import { AnalysisRun, AnalysisRunSummary, Report, RiskFinding } from '../models/analysis';
 import { ProjectMetrics } from '../models/project';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
+import { NotificationService } from '../ui/notification.service';
 
 interface AgentOption {
   key: string;
@@ -51,7 +53,7 @@ const SEVERITY_RANK: Record<string, number> = {
   templateUrl: './project-risk.html',
   styleUrl: './project-risk.css',
 })
-export class ProjectRisk {
+export class ProjectRisk implements OnInit {
   protected projectKey = 'APACHE';
   protected includeReview = false;
 
@@ -129,10 +131,24 @@ export class ProjectRisk {
 
   private readonly requestedBy = 'project-tracker-ui';
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly notify = inject(NotificationService);
+
   constructor(
     private readonly riskService: RiskAnalyticsService,
     private readonly projectsService: ProjectsService,
   ) {}
+
+  ngOnInit(): void {
+    // Prefill + auto-load when arriving from a project's "Analyze →" link.
+    this.route.queryParamMap.subscribe((params) => {
+      const key = params.get('project');
+      if (key && key.trim().length > 0) {
+        this.projectKey = key.trim();
+        this.loadProjectContext();
+      }
+    });
+  }
 
   protected toggleAgent(key: string): void {
     this.agents.update((list) =>
@@ -198,14 +214,28 @@ export class ProjectRisk {
     });
   }
 
-  protected runAnalysis(): void {
+  protected async runAnalysis(): Promise<void> {
     if (!this.canRun) {
       return;
     }
     const key = this.projectKey.trim();
+    const count = this.selectedKeys.length;
+    const confirmed = await this.notify.confirm({
+      title: 'Run risk analysis?',
+      message:
+        `This runs ${count} detector agent${count === 1 ? '' : 's'} on ${key}` +
+        (this.includeReview ? ' plus the full review pipeline' : '') +
+        ' via live LLM calls, and may take 30–60s.',
+      confirmLabel: 'Run analysis',
+    });
+    if (!confirmed) {
+      return;
+    }
+
     this.loading.set(true);
     this.error.set(null);
     this.run.set(null);
+    this.notify.info('Analysis started', `${count} agent${count === 1 ? '' : 's'} on ${key} — this can take up to a minute.`);
     // Refresh the metrics panel alongside the analysis.
     this.loadMetrics(key);
 
@@ -219,6 +249,10 @@ export class ProjectRisk {
         next: (result) => {
           this.run.set(result);
           this.loading.set(false);
+          this.notify.success(
+            'Analysis complete',
+            `${result.findings.length} finding${result.findings.length === 1 ? '' : 's'} · ${result.reports?.length ?? 0} report${(result.reports?.length ?? 0) === 1 ? '' : 's'} for ${key}.`,
+          );
           // Reflect the just-completed run in the history table.
           this.loadHistory(key);
         },
@@ -227,6 +261,7 @@ export class ProjectRisk {
             'Unable to run the analysis. Is the RiskAnalytics-API running on :8004 ' +
               '(and is ANTHROPIC_API_KEY set)?',
           );
+          this.notify.error('Analysis failed', 'The RiskAnalytics-API did not respond. Check :8004 and ANTHROPIC_API_KEY.');
           this.loading.set(false);
         },
       });
