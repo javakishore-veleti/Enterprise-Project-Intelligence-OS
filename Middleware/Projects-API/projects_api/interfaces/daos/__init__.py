@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from projects_api.dtos.common import PortfolioAggregate
 from projects_api.dtos.responses import (
     ProjectGroupResponse,
     ProjectMetricsResponse,
@@ -53,6 +54,29 @@ class ProjectMetricsDao(ABC):
     @abstractmethod
     def history(self, project_key: str, limit: int) -> list[ProjectMetricsResponse]:
         """Past metric snapshots for a project (newest first) — the time series."""
+
+
+class PortfolioSummaryDao(ABC):
+    """Read access for the portfolio risk ranking (MongoDB). Joins projects with
+    their latest metrics and rolls up totals server-side."""
+
+    @abstractmethod
+    def portfolio_data(self, project_keys: list[str] | None = None) -> PortfolioAggregate:
+        """Totals over projects + latest-metrics rows for scored projects.
+
+        When ``project_keys`` is provided, the aggregation is narrowed to those
+        keys **in the database** (``$match project_key $in [...]``) so scoping
+        never pulls the full portfolio into Python.
+        """
+
+
+class ProjectAssignmentsDao(ABC):
+    """Read access to per-user project assignments (MongoDB). The scoping seam:
+    resolves a caller's ``user_key`` to the project keys they own/manage/belong to."""
+
+    @abstractmethod
+    def project_keys_for(self, user_key: str) -> list[str]:
+        """Project keys assigned to ``user_key`` (indexed lookup); [] if none."""
 
 
 class MetricsComputationDao(ABC):

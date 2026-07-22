@@ -9,6 +9,7 @@ from projects_api.dtos.requests import (
     UpdateProjectGroupRequest,
 )
 from projects_api.dtos.responses import (
+    PortfolioSummaryResponse,
     ProjectGroupListResponse,
     ProjectGroupResponse,
     ProjectMetricsResponse,
@@ -30,6 +31,11 @@ class GetProjectUseCase(ABC):
 class GetProjectMetricsUseCase(ABC):
     @abstractmethod
     def execute(self, project_key: str) -> ProjectMetricsResponse: ...
+
+
+class PortfolioSummaryUseCase(ABC):
+    @abstractmethod
+    def execute(self, top: int, user_key: str | None = None) -> PortfolioSummaryResponse: ...
 
 
 class ProjectGroupsUseCase(ABC):

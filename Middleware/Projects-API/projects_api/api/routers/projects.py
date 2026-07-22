@@ -1,16 +1,18 @@
 """Project query endpoints (HTTP concerns + validation only)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from projects_api.api.dependencies import (
     provide_compute_metrics_facade,
     provide_get_project_facade,
     provide_get_project_metrics_facade,
+    provide_portfolio_summary_facade,
     provide_search_projects_facade,
 )
 from projects_api.dtos.requests import SearchProjectsRequest
 from projects_api.dtos.responses import (
+    PortfolioSummaryResponse,
     ProjectMetricsHistoryResponse,
     ProjectMetricsResponse,
     ProjectResponse,
@@ -19,6 +21,7 @@ from projects_api.dtos.responses import (
 from projects_api.facades.compute_metrics import ComputeMetricsFacade
 from projects_api.facades.get_project import GetProjectFacade
 from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
+from projects_api.facades.portfolio_summary import PortfolioSummaryFacade
 from projects_api.facades.search_projects import SearchProjectsFacade
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -52,6 +55,27 @@ def search_projects(
     facade: SearchProjectsFacade = Depends(provide_search_projects_facade),
 ) -> ProjectSearchResponse:
     return facade.execute(SearchProjectsRequest(query=query, limit=limit, offset=offset))
+
+
+# NOTE: must be declared BEFORE "/{project_key}" so the literal path is not
+# captured as a project key by the parameterized route.
+@router.get(
+    "/portfolio-summary",
+    response_model=PortfolioSummaryResponse,
+    operation_id="getPortfolioSummary",
+)
+def portfolio_summary(
+    top: int = Query(default=15, ge=1, le=50),
+    x_user_key: str | None = Header(default=None, alias="X-User-Key"),
+    facade: PortfolioSummaryFacade = Depends(provide_portfolio_summary_facade),
+) -> PortfolioSummaryResponse:
+    """Server-side risk ranking of the portfolio; returns only the top N.
+
+    When an ``X-User-Key`` header identifies a user with project assignments, the
+    ranking + totals + bands are scoped to that user's projects (the per-user
+    scoping seam); otherwise it covers the whole portfolio.
+    """
+    return facade.execute(top, user_key=x_user_key)
 
 
 @router.get("/{project_key}", response_model=ProjectResponse, operation_id="getProject")

@@ -47,6 +47,69 @@ class ProjectMetricsHistoryResponse(TypedModel):
     history: list[ProjectMetricsResponse]
 
 
+class PortfolioTotals(TypedModel):
+    """Portfolio-wide roll-up counts."""
+
+    projects: int
+    issues: int
+    open_issues: int
+
+
+class PortfolioRiskBands(TypedModel):
+    """How the portfolio's projects distribute across risk bands."""
+
+    high: int
+    medium: int
+    low: int
+    unscored: int
+
+
+class PortfolioProjectSummary(TypedModel):
+    """One ranked project in the portfolio summary's top-N list."""
+
+    project_key: str
+    name: str
+    category: str | None = None
+    risk_score: float
+    risk_band: str
+    issue_count: int = 0
+    open_issue_count: int = 0
+    blocker_count: int = 0
+    reopen_rate: float = 0.0
+    issue_aging_days: float = 0.0
+    critical_defect_ratio: float = 0.0
+    headline: str
+
+
+class PortfolioScope(TypedModel):
+    """Who the portfolio summary was scoped to (per-user scoping seam).
+
+    ``scoped`` is True only when a known ``user_key`` with assignments narrowed
+    the ranking to that user's projects; otherwise the summary covers ALL
+    projects and ``user_key`` reflects the (possibly absent) caller.
+    """
+
+    user_key: str | None = None
+    project_count: int = 0
+    scoped: bool = False
+
+
+class PortfolioSummaryResponse(TypedModel):
+    """Server-side risk ranking of the portfolio; only the top-N are returned.
+
+    Optionally scoped to a caller's assigned projects (``scope``). ``portfolio_score``
+    is a severity-weighted 0..100 roll-up of the scoped projects.
+    """
+
+    scope: PortfolioScope
+    portfolio_score: float
+    overall_risk: str
+    totals: PortfolioTotals
+    risk_bands: PortfolioRiskBands
+    top_projects: list[PortfolioProjectSummary]
+    computed_at: str
+
+
 class ProjectGroupResponse(TypedModel):
     """A user-defined named group of project keys."""
 

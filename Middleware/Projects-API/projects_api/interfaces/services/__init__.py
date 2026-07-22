@@ -9,6 +9,7 @@ from projects_api.dtos.requests import (
     UpdateProjectGroupRequest,
 )
 from projects_api.dtos.responses import (
+    PortfolioSummaryResponse,
     ProjectGroupListResponse,
     ProjectGroupResponse,
     ProjectMetricsResponse,
@@ -50,6 +51,17 @@ class ProjectGroupsService(ABC):
 
     @abstractmethod
     def delete_group(self, group_key: str) -> None: ...
+
+
+class PortfolioSummaryService(ABC):
+    @abstractmethod
+    def summarize(
+        self,
+        top: int,
+        project_keys: list[str] | None = None,
+        user_key: str | None = None,
+        scoped: bool = False,
+    ) -> PortfolioSummaryResponse: ...
 
 
 class MetricsComputationService(ABC):

@@ -1,8 +1,22 @@
 <section class="mission">
-  <!-- Greeting -->
+  <!-- Greeting + identity scope -->
   <header class="hello">
-    <h1 class="hello__title">{{ greeting() }}, {{ principal }}</h1>
-    <p class="hello__sub">Here's what your enterprise delivery looks like right now.</p>
+    <div>
+      <h1 class="hello__title">{{ greeting() }}</h1>
+      <p class="hello__sub">
+        @if (summary()?.scope?.scoped) {
+          Your portfolio — {{ summary()?.scope?.project_count }} project(s) you manage.
+        } @else {
+          Enterprise portfolio — {{ summary()?.totals?.projects || 0 }} projects across the organization.
+        }
+      </p>
+    </div>
+    <label class="viewas">
+      <span>Viewing as</span>
+      <select [(ngModel)]="currentUser" (ngModelChange)="onUserChange()">
+        @for (u of users; track u.key) { <option [value]="u.key">{{ u.label }}</option> }
+      </select>
+    </label>
   </header>
 
   @if (error()) {
@@ -11,109 +25,99 @@
     </span><span>{{ error() }}</span></div>
   }
 
-  <!-- Hero stats -->
-  <div class="hero">
-    <div class="stat">
-      <span class="stat__value">{{ projectsMonitored() }}</span>
-      <span class="stat__label">Projects monitored</span>
-    </div>
-    <div class="stat">
-      <span class="stat__value">{{ issuesAnalyzed().toLocaleString() }}</span>
-      <span class="stat__label">Issues analyzed</span>
-    </div>
-    <div class="stat">
-      <span class="stat__value stat__value--risk">{{ criticalRisks() }}</span>
-      <span class="stat__label">Critical risks detected</span>
-    </div>
-    <div class="stat">
-      <span class="stat__value">{{ analysesRun() }}</span>
-      <span class="stat__label">AI analyses run</span>
-    </div>
-    <div class="stat stat--confidence">
-      <div class="conf">
-        <svg viewBox="0 0 44 44" class="conf__ring">
-          <circle cx="22" cy="22" r="19" class="conf__track"/>
-          <circle cx="22" cy="22" r="19" class="conf__val" [style.stroke-dashoffset]="119.4 - 119.4 * aiConfidence() / 100"/>
-        </svg>
-        <span class="conf__num">{{ aiConfidence() }}%</span>
-      </div>
-      <span class="stat__label">AI confidence</span>
-    </div>
-  </div>
-
-  @if (loading()) {
-    <div class="skeleton"><span class="spinner spinner--brand"></span> Assembling your intelligence briefing…</div>
-  }
-
-  <div class="cols">
-    <!-- Today's Attention -->
-    <div class="attention">
-      <div class="attention__eyebrow">
-        <span class="pulse"></span> Today's Attention
-      </div>
-      @if (attention(); as a) {
-        <h2 class="attention__project">{{ a.finding.risk_category | titlecase }} risk · <span class="mono">{{ a.run.project_key }}</span></h2>
-        <div class="attention__row">
-          <span class="badge badge--{{ severityClass(a.finding.severity) }}">{{ a.finding.severity }}</span>
-          <div class="prob">
-            <span class="prob__num">{{ slipPct(a.finding) }}%</span>
-            <span class="prob__label">probability of slip</span>
-          </div>
-          <div class="prob prob--muted">
-            <span class="prob__num">{{ confPct(a.finding) }}%</span>
-            <span class="prob__label">AI confidence</span>
-          </div>
+  @if (summary(); as s) {
+    <!-- Hero: portfolio score + stats -->
+    <div class="hero">
+      <div class="score-card score-card--{{ bandClass(s.overall_risk) }}">
+        <span class="score-card__label">Portfolio Risk Score</span>
+        <div class="score-card__row">
+          <span class="score-card__num">{{ s.portfolio_score | number:'1.0-0' }}</span>
+          <span class="score-card__of">/100</span>
+          <span class="score-card__band badge badge--{{ bandClass(s.overall_risk) }}">{{ s.overall_risk }}</span>
         </div>
-        <p class="attention__why">{{ a.finding.explanation }}</p>
-
-        @if (a.finding.recommended_actions?.length) {
-          <div class="actions">
-            <span class="actions__title">Recommended actions</span>
-            <ul>
-              @for (act of a.finding.recommended_actions.slice(0, 4); track $index) {
-                <li>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>{{ act }}</span>
-                </li>
-              }
-            </ul>
-          </div>
-        }
-        <a class="attention__cta" routerLink="/decide" [queryParams]="{ project: a.run.project_key }">
-          Investigate &amp; decide
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-        </a>
-      } @else if (!loading()) {
-        <p class="attention__none">No critical items right now. Run an analysis from <a routerLink="/decide">Decide</a> to populate your briefing.</p>
-      }
-    </div>
-
-    <!-- AI Executive Summary -->
-    <div class="exec">
-      <div class="exec__head">
-        <h2 class="exec__title">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12.7V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3A7 7 0 0 0 12 2Z"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
-          AI Executive Summary
-        </h2>
-        <span class="exec__risk exec__risk--{{ deliveryRisk().toLowerCase() }}">Delivery risk: {{ deliveryRisk() }}</span>
+        <div class="bands">
+          <span class="bands__seg bands__seg--high" [style.flex]="s.risk_bands.high || 0.0001"></span>
+          <span class="bands__seg bands__seg--medium" [style.flex]="s.risk_bands.medium || 0.0001"></span>
+          <span class="bands__seg bands__seg--low" [style.flex]="s.risk_bands.low || 0.0001"></span>
+        </div>
+        <div class="bands__legend">
+          <span><i class="dot dot--high"></i>{{ s.risk_bands.high }} High</span>
+          <span><i class="dot dot--medium"></i>{{ s.risk_bands.medium }} Medium</span>
+          <span><i class="dot dot--low"></i>{{ s.risk_bands.low }} Low</span>
+        </div>
       </div>
+      <div class="statset">
+        <div class="stat"><span class="stat__value">{{ s.totals.projects }}</span><span class="stat__label">Projects monitored</span></div>
+        <div class="stat"><span class="stat__value">{{ s.totals.issues.toLocaleString() }}</span><span class="stat__label">Issues analyzed</span></div>
+        <div class="stat"><span class="stat__value stat__value--risk">{{ s.risk_bands.high + s.risk_bands.medium }}</span><span class="stat__label">Projects at risk</span></div>
+        <div class="stat stat--conf">
+          <div class="conf">
+            <svg viewBox="0 0 44 44" class="conf__ring"><circle cx="22" cy="22" r="19" class="conf__track"/><circle cx="22" cy="22" r="19" class="conf__val" [style.stroke-dashoffset]="119.4 - 119.4 * aiConfidence() / 100"/></svg>
+            <span class="conf__num">{{ aiConfidence() }}%</span>
+          </div>
+          <span class="stat__label">AI confidence</span>
+        </div>
+      </div>
+    </div>
 
-      @if (execReportSummary()) {
-        <p class="exec__narrative">{{ execReportSummary() }}</p>
-      }
+    @if (loading()) { <div class="skeleton"><span class="spinner spinner--brand"></span> Assembling your briefing…</div> }
 
-      @if (execFindings().length) {
-        <ul class="exec__list">
-          @for (f of execFindings(); track f.finding_id) {
-            <li>
-              <span class="dot dot--{{ severityClass(f.severity) }}"></span>
-              <span class="exec__text">{{ f.explanation }}</span>
-            </li>
+    <!-- Today's Attention -->
+    @if (attention(); as a) {
+      <div class="attention">
+        <div class="attention__eyebrow"><span class="pulse"></span> Today's Attention</div>
+        <div class="attention__grid">
+          <div>
+            <h2 class="attention__project">{{ a.finding.risk_category | titlecase }} risk · <span class="mono">{{ a.run.project_key }}</span></h2>
+            <div class="attention__row">
+              <span class="badge badge--{{ severityClass(a.finding.severity) }}">{{ a.finding.severity }}</span>
+              <div class="prob"><span class="prob__num">{{ slipPct(a.finding) }}%</span><span class="prob__label">probability of slip</span></div>
+              <div class="prob prob--muted"><span class="prob__num">{{ confPct(a.finding) }}%</span><span class="prob__label">AI confidence</span></div>
+            </div>
+            <p class="attention__why">{{ a.finding.explanation }}</p>
+            <a class="attention__cta" routerLink="/decide" [queryParams]="{ project: a.run.project_key }">Investigate &amp; decide
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            </a>
+          </div>
+          @if (a.finding.recommended_actions?.length) {
+            <div class="actions">
+              <span class="actions__title">Recommended actions</span>
+              <ul>
+                @for (act of a.finding.recommended_actions.slice(0, 4); track $index) {
+                  <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>{{ act }}</span></li>
+                }
+              </ul>
+            </div>
           }
-        </ul>
-      } @else if (!loading()) {
-        <p class="attention__none">No findings yet.</p>
+        </div>
+      </div>
+    }
+
+    <!-- Top-15 project risk cards -->
+    <div class="section-head">
+      <h2>Top projects by risk</h2>
+      <a class="viewmore" routerLink="/investigate">View all {{ s.totals.projects }} projects
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </a>
+    </div>
+    <div class="cards">
+      @for (p of topProjects(); track p.project_key) {
+        <a class="pcard" routerLink="/decide" [queryParams]="{ project: p.project_key }">
+          <div class="pcard__head">
+            <span class="pcard__key mono">{{ p.project_key }}</span>
+            <span class="pcard__score pcard__score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
+          </div>
+          <div class="pcard__name">{{ p.name }}</div>
+          <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
+          <div class="pcard__headline">{{ p.headline }}</div>
+          <div class="pcard__foot">
+            <span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span>
+            <span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} open</span>
+          </div>
+        </a>
+      } @empty {
+        @if (!loading()) { <p class="empty">No scored projects in this scope yet.</p> }
       }
     </div>
-  </div>
+  }
 </section>

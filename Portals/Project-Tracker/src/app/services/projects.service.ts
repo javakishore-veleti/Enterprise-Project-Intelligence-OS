@@ -1,9 +1,10 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { Project, ProjectMetrics, ProjectSearchResponse } from '../models/project';
+import { PortfolioSummary } from '../models/portfolio';
 
 export interface SearchProjectsParams {
   query?: string;
@@ -44,5 +45,22 @@ export class ProjectsService {
     return this.http.get<ProjectMetrics>(
       `${this.baseUrl}/projects/${encodeURIComponent(projectKey)}/metrics`,
     );
+  }
+
+  /**
+   * Server-ranked portfolio summary, scoped to the logged-in user's assigned
+   * projects when a user key is supplied (X-User-Key seam → SSO subject later).
+   * Ranking happens in the DB; the client only ever receives the top N.
+   */
+  getPortfolioSummary(top = 15, userKey?: string | null): Observable<PortfolioSummary> {
+    const params = new HttpParams().set('top', top);
+    let headers = new HttpHeaders();
+    if (userKey) {
+      headers = headers.set('X-User-Key', userKey);
+    }
+    return this.http.get<PortfolioSummary>(`${this.baseUrl}/projects/portfolio-summary`, {
+      params,
+      headers,
+    });
   }
 }
