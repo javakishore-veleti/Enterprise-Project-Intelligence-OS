@@ -76,11 +76,11 @@
               [disabled]="investigating()" (click)="runQueued(q)">
         <div class="qcard__top">
           <span class="qcard__key mono">{{ q.project.project_key }}</span>
-          <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
+          @if (q.project.name && q.project.name !== q.project.project_key) {
+            <span class="qcard__name">{{ q.project.name }}</span>
+          }
         </div>
-        @if (q.project.name && q.project.name !== q.project.project_key) {
-          <div class="qcard__name">{{ q.project.name }}</div>
-        }
+        <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
         <div class="qcard__angle">{{ q.angle }}</div>
         <div class="qcard__q">“{{ q.question }}”</div>
         <div class="qcard__cta qcard__cta--{{ q.signal }}">

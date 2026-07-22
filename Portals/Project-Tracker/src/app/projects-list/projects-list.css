@@ -30,10 +30,11 @@
 .qcard:hover:not(:disabled) { box-shadow: var(--shadow); border-color: var(--brand-400); transform: translateY(-2px); }
 .qcard--active { border-color: var(--brand-500); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 25%, transparent), var(--shadow); }
 .qcard:disabled { opacity: .6; cursor: default; }
-.qcard__top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .4rem .5rem; }
+.qcard__top { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .5rem; }
 .qcard__key { font-size: 1.02rem; font-weight: 800; color: var(--ink-900); word-break: break-word; }
-.qcard__badge { flex: none; font-size: .66rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
-.qcard__name { font-size: .78rem; color: var(--ink-500); font-weight: 600; margin-top: -.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qcard__name { font-size: .78rem; color: var(--ink-500); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* badge always on its own line — never clipped, consistent across cards */
+.qcard__badge { align-self: flex-start; display: inline-flex; width: fit-content; max-width: 100%; font-size: .66rem; font-weight: 800; padding: .22rem .6rem; border-radius: 999px; white-space: normal; text-transform: uppercase; letter-spacing: .02em; line-height: 1.25; }
 .qcard__badge--high { background: #fee2e2; color: #b91c1c; }
 .qcard__badge--medium { background: #ffedd5; color: #c2410c; }
 .qcard__badge--low { background: #dcfce7; color: #15803d; }
