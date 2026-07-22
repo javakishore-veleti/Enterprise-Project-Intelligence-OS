@@ -102,6 +102,61 @@ class DashboardActivityResponse(TypedModel):
     totals: DashboardTotals
 
 
+class AttentionFindingRow(TypedModel):
+    """Raw in-scope finding row read by the attention DAO (pre-scoring).
+
+    A cross-layer DAO->service object: the DAO returns these ordered newest-first
+    (capped window); the service scores + sorts + paginates them into AttentionItem.
+    """
+
+    finding_id: str
+    run_id: str
+    project_key: str
+    agent_key: str
+    risk_category: str
+    severity: str
+    score: float
+    probability: float
+    #: NULL-able so the service can apply the missing-confidence default.
+    confidence: float | None = None
+    explanation: str
+    recommended_actions: list[str] = []
+    analysis_timestamp: datetime
+
+
+class AttentionItem(TypedModel):
+    """A ranked attention item: a high-priority finding scored for a manager's feed."""
+
+    finding_id: str
+    run_id: str
+    project_key: str
+    agent_key: str
+    risk_category: str
+    severity: str
+    score: float
+    probability: float
+    confidence: float
+    #: Deterministic ranking score in [0, 100].
+    attention_score: float
+    #: Trimmed to ~240 chars for the feed.
+    explanation: str
+    recommended_actions: list[str] = []
+    analysis_timestamp: datetime
+
+
+class AttentionResponse(TypedModel):
+    """A ranked, scoped, time-aware feed of the highest-priority findings."""
+
+    #: Echo of the requested as-of date (YYYY-MM-DD), or None for "current".
+    as_of: str | None
+    #: Distinct projects in scope, or -1 when unscoped (all projects).
+    scope_projects: int
+    #: Total in-scope findings matching scope + as_of (for "view more").
+    total: int
+    returned: int
+    items: list[AttentionItem]
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str

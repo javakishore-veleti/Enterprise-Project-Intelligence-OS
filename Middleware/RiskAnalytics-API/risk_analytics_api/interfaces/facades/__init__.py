@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunResponse, DashboardActivityResponse
+from risk_analytics_api.dtos.responses import (
+    AnalysisRunResponse,
+    AttentionResponse,
+    DashboardActivityResponse,
+)
 
 
 class StartProjectAnalysisUseCase(ABC):
@@ -27,3 +32,10 @@ class GetAnalysisRunUseCase(ABC):
 class GetDashboardActivityUseCase(ABC):
     @abstractmethod
     def execute(self, limit: int) -> DashboardActivityResponse: ...
+
+
+class GetAttentionFeedUseCase(ABC):
+    @abstractmethod
+    def execute(
+        self, top: int, as_of: date | None, projects: list[str] | None, offset: int
+    ) -> AttentionResponse: ...

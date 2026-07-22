@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from agent_core import EvidencePackage
 
@@ -9,6 +10,7 @@ from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfoli
 from risk_analytics_api.dtos.responses import (
     AnalysisRunListResponse,
     AnalysisRunResponse,
+    AttentionResponse,
     DashboardActivityResponse,
 )
 
@@ -40,3 +42,22 @@ class AnalysisOrchestrationService(ABC):
 class DashboardService(ABC):
     @abstractmethod
     def activity(self, limit: int) -> DashboardActivityResponse: ...
+
+
+class AttentionService(ABC):
+    @abstractmethod
+    def feed(
+        self,
+        *,
+        top: int,
+        offset: int,
+        as_of: str | None,
+        as_of_end: datetime | None,
+        projects: list[str] | None,
+        now: datetime,
+    ) -> AttentionResponse:
+        """Rank, sort, and paginate the in-scope findings into an attention feed.
+
+        ``now`` is the reference instant for recency scoring (injected so the
+        scoring stays deterministic and testable).
+        """

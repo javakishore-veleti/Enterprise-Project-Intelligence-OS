@@ -5,9 +5,12 @@ from abc import ABC, abstractmethod
 
 from agent_core import EvidencePackage, RiskFinding, RiskReport
 
+from datetime import datetime
+
 from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AnalysisRunSummary,
+    AttentionFindingRow,
     DashboardFindingSummary,
     DashboardTotals,
     ReportResponse,
@@ -65,6 +68,24 @@ class DashboardDao(ABC):
     @abstractmethod
     def totals(self) -> "DashboardTotals":
         """Total run count, finding count, and distinct-project count."""
+
+
+class AttentionDao(ABC):
+    """Scoped, time-aware cross-project reads for the attention feed (PostgreSQL)."""
+
+    @abstractmethod
+    def count(self, as_of_end: datetime | None, projects: list[str] | None) -> int:
+        """Total in-scope findings matching the as_of upper bound + project scope."""
+
+    @abstractmethod
+    def distinct_projects(self, as_of_end: datetime | None, projects: list[str] | None) -> int:
+        """Count of distinct project_keys among in-scope findings."""
+
+    @abstractmethod
+    def window(
+        self, as_of_end: datetime | None, projects: list[str] | None, cap: int
+    ) -> list["AttentionFindingRow"]:
+        """In-scope findings ordered by analysis_timestamp DESC, limited to ``cap``."""
 
 
 class RiskFindingDao(ABC):

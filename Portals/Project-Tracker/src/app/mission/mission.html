@@ -58,7 +58,7 @@
       <div class="section-head__title">
         <span class="pulse"></span>
         <h2>Today's Attention</h2>
-        <span class="section-head__count">{{ attentionTotal() }} item(s)</span>
+        <span class="section-head__count">Top 5 of {{ attentionTotal() }}</span>
       </div>
       <a class="viewmore" routerLink="/watch">View all attention
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
@@ -89,7 +89,10 @@
 
     <!-- Top projects by risk -->
     <div class="section-head section-head--mt">
-      <h2>Top projects by risk</h2>
+      <div class="section-head__title">
+        <h2>Top projects by risk</h2>
+        <span class="section-head__count">Top 5 of {{ s.totals.projects }}</span>
+      </div>
       <a class="viewmore" routerLink="/investigate">View all {{ s.totals.projects }} projects
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
       </a>

@@ -43,7 +43,8 @@ export class Mission implements OnInit {
   protected readonly attention = signal<AttentionItem[]>([]);
   protected readonly attentionTotal = signal(0);
 
-  protected readonly topProjects = computed(() => this.summary()?.top_projects ?? []);
+  // Focus: show only the top 5 riskiest on the home; "View all" for the rest.
+  protected readonly topProjects = computed(() => (this.summary()?.top_projects ?? []).slice(0, 5));
   protected readonly greeting = computed(() => {
     const h = new Date().getHours();
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
@@ -91,7 +92,8 @@ export class Mission implements OnInit {
           .map((f) => ({ ...f, attention_score: this.score(f) }))
           .sort((a, b) => b.attention_score - a.attention_score);
         this.attentionTotal.set(ranked.length);
-        this.attention.set(ranked.slice(0, 10));
+        // The product's value is FOCUS — surface only the vital few (top 5).
+        this.attention.set(ranked.slice(0, 5));
       },
       error: () => {},
     });
