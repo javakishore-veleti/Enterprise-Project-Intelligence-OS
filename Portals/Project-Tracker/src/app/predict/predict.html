@@ -1,0 +1,250 @@
+<section class="predict">
+  <app-about title="Predict"
+    text="What will happen next. The agent makes a forecast you review — an on-time probability with a credible interval and its drivers — plus a Digital-Twin what-if simulator and proactive early-warnings. Predict projects and explores; it never commits an action (that is Decide). Every forecast and scenario hands off with a Take to Decide → button." />
+
+  @switch (subview()) {
+
+    <!-- ============================ FORECASTS ============================ -->
+    @case ('forecasts') {
+      <div class="banner">
+        <div class="banner__badge banner__badge--pred">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 5-7"/><polyline points="17 5 21 5 21 9"/></svg>
+        </div>
+        <div class="banner__title"><h2>Delivery forecasts</h2><p>The agent ranks the projects most at risk of missing their date. Run a forecast to get an on-time probability, a credible interval, and the drivers.</p></div>
+        <span class="banner__live">metric-history · credible interval</span>
+      </div>
+
+      <div class="queue">
+        @for (p of forecastQueue(); track p.project_key) {
+          <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
+                  [class.qcard--active]="fcTarget === p.project_key" [disabled]="forecasting()" (click)="runForecast(p.project_key)">
+            <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
+              @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
+            </div>
+            <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
+            <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
+            <div class="qcard__cta qcard__cta--{{ riskScoreClass(p.risk_score) }}">
+              @if (forecasting() && fcTarget === p.project_key) { <span class="spin spin--dark"></span> forecasting… }
+              @else if (forecast() && fcTarget === p.project_key) { ✓ forecast ready — see below }
+              @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Forecast }
+            </div>
+          </button>
+        }
+      </div>
+
+      @if (fcError()) { <div class="alert alert--error"><span>{{ fcError() }}</span></div> }
+      @if (forecasting()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Forecasting {{ projectName(fcTarget) }}.</strong><p>Computing the trajectory, credible interval and drivers, then narrating the call — ~30–60&nbsp;seconds.</p></div></div> }
+
+      @if (forecast(); as f) {
+        <div class="briefing">
+          <div class="verdict">
+            <div class="verdict__main">
+              <div class="eyebrow"><span class="mono verdict__proj">{{ f.project_key }}</span> · delivery forecast <span class="badge badge--{{ outlookClass(f.outlook) }}">{{ f.outlook.replace('_',' ') }}</span></div>
+              <div class="prob">
+                <span class="prob__num prob--{{ probClass(pct(f.on_time_probability)) }}">{{ pct(f.on_time_probability) }}%</span>
+                <span class="prob__lbl">on-time probability<br><b>{{ pct(f.probability_low) }}%–{{ pct(f.probability_high) }}%</b> credible interval</span>
+              </div>
+              <div class="slip">Projected slip <b>{{ f.projected_slip_days_low }}–{{ f.projected_slip_days_high }} days</b></div>
+            </div>
+            <div class="gauge gauge--{{ probClass(pct(f.confidence)) === 'high' ? 'low' : probClass(pct(f.confidence)) }}">
+              <span class="gauge__num">{{ pct(f.confidence) }}<small>%</small></span><span class="gauge__lbl">confidence</span>
+            </div>
+          </div>
+
+          @if (f.drivers?.length) {
+            <div class="block"><h3 class="block__h">What’s driving it</h3>
+              <div class="drivers">
+                @for (d of f.drivers; track $index) {
+                  <div class="driver driver--{{ d.direction }}">
+                    <span class="driver__dir">{{ d.direction === 'up' ? '▲' : d.direction === 'down' ? '▼' : '●' }}</span>
+                    <div><span class="driver__factor">{{ d.factor }}</span><span class="driver__detail">{{ d.detail }}</span></div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (f.narrative) { <div class="block"><h3 class="block__h">The call</h3><p class="narr">{{ f.narrative }}</p></div> }
+
+          <div class="cases">
+            <div class="case case--bull"><span class="case__lbl">Bull case — lands on time</span><p>{{ f.bull_case || '—' }}</p></div>
+            <div class="case case--bear"><span class="case__lbl">Bear case — it slips</span><p>{{ f.bear_case || '—' }}</p></div>
+          </div>
+          @if (f.would_change_mind) { <div class="change"><span class="change__lbl">What would change this call</span><p>{{ f.would_change_mind }}</p></div> }
+
+          <div class="handoff">
+            <a class="go" routerLink="/decide" [queryParams]="{ project: f.project_key }">Take to Decide <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            <a class="go go--ghost" routerLink="/predict" [queryParams]="{ v: 'scenarios' }" (click)="scTarget = f.project_key">Simulate a what-if →</a>
+            <button type="button" class="go go--ghost" (click)="resetForecast()">Clear</button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ============================ SCENARIOS ============================ -->
+    @case ('scenarios') {
+      <div class="banner">
+        <div class="banner__badge banner__badge--pred">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5 19 19M19 5l-2.5 2.5M7.5 16.5 5 19"/></svg>
+        </div>
+        <div class="banner__title"><h2>Digital-Twin scenario simulator</h2><p>Ask a what-if. The agent re-forecasts and propagates the impact across coupled projects (dependencies + shared people). A sandbox — nothing is committed.</p></div>
+        <span class="banner__live">what-if · cascade</span>
+      </div>
+
+      <div class="simform">
+        <label class="fld"><span class="fld__lbl">Project</span>
+          <select [(ngModel)]="scTarget">
+            <option value="" disabled>Select…</option>
+            @for (p of allProjects(); track p.project_key) { <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option> }
+          </select>
+        </label>
+        <label class="fld fld--grow"><span class="fld__lbl">What if…</span>
+          <input type="text" placeholder="e.g. move 2 engineers onto the blocker backlog" [(ngModel)]="scText" (keyup.enter)="runScenario()" />
+        </label>
+        <button class="run" type="button" [disabled]="!scTarget || !scText.trim() || simulating()" (click)="runScenario()">
+          @if (simulating()) { <span class="spin"></span> Simulating… } @else { Simulate }
+        </button>
+      </div>
+      <div class="probes"><span class="probes__lbl">Try:</span>
+        @for (p of probes; track p.label) { <button type="button" class="probe" [disabled]="simulating()" (click)="runProbe(p)">{{ p.label }}</button> }
+      </div>
+
+      @if (scError()) { <div class="alert alert--error"><span>{{ scError() }}</span></div> }
+      @if (simulating()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Simulating on {{ projectName(scTarget) }}.</strong><p>Re-forecasting and tracing the cascade through dependencies and shared contributors — ~30–60&nbsp;seconds.</p></div></div> }
+
+      @if (scenario(); as s) {
+        <div class="briefing">
+          <div class="verdict">
+            <div class="verdict__main">
+              <div class="eyebrow"><span class="mono verdict__proj">{{ s.project_key }}</span> · what-if</div>
+              <p class="scen__q">“{{ s.scenario }}”</p>
+              <div class="delta">
+                <span class="delta__from">{{ pct(s.base_on_time_probability) }}%</span>
+                <span class="delta__arrow">→</span>
+                <span class="delta__to prob--{{ probClass(pct(s.projected_on_time_probability)) }}">{{ pct(s.projected_on_time_probability) }}%</span>
+                <span class="delta__chip" [class.delta__chip--up]="s.probability_delta > 0" [class.delta__chip--down]="s.probability_delta < 0">{{ signedPct(s.probability_delta) }}</span>
+                <span class="delta__lbl">on-time probability</span>
+              </div>
+              <div class="slip">Slip {{ s.base_slip_days }} → <b>{{ s.projected_slip_days }} days</b> · portfolio risk <b [class.up]="s.portfolio_risk_delta > 0" [class.down]="s.portfolio_risk_delta < 0">{{ s.portfolio_risk_delta > 0 ? '+' : '' }}{{ s.portfolio_risk_delta | number:'1.0-2' }}</b></div>
+            </div>
+            <div class="gauge gauge--{{ probClass(pct(s.confidence)) === 'high' ? 'low' : probClass(pct(s.confidence)) }}"><span class="gauge__num">{{ pct(s.confidence) }}<small>%</small></span><span class="gauge__lbl">confidence</span></div>
+          </div>
+
+          @if (s.cascades?.length) {
+            <div class="block"><h3 class="block__h">Cascade impact <span class="block__sub">{{ s.cascades.length }} coupled project(s) affected</span></h3>
+              <div class="cascades">
+                @for (c of s.cascades; track $index) {
+                  <div class="casc casc--{{ magClass(c.magnitude) }}">
+                    <div class="casc__top"><span class="mono casc__key">{{ c.project_key }}</span><span class="casc__mag casc__mag--{{ magClass(c.magnitude) }}">{{ c.magnitude }}</span></div>
+                    <div class="casc__effect">{{ c.effect }}</div>
+                    <div class="casc__reason">{{ c.reason }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else { <p class="muted-note">No coupled projects detected — this scenario stays contained to {{ s.project_key }}.</p> }
+
+          @if (s.narrative) { <div class="block"><h3 class="block__h">The trade-off</h3><p class="narr">{{ s.narrative }}</p></div> }
+
+          <div class="handoff">
+            <a class="go" routerLink="/decide" [queryParams]="{ project: s.project_key }">Take to Decide <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            <button type="button" class="go go--ghost" (click)="resetScenario()">New what-if</button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ============================ EARLY-WARNING ============================ -->
+    @case ('warnings') {
+      <div class="banner">
+        <div class="banner__badge banner__badge--warn">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="banner__title"><h2>Early-warning</h2><p>The agent watches each project’s trajectory and surfaces adverse inflections before they’re obvious — ranked by severity. Nothing to run; it’s always watching.</p></div>
+        <span class="banner__live">proactive · trajectory inflection</span>
+      </div>
+
+      @if (warningsError()) { <div class="alert alert--error"><span>{{ warningsError() }}</span></div> }
+      @if (warningsLoading()) { <p class="status"><span class="spin spin--dark"></span> Scanning trajectories…</p> }
+      @else if (warnings().length === 0) {
+        <div class="empty">No adverse inflections right now — the agent found nothing trending sharply worse across your projects. It re-checks as metrics move over time.</div>
+      } @else {
+        <div class="warns">
+          @for (w of warnings(); track $index) {
+            <div class="warn warn--{{ sevClass(w.severity) }}">
+              <div class="warn__sev warn__sev--{{ sevClass(w.severity) }}">{{ w.severity }}</div>
+              <div class="warn__body">
+                <div class="warn__top"><span class="mono warn__key">{{ w.project_key }}</span><span class="warn__metric">{{ w.metric.replace('_',' ') }}</span></div>
+                <div class="warn__move"><b>{{ w.from_value | number:'1.0-2' }}</b> → <b class="warn__to">{{ w.to_value | number:'1.0-2' }}</b> <span class="warn__win">over {{ w.window }}</span></div>
+                <p class="warn__cause">{{ w.cause }}</p>
+              </div>
+              <a class="warn__go" routerLink="/investigate">Investigate →</a>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- ============================ HISTORY ============================ -->
+    @case ('history') {
+      <div class="hist__bar">
+        <div class="hist__title"><h2>Prediction history</h2><span class="hist__count">{{ histTotal() }} recent · newest 100</span></div>
+        <div class="segjoin">
+          <button type="button" [class.is-on]="histKind === 'forecasts'" (click)="setHistKind('forecasts')">Forecasts</button>
+          <button type="button" [class.is-on]="histKind === 'scenarios'" (click)="setHistKind('scenarios')">Scenarios</button>
+        </div>
+        <div class="hist__search">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input type="search" placeholder="Search…" [(ngModel)]="histQuery" (keyup.enter)="searchHistory()" />
+          <button type="button" (click)="searchHistory()">Search</button>
+        </div>
+      </div>
+
+      @if (histError()) { <div class="alert alert--error"><span>{{ histError() }}</span></div> }
+      @if (histLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading…</p> }
+      @else if (histKind === 'forecasts') {
+        @if (fcHistory().length === 0) { <div class="empty">No forecasts yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict">Forecasts</a>.</div> }
+        @else {
+          <div class="panel"><div class="tbl-wrap"><table>
+            <thead><tr><th>Project</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
+            <tbody>
+              @for (h of fcHistory(); track h.forecast_id) {
+                <tr (click)="openForecast(h.forecast_id)">
+                  <td><span class="mono">{{ h.project_key }}</span></td>
+                  <td class="num"><span class="prob--{{ probClass(pct(h.on_time_probability)) }}">{{ pct(h.on_time_probability) }}%</span></td>
+                  <td>@if (h.outlook) { <span class="badge badge--{{ outlookClass(h.outlook) }}">{{ h.outlook.replace('_',' ') }}</span> } @else { — }</td>
+                  <td class="num">{{ h.projected_slip_days_low }}–{{ h.projected_slip_days_high }}</td>
+                  <td class="num">{{ pct(h.confidence) }}%</td>
+                  <td><span class="badge badge--{{ h.status === 'COMPLETED' ? 'low' : h.status === 'FAILED' ? 'high' : 'medium' }}">{{ h.status }}</span></td>
+                  <td class="when">{{ h.created_at }}</td>
+                </tr>
+              }
+            </tbody>
+          </table></div></div>
+          <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
+        }
+      } @else {
+        @if (scHistory().length === 0) { <div class="empty">No scenarios yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict" [queryParams]="{ v: 'scenarios' }">Scenarios</a>.</div> }
+        @else {
+          <div class="panel"><div class="tbl-wrap"><table>
+            <thead><tr><th>Project</th><th>What-if</th><th class="num">Projected</th><th class="num">Δ</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
+            <tbody>
+              @for (h of scHistory(); track h.scenario_id) {
+                <tr (click)="openScenario(h.scenario_id)">
+                  <td><span class="mono">{{ h.project_key }}</span></td>
+                  <td class="scen__cell">{{ h.scenario }}</td>
+                  <td class="num">{{ pct(h.projected_on_time_probability) }}%</td>
+                  <td class="num" [class.up]="(h.probability_delta || 0) > 0" [class.down]="(h.probability_delta || 0) < 0">{{ signedPct(h.probability_delta) }}</td>
+                  <td class="num">{{ pct(h.confidence) }}%</td>
+                  <td><span class="badge badge--{{ h.status === 'COMPLETED' ? 'low' : h.status === 'FAILED' ? 'high' : 'medium' }}">{{ h.status }}</span></td>
+                  <td class="when">{{ h.created_at }}</td>
+                </tr>
+              }
+            </tbody>
+          </table></div></div>
+          <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
+        }
+      }
+    }
+  }
+</section>

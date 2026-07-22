@@ -34,6 +34,7 @@ export class App {
   protected readonly pageCrumb = signal('Projects');
   protected readonly onWatch = signal(false);
   protected readonly onInvestigate = signal(false);
+  protected readonly onPredict = signal(false);
   protected readonly onHelp = signal(false);
 
   protected readonly today = new Date().toLocaleDateString(undefined, {
@@ -47,6 +48,7 @@ export class App {
         const path = e.urlAfterRedirects.split('?')[0];
         this.onWatch.set(path === '/watch');
         this.onInvestigate.set(path === '/investigate');
+        this.onPredict.set(path === '/predict');
         this.onHelp.set(path === '/help');
         const meta = PAGE_TITLES[path] ?? PAGE_TITLES['/'];
         this.pageTitle.set(meta.title);

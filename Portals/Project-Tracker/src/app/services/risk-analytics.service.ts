@@ -8,10 +8,15 @@ import {
   AnalysisRunsResponse,
   AttentionResponse,
   DashboardActivity,
+  EarlyWarning,
+  Forecast,
+  ForecastsPage,
   Investigation,
   InvestigateRequest,
   InvestigationsPage,
   InvestigationTemplate,
+  Scenario,
+  ScenariosPage,
   StartAnalysisRequest,
   StartPortfolioRequest,
 } from '../models/analysis';
@@ -92,6 +97,57 @@ export class RiskAnalyticsService {
   /** The pre-configured (user-editable) investigation templates. */
   listTemplates(): Observable<InvestigationTemplate[]> {
     return this.http.get<InvestigationTemplate[]>(`${this.baseUrl}/analysis/investigation-templates`);
+  }
+
+  // ---- Predict: forecasts ----
+
+  /** Run a delivery forecast for a project (LLM narration, ~30-60s). */
+  runForecast(projectKey: string, requestedBy: string): Observable<Forecast> {
+    return this.http.post<Forecast>(`${this.baseUrl}/analysis/forecast`, {
+      project_key: projectKey,
+      requested_by: requestedBy,
+    });
+  }
+
+  listForecasts(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<ForecastsPage> {
+    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
+    if (opts.scope) params = params.set('scope', opts.scope);
+    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
+    return this.http.get<ForecastsPage>(`${this.baseUrl}/analysis/forecasts`, { params });
+  }
+
+  getForecast(forecastId: string): Observable<Forecast> {
+    return this.http.get<Forecast>(`${this.baseUrl}/analysis/forecasts/${encodeURIComponent(forecastId)}`);
+  }
+
+  // ---- Predict: scenarios (Digital Twin) ----
+
+  /** Simulate a natural-language what-if for a project (LLM narration, ~30-60s). */
+  runScenario(projectKey: string, scenario: string, requestedBy: string): Observable<Scenario> {
+    return this.http.post<Scenario>(`${this.baseUrl}/analysis/scenarios`, {
+      project_key: projectKey,
+      scenario,
+      requested_by: requestedBy,
+    });
+  }
+
+  listScenarios(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<ScenariosPage> {
+    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
+    if (opts.scope) params = params.set('scope', opts.scope);
+    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
+    return this.http.get<ScenariosPage>(`${this.baseUrl}/analysis/scenarios`, { params });
+  }
+
+  getScenario(scenarioId: string): Observable<Scenario> {
+    return this.http.get<Scenario>(`${this.baseUrl}/analysis/scenarios/${encodeURIComponent(scenarioId)}`);
+  }
+
+  // ---- Predict: early-warnings (computed on read) ----
+
+  getEarlyWarnings(scope: string | null, limit = 10): Observable<{ items: EarlyWarning[] }> {
+    let params = new HttpParams().set('limit', limit);
+    if (scope) params = params.set('scope', scope);
+    return this.http.get<{ items: EarlyWarning[] }>(`${this.baseUrl}/analysis/early-warnings`, { params });
   }
 
   /** Fetch a previously started run by id. */
