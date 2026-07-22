@@ -12,7 +12,7 @@ _CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:4200,http://localhost:4201,http://127.0.0.1:4200,http://127.0.0.1:4201",
 ).split(",")
-from projects_api.api.routers import health, projects
+from projects_api.api.routers import health, project_groups, projects
 from projects_api.common.configuration import get_settings
 from projects_api.common.logging import configure_logging
 from projects_api.common.security import authenticate
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(projects.router, dependencies=[Depends(authenticate)])  # opt-in auth
+    app.include_router(project_groups.router, dependencies=[Depends(authenticate)])  # opt-in auth
     return app
 
 

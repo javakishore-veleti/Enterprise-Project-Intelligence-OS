@@ -72,6 +72,36 @@ class AnalysisRunListResponse(TypedModel):
     runs: list[AnalysisRunSummary]
 
 
+class DashboardFindingSummary(TypedModel):
+    """Compact cross-project view of a recent risk finding (dashboard activity)."""
+
+    finding_id: str
+    run_id: str
+    project_key: str
+    agent_key: str
+    risk_category: str
+    severity: str
+    score: float
+    #: Truncated to ~240 chars for the activity feed.
+    explanation: str
+
+
+class DashboardTotals(TypedModel):
+    """Cross-project counts for the dashboard header."""
+
+    total_runs: int
+    total_findings: int
+    projects_analyzed: int
+
+
+class DashboardActivityResponse(TypedModel):
+    """Recent cross-project activity for the dashboard (runs + findings + totals)."""
+
+    recent_runs: list[AnalysisRunSummary]
+    recent_findings: list[DashboardFindingSummary]
+    totals: DashboardTotals
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str

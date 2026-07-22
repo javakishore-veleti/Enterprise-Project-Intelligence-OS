@@ -8,6 +8,8 @@ from agent_core import EvidencePackage, RiskFinding, RiskReport
 from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AnalysisRunSummary,
+    DashboardFindingSummary,
+    DashboardTotals,
     ReportResponse,
 )
 
@@ -47,6 +49,22 @@ class GraphRunDao(ABC):
     @abstractmethod
     def list_for_project(self, project_key: str, limit: int) -> list["AnalysisRunSummary"]:
         """Recent run summaries (with finding/report counts) for a project, newest first."""
+
+
+class DashboardDao(ABC):
+    """Cross-project reads for the dashboard activity feed (PostgreSQL)."""
+
+    @abstractmethod
+    def recent_runs(self, limit: int) -> list["AnalysisRunSummary"]:
+        """Recent run summaries (with finding/report counts) across all projects, newest first."""
+
+    @abstractmethod
+    def recent_findings(self, limit: int) -> list["DashboardFindingSummary"]:
+        """Most recent findings across all projects, newest first."""
+
+    @abstractmethod
+    def totals(self) -> "DashboardTotals":
+        """Total run count, finding count, and distinct-project count."""
 
 
 class RiskFindingDao(ABC):

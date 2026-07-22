@@ -7,18 +7,33 @@ from fastapi import Query
 
 from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
+    provide_get_dashboard_activity_facade,
     provide_list_analysis_runs_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunListResponse, AnalysisRunResponse
+from risk_analytics_api.dtos.responses import (
+    AnalysisRunListResponse,
+    AnalysisRunResponse,
+    DashboardActivityResponse,
+)
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
+from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
+
+
+@router.get("/activity", response_model=DashboardActivityResponse,
+            operation_id="getDashboardActivity")
+def get_dashboard_activity(
+    limit: int = Query(default=15, ge=1, le=100),
+    facade: GetDashboardActivityFacade = Depends(provide_get_dashboard_activity_facade),
+) -> DashboardActivityResponse:
+    return facade.execute(limit)
 
 
 @router.get("/projects/{project_key}/runs", response_model=AnalysisRunListResponse,

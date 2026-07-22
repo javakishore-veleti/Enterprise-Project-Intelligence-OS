@@ -47,6 +47,23 @@ class ProjectMetricsHistoryResponse(TypedModel):
     history: list[ProjectMetricsResponse]
 
 
+class ProjectGroupResponse(TypedModel):
+    """A user-defined named group of project keys."""
+
+    group_key: str
+    name: str
+    description: str = ""
+    project_keys: list[str] = []
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectGroupListResponse(TypedModel):
+    """All project groups (newest first)."""
+
+    items: list[ProjectGroupResponse]
+
+
 class HealthResponse(TypedModel):
     """Liveness / readiness payload."""
 

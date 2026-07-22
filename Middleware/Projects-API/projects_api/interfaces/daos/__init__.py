@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from projects_api.dtos.responses import ProjectMetricsResponse, ProjectResponse
+from projects_api.dtos.responses import (
+    ProjectGroupResponse,
+    ProjectMetricsResponse,
+    ProjectResponse,
+)
 
 
 class ProjectsDao(ABC):
@@ -15,6 +19,29 @@ class ProjectsDao(ABC):
 
     @abstractmethod
     def get(self, project_key: str) -> ProjectResponse | None: ...
+
+
+class ProjectGroupsDao(ABC):
+    """Read/write access to user-defined project groups (MongoDB)."""
+
+    @abstractmethod
+    def list_all(self) -> list[ProjectGroupResponse]:
+        """Every group, newest first (by ``created_at``)."""
+
+    @abstractmethod
+    def get(self, group_key: str) -> ProjectGroupResponse | None: ...
+
+    @abstractmethod
+    def insert(self, record: ProjectGroupResponse) -> ProjectGroupResponse:
+        """Persist a new group record and return it."""
+
+    @abstractmethod
+    def replace(self, record: ProjectGroupResponse) -> ProjectGroupResponse:
+        """Replace an existing group (matched by ``group_key``) and return it."""
+
+    @abstractmethod
+    def delete(self, group_key: str) -> bool:
+        """Delete a group; return True if a document was removed."""
 
 
 class ProjectMetricsDao(ABC):

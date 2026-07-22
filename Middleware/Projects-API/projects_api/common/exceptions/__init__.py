@@ -24,6 +24,13 @@ class ValidationError(ProjectsError):
     http_status = 422
 
 
+class ConflictError(ProjectsError):
+    """A resource with the same identity already exists."""
+
+    code = "conflict"
+    http_status = 409
+
+
 class DependencyUnavailableError(ProjectsError):
     """A downstream dependency (MongoDB) is unreachable."""
 

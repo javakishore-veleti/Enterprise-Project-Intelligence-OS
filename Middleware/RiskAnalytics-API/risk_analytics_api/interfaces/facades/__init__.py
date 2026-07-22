@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
-from risk_analytics_api.dtos.responses import AnalysisRunResponse
+from risk_analytics_api.dtos.responses import AnalysisRunResponse, DashboardActivityResponse
 
 
 class StartProjectAnalysisUseCase(ABC):
@@ -22,3 +22,8 @@ class StartPortfolioAnalysisUseCase(ABC):
 class GetAnalysisRunUseCase(ABC):
     @abstractmethod
     def execute(self, run_id: str) -> AnalysisRunResponse: ...
+
+
+class GetDashboardActivityUseCase(ABC):
+    @abstractmethod
+    def execute(self, limit: int) -> DashboardActivityResponse: ...
