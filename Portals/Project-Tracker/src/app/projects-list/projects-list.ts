@@ -41,15 +41,15 @@ export class ProjectsList {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  /** Sub-view driven by the sidebar sub-nav (?v=ask|history|evidence). */
+  /** Sub-view driven by the sidebar sub-nav (?v=ask|history). */
   protected readonly subview = toSignal(
     this.route.queryParamMap.pipe(
       map((p) => {
         const v = p.get('v');
-        return v === 'ask' || v === 'history' || v === 'evidence' ? v : 'new';
+        return v === 'ask' || v === 'history' ? v : 'new';
       }),
     ),
-    { initialValue: 'new' as 'new' | 'ask' | 'history' | 'evidence' },
+    { initialValue: 'new' as 'new' | 'ask' | 'history' },
   );
 
   // --- Investigations history (persisted) ---
