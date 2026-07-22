@@ -1,12 +1,12 @@
 .investigate { padding: 1.6rem clamp(1rem, 3vw, 2.4rem); max-width: 1180px; }
 
 /* ============ Investigation Agent console ============ */
-.console { background: var(--sidebar-grad, linear-gradient(135deg,#0f2547,#0b1c38)); border-radius: 16px; padding: 1.2rem 1.5rem; color: #fff; box-shadow: var(--shadow); }
+.console { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.15rem 1.4rem; box-shadow: var(--shadow-sm); }
 .console__head { display: flex; align-items: center; gap: .9rem; }
-.console__badge { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--brand-400, #38bdf8) 26%, transparent); color: #e0f2fe; box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent); }
-.console__title h2 { margin: 0; font-size: 1.28rem; font-weight: 800; letter-spacing: -.02em; }
-.console__title p { margin: .1rem 0 0; font-size: .86rem; color: #b9c8e0; }
-.console__live { margin-left: auto; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #7fd0f5; background: color-mix(in srgb, #38bdf8 14%, transparent); border: 1px solid color-mix(in srgb, #38bdf8 30%, transparent); padding: .3rem .6rem; border-radius: 999px; white-space: nowrap; }
+.console__badge { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--brand-500) 11%, #fff); color: var(--brand-500); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500) 18%, #fff); }
+.console__title h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -.02em; color: var(--ink-900); }
+.console__title p { margin: .15rem 0 0; font-size: .88rem; color: var(--ink-500); }
+.console__live { margin-left: auto; font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-600, #0369a1); background: color-mix(in srgb, var(--brand-500) 10%, #fff); border: 1px solid color-mix(in srgb, var(--brand-500) 24%, #fff); padding: .32rem .6rem; border-radius: 999px; white-space: nowrap; }
 .console__form { display: flex; gap: .8rem; align-items: flex-end; flex-wrap: wrap; }
 .fld { display: flex; flex-direction: column; gap: .35rem; }
 .fld--target { min-width: 240px; }
@@ -30,9 +30,10 @@
 .qcard:hover:not(:disabled) { box-shadow: var(--shadow); border-color: var(--brand-400); transform: translateY(-2px); }
 .qcard--active { border-color: var(--brand-500); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 25%, transparent), var(--shadow); }
 .qcard:disabled { opacity: .6; cursor: default; }
-.qcard__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.qcard__key { font-size: 1.02rem; font-weight: 800; color: var(--ink-900); }
-.qcard__badge { font-size: .66rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
+.qcard__top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .4rem .5rem; }
+.qcard__key { font-size: 1.02rem; font-weight: 800; color: var(--ink-900); word-break: break-word; }
+.qcard__badge { flex: none; font-size: .66rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
+.qcard__name { font-size: .78rem; color: var(--ink-500); font-weight: 600; margin-top: -.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qcard__badge--high { background: #fee2e2; color: #b91c1c; }
 .qcard__badge--medium { background: #ffedd5; color: #c2410c; }
 .qcard__badge--low { background: #dcfce7; color: #15803d; }

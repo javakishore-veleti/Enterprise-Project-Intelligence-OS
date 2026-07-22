@@ -78,6 +78,9 @@
           <span class="qcard__key mono">{{ q.project.project_key }}</span>
           <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
         </div>
+        @if (q.project.name && q.project.name !== q.project.project_key) {
+          <div class="qcard__name">{{ q.project.name }}</div>
+        }
         <div class="qcard__angle">{{ q.angle }}</div>
         <div class="qcard__q">“{{ q.question }}”</div>
         <div class="qcard__cta qcard__cta--{{ q.signal }}">
