@@ -13,6 +13,9 @@ from risk_analytics_api.dtos.responses import (
     AttentionFindingRow,
     DashboardFindingSummary,
     DashboardTotals,
+    DecisionRecord,
+    DecisionResponse,
+    DecisionsPageResponse,
     ForecastRecord,
     ForecastResponse,
     ForecastsPageResponse,
@@ -175,3 +178,30 @@ class ScenarioDao(ABC):
     @abstractmethod
     def get_scenario(self, scenario_id: str) -> ScenarioResponse | None:
         """Return one full scenario, or None if absent."""
+
+
+class DecisionDao(ABC):
+    """Persistence of Decide runs — Options-first decision support (PostgreSQL)."""
+
+    @abstractmethod
+    def insert_decision(self, record: DecisionRecord) -> None:
+        """Persist one full decision row (DRAFTED on create, FAILED on agent error)."""
+
+    @abstractmethod
+    def update_selection(self, decision_id: str, option_id: str, status: str) -> None:
+        """Set the selected option id + status (SELECTED)."""
+
+    @abstractmethod
+    def update_approval(self, decision_id: str, status: str, approved_at: datetime) -> None:
+        """Set the status (APPROVED) + approved_at timestamp."""
+
+    @abstractmethod
+    def list_decisions(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> DecisionsPageResponse:
+        """Newest-first history page. Filters by ``scope`` (requested_by) and a
+        case-insensitive ``q`` across project_key/narrative. Capped at the newest 100."""
+
+    @abstractmethod
+    def get_decision(self, decision_id: str) -> DecisionResponse | None:
+        """Return one full decision, or None if absent."""

@@ -7,9 +7,11 @@ from datetime import datetime
 from agent_core import EvidencePackage
 
 from risk_analytics_api.dtos.requests import (
+    DecisionRequest,
     ForecastRequest,
     InvestigateRequest,
     ScenarioRequest,
+    SelectOptionRequest,
     StartAnalysisRequest,
     StartPortfolioAnalysisRequest,
 )
@@ -18,6 +20,8 @@ from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    DecisionResponse,
+    DecisionsPageResponse,
     EarlyWarningsResponse,
     ForecastResponse,
     ForecastsPageResponse,
@@ -103,6 +107,30 @@ class ScenarioService(ABC):
     @abstractmethod
     def get_scenario(self, scenario_id: str) -> ScenarioResponse:
         """Return one persisted scenario, or raise NotFoundError."""
+
+
+class DecisionService(ABC):
+    @abstractmethod
+    def decide(self, request: DecisionRequest) -> DecisionResponse:
+        """Generate 2-3 decision options, persist DRAFTED, and return the decision."""
+
+    @abstractmethod
+    def select_option(self, decision_id: str, request: SelectOptionRequest) -> DecisionResponse:
+        """Set the chosen option (status SELECTED); its actions + owners are the plan."""
+
+    @abstractmethod
+    def approve_decision(self, decision_id: str) -> DecisionResponse:
+        """Record approval (status APPROVED) as a dry-run/preview — creates no real tickets."""
+
+    @abstractmethod
+    def list_decisions(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> DecisionsPageResponse:
+        """Newest-first history page (capped at the newest 100)."""
+
+    @abstractmethod
+    def get_decision(self, decision_id: str) -> DecisionResponse:
+        """Return one persisted decision, or raise NotFoundError."""
 
 
 class EarlyWarningService(ABC):

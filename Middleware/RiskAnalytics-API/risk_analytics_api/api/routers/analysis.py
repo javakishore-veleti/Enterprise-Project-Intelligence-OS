@@ -8,28 +8,35 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi import Query
 
 from risk_analytics_api.api.dependencies import (
+    provide_approve_decision_facade,
     provide_get_analysis_run_facade,
     provide_get_attention_feed_facade,
     provide_get_dashboard_activity_facade,
+    provide_get_decision_facade,
     provide_get_early_warnings_facade,
     provide_get_forecast_facade,
     provide_get_investigation_facade,
     provide_get_scenario_facade,
     provide_investigate_project_facade,
     provide_list_analysis_runs_facade,
+    provide_list_decisions_facade,
     provide_list_forecasts_facade,
     provide_list_investigation_templates_facade,
     provide_list_investigations_facade,
     provide_list_scenarios_facade,
+    provide_run_decision_facade,
     provide_run_forecast_facade,
     provide_run_scenario_facade,
+    provide_select_option_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
 from risk_analytics_api.dtos.requests import (
+    DecisionRequest,
     ForecastRequest,
     InvestigateRequest,
     ScenarioRequest,
+    SelectOptionRequest,
     StartAnalysisRequest,
     StartPortfolioAnalysisRequest,
 )
@@ -38,6 +45,8 @@ from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    DecisionResponse,
+    DecisionsPageResponse,
     EarlyWarningsResponse,
     ForecastResponse,
     ForecastsPageResponse,
@@ -47,23 +56,28 @@ from risk_analytics_api.dtos.responses import (
     ScenarioResponse,
     ScenariosPageResponse,
 )
+from risk_analytics_api.facades.approve_decision import ApproveDecisionFacade
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.get_decision import GetDecisionFacade
 from risk_analytics_api.facades.get_early_warnings import GetEarlyWarningsFacade
 from risk_analytics_api.facades.get_forecast import GetForecastFacade
 from risk_analytics_api.facades.get_investigation import GetInvestigationFacade
 from risk_analytics_api.facades.get_scenario import GetScenarioFacade
 from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
+from risk_analytics_api.facades.list_decisions import ListDecisionsFacade
 from risk_analytics_api.facades.list_forecasts import ListForecastsFacade
 from risk_analytics_api.facades.list_investigation_templates import (
     ListInvestigationTemplatesFacade,
 )
 from risk_analytics_api.facades.list_investigations import ListInvestigationsFacade
 from risk_analytics_api.facades.list_scenarios import ListScenariosFacade
+from risk_analytics_api.facades.run_decision import RunDecisionFacade
 from risk_analytics_api.facades.run_forecast import RunForecastFacade
 from risk_analytics_api.facades.run_scenario import RunScenarioFacade
+from risk_analytics_api.facades.select_option import SelectOptionFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
@@ -282,6 +296,78 @@ def get_scenario(
     facade: GetScenarioFacade = Depends(provide_get_scenario_facade),
 ) -> ScenarioResponse:
     return facade.execute(scenario_id)
+
+
+# --- Decide: Options-first decision support --------------------------------
+
+
+@router.post(
+    "/decide",
+    response_model=DecisionResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="runDecision",
+)
+def run_decision(
+    request: DecisionRequest,
+    facade: RunDecisionFacade = Depends(provide_run_decision_facade),
+) -> DecisionResponse:
+    return facade.execute(request)
+
+
+@router.get(
+    "/decisions",
+    response_model=DecisionsPageResponse,
+    operation_id="listDecisions",
+)
+def list_decisions(
+    scope: str | None = Query(
+        default=None, description="Filter to decisions requested_by this subject."),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive search across project_key and narrative.",
+    ),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    facade: ListDecisionsFacade = Depends(provide_list_decisions_facade),
+) -> DecisionsPageResponse:
+    return facade.execute(scope, q, limit, offset)
+
+
+@router.get(
+    "/decisions/{decision_id}",
+    response_model=DecisionResponse,
+    operation_id="getDecision",
+)
+def get_decision(
+    decision_id: str,
+    facade: GetDecisionFacade = Depends(provide_get_decision_facade),
+) -> DecisionResponse:
+    return facade.execute(decision_id)
+
+
+@router.post(
+    "/decisions/{decision_id}/select",
+    response_model=DecisionResponse,
+    operation_id="selectDecisionOption",
+)
+def select_decision_option(
+    decision_id: str,
+    request: SelectOptionRequest,
+    facade: SelectOptionFacade = Depends(provide_select_option_facade),
+) -> DecisionResponse:
+    return facade.execute(decision_id, request)
+
+
+@router.post(
+    "/decisions/{decision_id}/approve",
+    response_model=DecisionResponse,
+    operation_id="approveDecision",
+)
+def approve_decision(
+    decision_id: str,
+    facade: ApproveDecisionFacade = Depends(provide_approve_decision_facade),
+) -> DecisionResponse:
+    return facade.execute(decision_id)
 
 
 # --- Predict: Early-Warning (computed on read) ----------------------------

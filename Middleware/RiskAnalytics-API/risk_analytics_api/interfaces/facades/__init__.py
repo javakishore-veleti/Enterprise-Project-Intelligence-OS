@@ -5,9 +5,11 @@ from abc import ABC, abstractmethod
 from datetime import date
 
 from risk_analytics_api.dtos.requests import (
+    DecisionRequest,
     ForecastRequest,
     InvestigateRequest,
     ScenarioRequest,
+    SelectOptionRequest,
     StartAnalysisRequest,
     StartPortfolioAnalysisRequest,
 )
@@ -15,6 +17,8 @@ from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    DecisionResponse,
+    DecisionsPageResponse,
     EarlyWarningsResponse,
     ForecastResponse,
     ForecastsPageResponse,
@@ -109,6 +113,33 @@ class ListScenariosUseCase(ABC):
 class GetScenarioUseCase(ABC):
     @abstractmethod
     def execute(self, scenario_id: str) -> ScenarioResponse: ...
+
+
+class RunDecisionUseCase(ABC):
+    @abstractmethod
+    def execute(self, request: DecisionRequest) -> DecisionResponse: ...
+
+
+class SelectOptionUseCase(ABC):
+    @abstractmethod
+    def execute(self, decision_id: str, request: SelectOptionRequest) -> DecisionResponse: ...
+
+
+class ApproveDecisionUseCase(ABC):
+    @abstractmethod
+    def execute(self, decision_id: str) -> DecisionResponse: ...
+
+
+class ListDecisionsUseCase(ABC):
+    @abstractmethod
+    def execute(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> DecisionsPageResponse: ...
+
+
+class GetDecisionUseCase(ABC):
+    @abstractmethod
+    def execute(self, decision_id: str) -> DecisionResponse: ...
 
 
 class GetEarlyWarningsUseCase(ABC):
