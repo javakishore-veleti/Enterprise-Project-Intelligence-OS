@@ -1,14 +1,23 @@
 import { Routes } from '@angular/router';
 
+import { Mission } from './mission/mission';
 import { Dashboard } from './dashboard/dashboard';
 import { ProjectsList } from './projects-list/projects-list';
 import { ProjectGroups } from './project-groups/project-groups';
 import { ProjectRisk } from './project-risk/project-risk';
+import { Predict } from './predict/predict';
+import { Knowledge } from './knowledge/knowledge';
 
 export const routes: Routes = [
-  { path: '', component: Dashboard },
-  { path: 'projects', component: ProjectsList },
+  { path: '', component: Mission },
+  { path: 'watch', component: Dashboard },
+  { path: 'investigate', component: ProjectsList },
   { path: 'groups', component: ProjectGroups },
-  { path: 'risk', component: ProjectRisk },
+  { path: 'predict', component: Predict },
+  { path: 'decide', component: ProjectRisk },
+  { path: 'knowledge', component: Knowledge },
+  // Back-compat redirects from the old entity-based routes.
+  { path: 'projects', redirectTo: 'investigate' },
+  { path: 'risk', redirectTo: 'decide' },
   { path: '**', redirectTo: '' },
 ];

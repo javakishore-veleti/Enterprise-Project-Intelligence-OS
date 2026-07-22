@@ -6,10 +6,13 @@ import { NotificationService } from './ui/notification.service';
 // Page title MUST match the sidebar menu label so the breadcrumb and the active
 // nav item always read the same word (Project Tracker > Projects / Project Risk).
 const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
-  '/': { title: 'Dashboard', crumb: 'Dashboard' },
-  '/projects': { title: 'Projects', crumb: 'Projects' },
-  '/groups': { title: 'Project Groups', crumb: 'Groups' },
-  '/risk': { title: 'Project Risk', crumb: 'Risk Analysis' },
+  '/': { title: 'Mission', crumb: 'Mission' },
+  '/watch': { title: 'Watch', crumb: 'Watch' },
+  '/investigate': { title: 'Investigate', crumb: 'Investigate' },
+  '/groups': { title: 'Project Groups', crumb: 'Investigate' },
+  '/predict': { title: 'Predict', crumb: 'Predict' },
+  '/decide': { title: 'Decide', crumb: 'Decide' },
+  '/knowledge': { title: 'Knowledge', crumb: 'Knowledge' },
 };
 
 @Component({
