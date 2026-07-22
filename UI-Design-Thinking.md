@@ -106,6 +106,23 @@ Skeleton loaders (not spinners) · keyboard shortcuts · instant search · trans
 | AI "What Changed?" Timeline | Meaningful changes across projects over any period |
 | Digital Twin / Scenario Simulator | *"What happens if we delay Feature A by two weeks?"* |
 
+## Notes — "Today's Attention" vs "Top projects by risk"
+
+Two Mission sections that must stay conceptually distinct (they answer different questions):
+
+| | **Today's Attention** | **Top projects by risk** |
+|---|---|---|
+| Question | *What do I act on now?* | *Which projects are worst overall?* |
+| Grain | a **finding** (a specific risk item inside a project) | a **project** (one row each) |
+| Ranking | **attention score** = severity × likelihood × **recency** (urgency) | cumulative **risk score** (blockers, reopen rate, aging) |
+| Time | time-sensitive; changes daily ("Today's", with date history) | slow-moving / structural |
+| Output | an **action queue** — each item has a next action | a **risk register** — triage list |
+| A project appears | 0, 1, or **many** times (per finding), or not at all | exactly **once** |
+
+The tell: a project can top the **register** (chronic accumulated debt) yet have **nothing** in Today's Attention (nothing urgent changed today); and a green project can top **Attention** because a critical finding just landed. One is *"where is the chronic risk"*; the other is *"where is the fire, and what do I do."*
+
+To keep them from looking redundant: Attention leans on **recency + "new since yesterday"** and always carries the **recommended next action**; Top-projects carries a **trend arrow** (risk ↑/↓ vs last week) and stays project-grain. If they still feel duplicative on the home, move Top-projects to **Investigate** (browse the register) and keep Mission purely "what needs me now."
+
 ## The bigger vision
 
 The strongest products here don't replace Jira — they treat Jira (and GitHub, Azure DevOps, ServiceNow, Slack/Teams, CI/CD, observability, docs) as **data sources**. What users experience is an **AI operational-intelligence platform** that answers questions, predicts outcomes, explains risks, and recommends actions — not just a place to manage tickets.
