@@ -16,10 +16,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the portal name in the app bar', () => {
+  it('should render the portal name in the sidebar brand', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.app-bar__portal')?.textContent).toContain('Admin');
+    expect(compiled.querySelector('.sidebar__brand-text')?.textContent).toContain('Admin');
   });
 });

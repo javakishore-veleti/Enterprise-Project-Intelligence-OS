@@ -1,70 +1,95 @@
-<section class="panel">
-  <header class="panel__header">
-    <h1>System Health</h1>
-    <p class="panel__subtitle">Aggregate platform health as reported by the Admin-API.</p>
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">Aggregate platform health as reported by the Admin-API, including dependency status and agent counts.</p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="load()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
   </header>
 
-  <div class="panel__toolbar">
-    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
-  </div>
-
   @if (loading()) {
-    <p class="panel__status">Loading…</p>
+    <div class="panel"><p class="panel__status"><span class="spinner spinner--brand"></span> Loading system health…</p></div>
   }
 
   @if (error()) {
-    <p class="panel__status panel__status--error">{{ error() }}</p>
+    <div class="alert alert--error">
+      <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+    </div>
   }
 
   @if (!loading() && !error() && health(); as h) {
-    <div class="cards">
-      <div class="card">
-        <div class="card__label">Status</div>
-        <div class="card__value">
-          <span class="badge" [class.badge--ok]="isOk(h.status)" [class.badge--bad]="!isOk(h.status)">
-            {{ h.status }}
-          </span>
+    <!-- Stat tiles -->
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi__icon" [class.kpi__icon--success]="isOk(h.status)" [class.kpi__icon--danger]="!isOk(h.status)">
+          {{ isOk(h.status) ? '✓' : '!' }}
         </div>
-        <div class="card__sub mono">{{ h.service }}</div>
+        <div class="kpi__body">
+          <span class="kpi__label">Overall Status</span>
+          <span class="kpi__value">
+            <span class="badge" [class.badge--success]="isOk(h.status)" [class.badge--high]="!isOk(h.status)">{{ h.status }}</span>
+          </span>
+          <span class="kpi__sub mono">{{ h.service }}</span>
+        </div>
       </div>
-      <div class="card">
-        <div class="card__label">Agents</div>
-        <div class="card__value">{{ h.agent_count }}</div>
-        <div class="card__sub">configured</div>
+      <div class="kpi">
+        <div class="kpi__icon kpi__icon--brand">◆</div>
+        <div class="kpi__body">
+          <span class="kpi__label">Configured Agents</span>
+          <span class="kpi__value">{{ h.agent_count }}</span>
+        </div>
       </div>
-      <div class="card">
-        <div class="card__label">Enabled Agents</div>
-        <div class="card__value">{{ h.enabled_agent_count }}</div>
-        <div class="card__sub">active</div>
+      <div class="kpi">
+        <div class="kpi__icon kpi__icon--info">✓</div>
+        <div class="kpi__body">
+          <span class="kpi__label">Enabled Agents</span>
+          <span class="kpi__value">{{ h.enabled_agent_count }}</span>
+          <span class="kpi__sub">active specialists</span>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__icon kpi__icon--warning">⛃</div>
+        <div class="kpi__body">
+          <span class="kpi__label">Dependencies</span>
+          <span class="kpi__value">{{ dependencies().length }}</span>
+          <span class="kpi__sub">monitored services</span>
+        </div>
       </div>
     </div>
 
-    <h2 class="deps-title">Dependencies</h2>
-    <div class="panel__table-wrap">
-      <table class="table deps-table">
-        <thead>
-          <tr>
-            <th>Dependency</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (dep of dependencies(); track dep.name) {
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Dependencies</h2>
+        <span class="panel__count">{{ dependencies().length }} service(s)</span>
+      </div>
+      <div class="panel__table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td class="mono">{{ dep.name }}</td>
-              <td>
-                <span class="badge" [class.badge--ok]="isOk(dep.status)" [class.badge--bad]="!isOk(dep.status)">
-                  {{ dep.status }}
-                </span>
-              </td>
+              <th>Dependency</th>
+              <th>Status</th>
             </tr>
-          } @empty {
-            <tr>
-              <td class="empty" colspan="2">No dependencies reported.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (dep of dependencies(); track dep.name) {
+              <tr>
+                <td class="mono">{{ dep.name }}</td>
+                <td>
+                  <span class="badge badge--dot" [class.badge--success]="isOk(dep.status)" [class.badge--high]="!isOk(dep.status)">
+                    {{ dep.status }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="empty" colspan="2">No dependencies reported.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   }
 </section>

@@ -1,68 +1,74 @@
 .data-layout {
   display: flex;
   align-items: flex-start;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.7rem clamp(1rem, 3vw, 2.4rem);
   gap: 1.5rem;
 }
 
 .data-sidebar {
-  flex: 0 0 200px;
-  border-right: 1px solid #eee;
-  padding-right: 1rem;
+  flex: 0 0 210px;
+  position: sticky;
+  top: 5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem .85rem;
 }
 
 .data-sidebar__title {
-  margin: 0.5rem 0 1rem;
-  font-size: 0.8rem;
+  display: block;
+  margin: 0 .35rem .75rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
+  letter-spacing: 0.1em;
+  color: var(--brand-500);
+  font-weight: 700;
 }
 
 .data-sidebar__list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
 }
 
 .data-sidebar__link {
-  display: block;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  color: #1f2937;
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--ink-700);
   font-size: 0.9rem;
-  border-left: 3px solid transparent;
+  font-weight: 600;
+  transition: background .14s ease, color .14s ease;
 }
 
 .data-sidebar__link:hover {
-  background: #f3f4f6;
+  background: var(--bg-2);
+  color: var(--brand-500);
 }
 
 .data-sidebar__link--active {
-  background: #eff6ff;
-  border-left-color: #3b82f6;
-  font-weight: 600;
+  background: var(--brand-grad);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(91,33,182,.28);
 }
+.data-sidebar__link--active:hover { color: #fff; }
 
 .data-content {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-@media (max-width: 640px) {
-  .data-layout {
-    flex-direction: column;
-  }
+/* The child page provides its own padding via .page-wrap; trim the duplicate
+   left padding so the content aligns tightly with the sub-nav. */
+.data-content ::ng-deep .page-wrap { padding-top: 0; padding-left: 0; padding-right: 0; }
 
-  .data-sidebar {
-    flex-basis: auto;
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #eee;
-    padding-right: 0;
-    padding-bottom: 1rem;
-  }
+@media (max-width: 720px) {
+  .data-layout { flex-direction: column; }
+  .data-sidebar { position: static; flex-basis: auto; width: 100%; }
 }

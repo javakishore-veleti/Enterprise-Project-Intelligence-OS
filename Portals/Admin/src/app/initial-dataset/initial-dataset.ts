@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Subscription, interval, switchMap } from 'rxjs';
 
 import {
@@ -9,6 +9,7 @@ import {
   IngestionStatus,
 } from '../models/admin';
 import { AdminService } from '../services/admin.service';
+import { NotificationService } from '../ui/notification.service';
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -108,6 +109,8 @@ export class InitialDataset implements OnInit, OnDestroy {
 
   private ingestionPollSub: Subscription | null = null;
 
+  private readonly notifications = inject(NotificationService);
+
   constructor(private readonly adminService: AdminService) {}
 
   ngOnInit(): void {
@@ -137,17 +140,35 @@ export class InitialDataset implements OnInit, OnDestroy {
     });
   }
 
-  download(): void {
+  async download(): Promise<void> {
+    const size = this.formatBytes(this.status()?.size_bytes ?? 0);
+    const ok = await this.notifications.confirm({
+      title: 'Start dataset download?',
+      message: `This streams the full managed dataset (${size}) from Zenodo through the Airflow acquisition workflow. It is a long-running, bandwidth-heavy operation.`,
+      confirmLabel: 'Start download',
+    });
+    if (!ok) {
+      return;
+    }
+
     this.triggering.set(true);
     this.error.set(null);
     this.adminService.triggerDatasetDownload('admin').subscribe({
       next: (response) => {
         this.applyStatus(response);
         this.triggering.set(false);
+        this.notifications.success(
+          'Download triggered',
+          'The acquisition workflow has started; progress will update below.',
+        );
       },
       error: () => {
         this.error.set('Unable to trigger the download. Is the Admin-API running on :8002?');
         this.triggering.set(false);
+        this.notifications.error(
+          'Download failed to start',
+          'Could not trigger acquisition. Is the Admin-API running on :8002?',
+        );
       },
     });
   }
@@ -201,20 +222,43 @@ export class InitialDataset implements OnInit, OnDestroy {
     });
   }
 
-  ingest(): void {
+  async ingest(): Promise<void> {
+    const retry = this.ingestion()?.status === 'FAILED';
+    const ok = await this.notifications.confirm({
+      title: retry ? 'Retry evidence-store ingestion?' : 'Start evidence-store ingestion?',
+      message:
+        'This batch-ingests the downloaded dataset into the MongoDB evidence store — a long-running restore + normalize job that writes millions of records. A completed run auto-triggers metric computation.',
+      confirmLabel: retry ? 'Retry ingestion' : 'Start ingestion',
+    });
+    if (!ok) {
+      return;
+    }
+
     this.ingesting.set(true);
     this.ingestionError.set(null);
     this.adminService.triggerDatasetIngest('admin').subscribe({
       next: (response) => {
         this.applyIngestion(response);
         this.ingesting.set(false);
+        this.notifications.success(
+          'Ingestion started',
+          'The batch-ingestion run is in flight; progress will update below.',
+        );
       },
       error: (err: HttpErrorResponse) => {
         if (err.status === 409) {
           this.ingestionError.set('Download the dataset before ingesting into the evidence store.');
+          this.notifications.warning(
+            'Download required',
+            'Download the dataset before ingesting into the evidence store.',
+          );
         } else {
           this.ingestionError.set(
             'Unable to start ingestion. Is the Admin-API running on :8002?',
+          );
+          this.notifications.error(
+            'Ingestion failed to start',
+            'Could not start the ingestion run. Is the Admin-API running on :8002?',
           );
         }
         this.ingesting.set(false);

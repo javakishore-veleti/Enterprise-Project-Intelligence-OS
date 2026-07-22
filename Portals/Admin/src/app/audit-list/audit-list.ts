@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 
 import { AuditEvent } from '../models/admin';
 import { AdminService } from '../services/admin.service';
@@ -14,6 +14,19 @@ export class AuditList implements OnInit {
   protected readonly total = signal(0);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** KPI: distinct action types in the loaded window. */
+  protected readonly actionCount = computed(
+    () => new Set(this.events().map((e) => e.action)).size,
+  );
+  /** KPI: distinct actors in the loaded window. */
+  protected readonly actorCount = computed(
+    () => new Set(this.events().map((e) => e.actor)).size,
+  );
+  /** KPI: distinct entity types touched in the loaded window. */
+  protected readonly entityTypeCount = computed(
+    () => new Set(this.events().map((e) => e.entity_type)).size,
+  );
 
   constructor(private readonly adminService: AdminService) {}
 
@@ -38,6 +51,18 @@ export class AuditList implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  /** CSS modifier for an action badge (info by default, brand for updates). */
+  actionBadgeClass(action: string): string {
+    const a = action.toLowerCase();
+    if (a.includes('delete') || a.includes('fail')) {
+      return 'badge badge--high';
+    }
+    if (a.includes('create') || a.includes('enable')) {
+      return 'badge badge--success';
+    }
+    return 'badge badge--info';
   }
 
   formatDetails(details: Record<string, unknown>): string {

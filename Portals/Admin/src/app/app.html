@@ -1,13 +1,98 @@
-<header class="app-bar">
-  <span class="app-bar__brand">Enterprise Project Intelligence OS</span>
-  <span class="app-bar__portal">Admin</span>
-  <nav class="app-nav">
-    <a routerLink="/agents" routerLinkActive="app-nav__link--active" class="app-nav__link">Agents</a>
-    <a routerLink="/audit" routerLinkActive="app-nav__link--active" class="app-nav__link">Audit</a>
-    <a routerLink="/health" routerLinkActive="app-nav__link--active" class="app-nav__link">System Health</a>
-    <a routerLink="/data" routerLinkActive="app-nav__link--active" class="app-nav__link">Data Management</a>
-  </nav>
-</header>
-<main>
-  <router-outlet />
-</main>
+<div class="shell" [class.shell--collapsed]="!navOpen()">
+  <!-- ===== Sidebar menu ===== -->
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <span class="sidebar__logo">◆</span>
+      <span class="sidebar__brand-text">
+        <strong>Project Intelligence OS</strong>
+        <small>Admin Console</small>
+      </span>
+    </div>
+
+    <nav class="sidebar__nav">
+      <span class="sidebar__section">Platform</span>
+      <a routerLink="/agents" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Agents</span>
+      </a>
+      <a routerLink="/health" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span>System Health</span>
+      </a>
+      <a routerLink="/audit" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M8 9h2"/></svg>
+        <span>Audit</span>
+      </a>
+
+      <span class="sidebar__section">Data</span>
+      <a routerLink="/data/initial-dataset" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+        <span>Data Management</span>
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__status"><span class="dot"></span> Admin-API · :8002</div>
+    </div>
+  </aside>
+
+  <!-- ===== Main column ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="topbar__toggle" (click)="toggleNav()" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <span class="breadcrumb__root">Admin Console</span>
+        <svg class="breadcrumb__sep" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <span class="breadcrumb__page">{{ pageTitle() }}</span>
+      </nav>
+      <div class="topbar__actions">
+        <span class="topbar__date">{{ today }}</span>
+        <button class="topbar__icon" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </button>
+        <div class="topbar__user"><span class="topbar__avatar">AD</span></div>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- ===== Toast stack ===== -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts(); track t.id) {
+      <div class="toast toast--{{ t.kind }}">
+        <span class="toast__icon">{{ toastIcon(t.kind) }}</span>
+        <div class="toast__body">
+          <strong>{{ t.title }}</strong>
+          @if (t.message) { <span>{{ t.message }}</span> }
+        </div>
+        <button class="toast__close" (click)="notifications.dismiss(t.id)" aria-label="Dismiss">×</button>
+      </div>
+    }
+  </div>
+
+  <!-- ===== Confirmation dialog ===== -->
+  @if (confirm(); as c) {
+    <div class="dialog-overlay" (click)="notifications.resolveConfirm(false)">
+      <div class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <div class="dialog__icon" [class.dialog__icon--danger]="c.req.danger">
+          {{ c.req.danger ? '!' : '?' }}
+        </div>
+        <h3 class="dialog__title">{{ c.req.title }}</h3>
+        <p class="dialog__message">{{ c.req.message }}</p>
+        <div class="dialog__actions">
+          <button class="btn--ghost" (click)="notifications.resolveConfirm(false)">
+            {{ c.req.cancelLabel || 'Cancel' }}
+          </button>
+          <button [class.btn--danger]="c.req.danger" (click)="notifications.resolveConfirm(true)">
+            {{ c.req.confirmLabel || 'Confirm' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

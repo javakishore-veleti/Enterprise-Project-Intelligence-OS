@@ -1,99 +1,140 @@
-<section class="panel">
-  <header class="panel__header">
-    <h1>Agent Configuration</h1>
-    <p class="panel__subtitle">
-      Per-agent runtime config from the Admin-API. Edit model, framework and enabled, then save (PUT).
-    </p>
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">Per-agent runtime configuration from the Admin-API. Edit model, framework and enabled state, then save — every change is audited.</p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="load()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
   </header>
 
-  <div class="panel__toolbar">
-    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
-    @if (!loading()) {
-      <span class="panel__count">{{ total() }} agent(s)</span>
-    }
+  <!-- KPI summary cards -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--brand">◆</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Configured Agents</span>
+        <span class="kpi__value">{{ total() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--success">✓</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Enabled</span>
+        <span class="kpi__value">{{ enabledCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--warning">⏻</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Disabled</span>
+        <span class="kpi__value">{{ disabledCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--info">⛓</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Frameworks In Use</span>
+        <span class="kpi__value">{{ frameworkCount() }}</span>
+        @if (dirtyCount() > 0) {
+          <span class="kpi__sub">{{ dirtyCount() }} unsaved edit(s)</span>
+        }
+      </div>
+    </div>
   </div>
 
-  @if (loading()) {
-    <p class="panel__status">Loading…</p>
-  }
-
-  @if (error()) {
-    <p class="panel__status panel__status--error">{{ error() }}</p>
-  }
-
-  @if (!loading() && !error()) {
-    <div class="panel__table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Agent</th>
-            <th>Model</th>
-            <th>Framework</th>
-            <th class="center">Enabled</th>
-            <th>Updated By</th>
-            <th>Updated At</th>
-            <th class="center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.config.agent_key) {
-            <tr>
-              <td>
-                <div class="agent-name">{{ row.config.display_name }}</div>
-                <div class="agent-key mono">{{ row.config.agent_key }}</div>
-              </td>
-              <td>
-                <input
-                  type="text"
-                  class="input model-input"
-                  [(ngModel)]="row.model"
-                  [attr.aria-label]="'Model for ' + row.config.agent_key"
-                />
-              </td>
-              <td>
-                <select
-                  class="input"
-                  [(ngModel)]="row.framework"
-                  [attr.aria-label]="'Framework for ' + row.config.agent_key"
-                >
-                  @for (fw of frameworks; track fw) {
-                    <option [value]="fw">{{ fw }}</option>
-                  }
-                </select>
-              </td>
-              <td class="center">
-                <input
-                  type="checkbox"
-                  [(ngModel)]="row.enabled"
-                  [attr.aria-label]="'Enabled for ' + row.config.agent_key"
-                />
-              </td>
-              <td>{{ row.config.updated_by }}</td>
-              <td class="mono nowrap">{{ row.config.updated_at }}</td>
-              <td class="center">
-                <button
-                  type="button"
-                  class="btn btn--primary"
-                  [disabled]="!isDirty(row) || row.saving"
-                  (click)="save(row)"
-                >
-                  {{ row.saving ? 'Saving…' : 'Save' }}
-                </button>
-                @if (row.saved && !isDirty(row)) {
-                  <span class="save-ok">Saved</span>
-                }
-                @if (row.error) {
-                  <span class="save-err">{{ row.error }}</span>
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td class="empty" colspan="7">No agents configured.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Agents</h2>
+      @if (!loading()) {
+        <span class="panel__count">{{ total() }} agent(s)</span>
+      }
     </div>
-  }
+
+    @if (loading()) {
+      <p class="panel__status"><span class="spinner spinner--brand"></span> Loading agents…</p>
+    }
+
+    @if (error()) {
+      <div class="alert alert--error" style="margin: 1rem;">
+        <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+      </div>
+    }
+
+    @if (!loading() && !error()) {
+      <div class="panel__table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Model</th>
+              <th>Framework</th>
+              <th class="center">Enabled</th>
+              <th>Updated By</th>
+              <th>Updated At</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.config.agent_key) {
+              <tr [class.is-dirty]="isDirty(row)">
+                <td>
+                  <div class="agent-name">{{ row.config.display_name }}</div>
+                  <div class="agent-key mono">{{ row.config.agent_key }}</div>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    class="model-input"
+                    [(ngModel)]="row.model"
+                    [attr.aria-label]="'Model for ' + row.config.agent_key"
+                  />
+                </td>
+                <td>
+                  <select
+                    [(ngModel)]="row.framework"
+                    [attr.aria-label]="'Framework for ' + row.config.agent_key"
+                  >
+                    @for (fw of frameworks; track fw) {
+                      <option [value]="fw">{{ fw }}</option>
+                    }
+                  </select>
+                </td>
+                <td class="center">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="row.enabled"
+                    [attr.aria-label]="'Enabled for ' + row.config.agent_key"
+                  />
+                </td>
+                <td>{{ row.config.updated_by }}</td>
+                <td class="mono nowrap">{{ row.config.updated_at }}</td>
+                <td class="center actions-cell">
+                  <button
+                    type="button"
+                    class="btn--sm"
+                    [disabled]="!isDirty(row) || row.saving"
+                    (click)="save(row)"
+                  >
+                    @if (row.saving) { <span class="spinner"></span> Saving… } @else { Save }
+                  </button>
+                  @if (row.saved && !isDirty(row)) {
+                    <span class="badge badge--success badge--dot">Saved</span>
+                  }
+                  @if (row.error) {
+                    <span class="badge badge--high">{{ row.error }}</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="empty" colspan="7">No agents configured.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
 </section>

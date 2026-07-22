@@ -1,25 +1,11 @@
-.agent-name {
-  font-weight: 600;
-}
+.agent-name { font-weight: 700; color: var(--ink-900); }
+.agent-key { font-size: 0.74rem; color: var(--ink-400); margin-top: .1rem; }
 
-.agent-key {
-  font-size: 0.75rem;
-  color: #888;
-}
+.model-input { width: 13rem; max-width: 100%; padding: .45rem .6rem; font-size: .85rem; }
+select { width: auto; min-width: 11rem; padding: .45rem .6rem; font-size: .85rem; }
 
-.model-input {
-  width: 12rem;
-  max-width: 100%;
-}
+.actions-cell { display: flex; align-items: center; gap: .5rem; justify-content: center; flex-wrap: wrap; }
 
-.save-ok {
-  margin-left: 0.5rem;
-  color: #15803d;
-  font-size: 0.8rem;
-}
-
-.save-err {
-  margin-left: 0.5rem;
-  color: #b91c1c;
-  font-size: 0.8rem;
-}
+/* Highlight rows with unsaved edits without using gray */
+tbody tr.is-dirty { background: var(--surface-alt); box-shadow: inset 3px 0 0 var(--brand-400); }
+tbody tr.is-dirty:hover { background: var(--bg-2); }

@@ -1,128 +1,136 @@
-<section class="panel">
-  <header class="panel__header">
-    <h1>Initial Dataset</h1>
-    <p class="panel__subtitle">
-      Acquisition status of the managed dataset. Trigger the download and watch progress; the Admin-API
-      owns the actual acquisition workflow.
-    </p>
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">
+        Acquire the managed dataset and batch-ingest it into the evidence store. The Admin-API owns the
+        acquisition and ingestion workflows; this view triggers and monitors them.
+      </p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="load()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
   </header>
 
-  <div class="panel__toolbar">
-    <button type="button" class="btn" (click)="load()" [disabled]="loading()">Refresh</button>
-    <button
-      type="button"
-      class="btn btn--primary"
-      [disabled]="downloadDisabled()"
-      (click)="download()"
-    >
-      {{ triggering() ? 'Starting…' : 'Download Dataset' }}
-    </button>
-    @if (status(); as s) {
-      @if (s.state === 'DOWNLOADING') {
-        <span class="panel__count">Download in progress…</span>
-      } @else if (s.state === 'DOWNLOADED') {
-        <span class="panel__count">Dataset already downloaded</span>
-      }
-    }
-  </div>
-
   @if (loading()) {
-    <p class="panel__status">Loading…</p>
+    <div class="panel"><p class="panel__status"><span class="spinner spinner--brand"></span> Loading dataset status…</p></div>
   }
 
   @if (error()) {
-    <p class="panel__status panel__status--error">{{ error() }}</p>
+    <div class="alert alert--error" style="margin-bottom: 1.3rem;">
+      <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+    </div>
   }
 
+  <!-- ===== Acquisition ===== -->
   @if (!loading() && status(); as s) {
-    <div class="dataset">
-      <div class="dataset__title-row">
-        <h2 class="dataset__title">{{ s.title }}</h2>
-        <span [class]="badgeClass(s.state)">{{ s.state }}</span>
+    <div class="panel">
+      <div class="panel__head">
+        <div class="head-title">
+          <h2 class="panel__title">{{ s.title }}</h2>
+          <span [class]="badgeClass(s.state)">{{ s.state.replace('_', ' ') }}</span>
+        </div>
+        <div class="toolbar">
+          <button
+            type="button"
+            [disabled]="downloadDisabled()"
+            (click)="download()"
+          >
+            @if (triggering()) { <span class="spinner"></span> Starting… }
+            @else {
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              Download Dataset
+            }
+          </button>
+          @if (s.state === 'DOWNLOADING') {
+            <span class="panel__count">Download in progress…</span>
+          } @else if (s.state === 'DOWNLOADED') {
+            <span class="panel__count">Already downloaded</span>
+          }
+        </div>
       </div>
 
-      <dl class="dataset__grid">
-        <dt>File name</dt>
-        <dd class="mono">{{ s.file_name }}</dd>
+      <div class="panel__body">
+        <dl class="facts">
+          <div class="fact"><dt>File name</dt><dd class="mono">{{ s.file_name }}</dd></div>
+          <div class="fact"><dt>Size</dt><dd>{{ formatBytes(s.size_bytes) }}</dd></div>
+          <div class="fact"><dt>Expected MD5</dt><dd class="mono nowrap">{{ s.expected_md5 || '—' }}</dd></div>
+          <div class="fact"><dt>Dataset ID</dt><dd class="mono">{{ s.dataset_id }}</dd></div>
+          <div class="fact"><dt>Updated at</dt><dd class="mono nowrap">{{ s.updated_at }}</dd></div>
+          <div class="fact"><dt>Message</dt><dd>{{ s.message || '—' }}</dd></div>
+        </dl>
 
-        <dt>Size</dt>
-        <dd>{{ formatBytes(s.size_bytes) }}</dd>
-
-        <dt>Expected MD5</dt>
-        <dd class="mono nowrap">{{ s.expected_md5 || '—' }}</dd>
-
-        <dt>Dataset ID</dt>
-        <dd class="mono">{{ s.dataset_id }}</dd>
-
-        <dt>Updated at</dt>
-        <dd class="mono nowrap">{{ s.updated_at }}</dd>
-
-        <dt>Message</dt>
-        <dd>{{ s.message || '—' }}</dd>
-      </dl>
-
-      @if (s.state === 'DOWNLOADING') {
-        <div class="progress">
-          <div class="progress__labels">
-            <span>{{ formatBytes(s.downloaded_bytes) }} / {{ formatBytes(s.size_bytes) }}</span>
-            <span>{{ progressPct() }}%</span>
+        @if (s.state === 'DOWNLOADING') {
+          <div class="progress">
+            <div class="progress__labels">
+              <span>{{ formatBytes(s.downloaded_bytes) }} / {{ formatBytes(s.size_bytes) }}</span>
+              <span class="progress__pct">{{ progressPct() }}%</span>
+            </div>
+            <div class="progress__track">
+              <div
+                class="progress__bar"
+                role="progressbar"
+                [attr.aria-valuenow]="progressPct()"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [style.width.%]="progressPct()"
+              ></div>
+            </div>
           </div>
-          <div class="progress__track">
-            <div
-              class="progress__bar"
-              role="progressbar"
-              [attr.aria-valuenow]="progressPct()"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              [style.width.%]="progressPct()"
-            ></div>
-          </div>
-        </div>
-      }
+        }
+      </div>
     </div>
   }
 
-  <div class="ingestion">
-    <header class="ingestion__header">
-      <h2 class="ingestion__title">Ingestion into evidence store</h2>
-      <p class="ingestion__subtitle">
-        Batch-ingest the downloaded dataset into the MongoDB evidence store. Progress is polled from
-        the Admin-API while a run is in flight.
-      </p>
-    </header>
-
-    <div class="panel__toolbar">
-      <button type="button" class="btn" (click)="loadIngestion()">Refresh ingestion</button>
-      <button
-        type="button"
-        class="btn btn--primary"
-        [disabled]="ingestDisabled()"
-        (click)="ingest()"
-      >
-        {{ ingestLabel() }}
-      </button>
+  <!-- ===== Ingestion ===== -->
+  <div class="panel">
+    <div class="panel__head">
+      <div class="head-title">
+        <h2 class="panel__title">Ingestion into evidence store</h2>
+        @if (ingestion(); as i) {
+          <span [class]="ingestionBadgeClass(i.status)">{{ i.status.replace('_', ' ') }}</span>
+        }
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn--ghost" (click)="loadIngestion()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+        <button
+          type="button"
+          [disabled]="ingestDisabled()"
+          (click)="ingest()"
+        >
+          @if (ingesting()) { <span class="spinner"></span> Starting… }
+          @else {
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/></svg>
+            {{ ingestLabel() }}
+          }
+        </button>
+      </div>
     </div>
 
-    @if (ingestionError()) {
-      <p class="panel__status panel__status--error">{{ ingestionError() }}</p>
-    }
+    <div class="panel__body">
+      <p class="subtitle" style="margin: 0 0 1rem;">
+        Batch-ingest the downloaded dataset into the MongoDB evidence store. Progress is polled from the
+        Admin-API while a run is in flight; a completed run auto-triggers metric computation.
+      </p>
 
-    @if (ingestion(); as i) {
-      <div class="ingestion__body">
+      @if (ingestionError()) {
+        <div class="alert alert--error" style="margin-bottom: 1rem;">
+          <span class="alert__icon">⚠</span><span>{{ ingestionError() }}</span>
+        </div>
+      }
+
+      @if (ingestion(); as i) {
         <div class="ingestion__overall">
-          <div class="ingestion__status-row">
-            <span [class]="ingestionBadgeClass(i.status)">{{ i.status }}</span>
-            @if (i.run_id) {
-              <span class="mono ingestion__run">Run {{ i.run_id }}</span>
-            }
-          </div>
-
+          @if (i.run_id) {
+            <span class="mono ingestion__run">Run {{ i.run_id }}</span>
+          }
           <div class="progress">
             <div class="progress__labels">
-              <span>
-                {{ formatCount(i.records_done) }} / {{ formatCount(i.records_total) }} records
-              </span>
-              <span>{{ ingestionPct() }}%</span>
+              <span>{{ formatCount(i.records_done) }} / {{ formatCount(i.records_total) }} records</span>
+              <span class="progress__pct">{{ ingestionPct() }}%</span>
             </div>
             <div class="progress__track">
               <div
@@ -136,46 +144,46 @@
             </div>
           </div>
 
-          <dl class="ingestion__meta">
-            <dt>Started</dt>
-            <dd class="mono nowrap">{{ i.started_at || '—' }}</dd>
-            <dt>Finished</dt>
-            <dd class="mono nowrap">{{ i.finished_at || '—' }}</dd>
+          <dl class="facts facts--compact">
+            <div class="fact"><dt>Started</dt><dd class="mono nowrap">{{ i.started_at || '—' }}</dd></div>
+            <div class="fact"><dt>Finished</dt><dd class="mono nowrap">{{ i.finished_at || '—' }}</dd></div>
           </dl>
         </div>
 
         @if (i.entities.length > 0) {
-          <table class="ing-table">
-            <thead>
-              <tr>
-                <th>Entity</th>
-                <th>Records</th>
-                <th class="ing-table__bar-col">Progress</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of i.entities; track e.entity) {
+          <div class="panel__table-wrap" style="margin-top: 1.25rem;">
+            <table>
+              <thead>
                 <tr>
-                  <td class="mono">{{ e.entity }}</td>
-                  <td>{{ formatCount(e.records_done) }} / {{ formatCount(e.records_total) }}</td>
-                  <td class="ing-table__bar-col">
-                    <div class="progress__track progress__track--sm">
-                      <div
-                        class="progress__bar"
-                        role="progressbar"
-                        [attr.aria-valuenow]="entityPct(e.records_done, e.records_total)"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        [style.width.%]="entityPct(e.records_done, e.records_total)"
-                      ></div>
-                    </div>
-                  </td>
-                  <td><span [class]="ingestionBadgeClass(e.status)">{{ e.status }}</span></td>
+                  <th>Entity</th>
+                  <th>Records</th>
+                  <th class="bar-col">Progress</th>
+                  <th>Status</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (e of i.entities; track e.entity) {
+                  <tr>
+                    <td class="mono">{{ e.entity }}</td>
+                    <td>{{ formatCount(e.records_done) }} / {{ formatCount(e.records_total) }}</td>
+                    <td class="bar-col">
+                      <div class="progress__track progress__track--sm">
+                        <div
+                          class="progress__bar"
+                          role="progressbar"
+                          [attr.aria-valuenow]="entityPct(e.records_done, e.records_total)"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          [style.width.%]="entityPct(e.records_done, e.records_total)"
+                        ></div>
+                      </div>
+                    </td>
+                    <td><span [class]="ingestionBadgeClass(e.status)">{{ e.status }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
 
         @if (i.recent_log.length > 0) {
@@ -184,9 +192,7 @@
             <ul class="ing-log__list">
               @for (line of i.recent_log; track $index) {
                 <li class="ing-log__item">
-                  <span class="ing-log__level ing-log__level--{{ line.level.toLowerCase() }}">
-                    {{ line.level }}
-                  </span>
+                  <span class="badge ing-log__level ing-log__level--{{ line.level.toLowerCase() }}">{{ line.level }}</span>
                   <span class="mono ing-log__entity">{{ line.entity }}</span>
                   <span class="ing-log__msg">{{ line.message }}</span>
                   <span class="mono nowrap ing-log__time">{{ line.created_at }}</span>
@@ -195,7 +201,9 @@
             </ul>
           </div>
         }
-      </div>
-    }
+      } @else {
+        <p class="muted" style="margin: 0;">No ingestion run yet. Download the dataset, then start ingestion.</p>
+      }
+    </div>
   </div>
 </section>
