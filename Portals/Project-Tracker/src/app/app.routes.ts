@@ -7,6 +7,7 @@ import { ProjectGroups } from './project-groups/project-groups';
 import { ProjectRisk } from './project-risk/project-risk';
 import { Predict } from './predict/predict';
 import { Knowledge } from './knowledge/knowledge';
+import { Help } from './help/help';
 
 export const routes: Routes = [
   { path: '', component: Mission },
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'predict', component: Predict },
   { path: 'decide', component: ProjectRisk },
   { path: 'knowledge', component: Knowledge },
+  { path: 'help', component: Help },
   // Back-compat redirects from the old entity-based routes.
   { path: 'projects', redirectTo: 'investigate' },
   { path: 'risk', redirectTo: 'decide' },

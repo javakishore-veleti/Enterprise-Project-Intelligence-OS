@@ -1,0 +1,54 @@
+<section class="help">
+  <app-about title="Predict vs. Decide"
+    text="Two adjacent verbs, one clean line between them: Predict tells you what will happen (a forecast you review); Decide tells you what to do about it (a plan you approve and it acts on). Predict explores possibilities with uncertainty; Decide commits to an action. This page is the reference for that boundary." />
+
+  <div class="help__head">
+    <h1>{{ heading() }}</h1>
+    <p class="help__lead">How <strong>Predict</strong> and <strong>Decide</strong> differ — and how they hand off.</p>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="cmp-wrap">
+    <table class="cmp">
+      <thead>
+        <tr>
+          <th class="cmp__dim"></th>
+          <th class="cmp__predict">
+            <span class="cmp__verb">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 5-7"/><polyline points="17 5 21 5 21 9"/></svg>
+              Predict
+            </span>
+          </th>
+          <th class="cmp__decide">
+            <span class="cmp__verb">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Decide
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows; track r.dim) {
+          <tr>
+            <td class="cmp__dim">{{ r.dim }}</td>
+            <td class="cmp__predict">{{ r.predict }}</td>
+            <td class="cmp__decide">{{ r.decide }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- The seam -->
+  <div class="seam">
+    <span class="seam__lbl">How they connect</span>
+    <div class="seam__flow">
+      <a class="seam__node seam__node--inv" routerLink="/investigate"><b>Investigate</b><span>why</span></a>
+      <span class="seam__arrow">→</span>
+      <a class="seam__node seam__node--pred" routerLink="/predict"><b>Predict</b><span>what happens next</span></a>
+      <span class="seam__arrow">→</span>
+      <a class="seam__node seam__node--dec" routerLink="/decide"><b>Decide</b><span>what to do</span></a>
+    </div>
+    <p class="seam__note">Predict’s highest-impact “what-if” is exactly what hands off into a Decide plan — the <b>Take to Decide →</b> button is that bridge.</p>
+  </div>
+</section>

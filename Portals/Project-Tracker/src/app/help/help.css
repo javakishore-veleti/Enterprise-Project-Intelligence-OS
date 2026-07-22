@@ -1,0 +1,39 @@
+.help { padding: 1.6rem clamp(1rem, 3vw, 2.4rem); max-width: 1080px; }
+.help__head { margin: 1.2rem 0 1.1rem; }
+.help__head h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--ink-900); letter-spacing: -.02em; }
+.help__lead { margin: .3rem 0 0; color: var(--ink-500); font-size: .95rem; }
+.help__lead strong { color: var(--ink-900); }
+
+/* Comparison table */
+.cmp-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-sm); }
+.cmp { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .9rem; min-width: 680px; }
+.cmp thead th { text-align: left; padding: .95rem 1.1rem; border-bottom: 2px solid var(--border); vertical-align: bottom; background: var(--surface-alt); }
+.cmp__verb { display: inline-flex; align-items: center; gap: .45rem; font-size: 1rem; font-weight: 800; letter-spacing: -.01em; }
+.cmp thead .cmp__predict .cmp__verb { color: var(--brand-500); }
+.cmp thead .cmp__decide .cmp__verb { color: #15803d; }
+.cmp tbody td { padding: .85rem 1.1rem; border-bottom: 1px solid var(--border); color: var(--ink-700); line-height: 1.5; vertical-align: top; }
+.cmp tbody tr:last-child td { border-bottom: none; }
+.cmp tbody tr:hover td { background: var(--bg-2); }
+.cmp__dim { width: 140px; font-weight: 800; color: var(--ink-900); font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.cmp__predict { border-left: 3px solid color-mix(in srgb, var(--brand-500) 30%, transparent); background: color-mix(in srgb, var(--brand-500) 3%, transparent); }
+.cmp__decide { border-left: 3px solid color-mix(in srgb, var(--success) 35%, transparent); background: color-mix(in srgb, var(--success) 3%, transparent); }
+.cmp thead .cmp__predict, .cmp thead .cmp__decide { background: var(--surface-alt); }
+
+/* The seam */
+.seam { margin-top: 1.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-sm); padding: 1.3rem 1.4rem; }
+.seam__lbl { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-500); }
+.seam__flow { display: flex; align-items: stretch; gap: .6rem; flex-wrap: wrap; margin: .8rem 0; }
+.seam__node { display: flex; flex-direction: column; gap: .12rem; padding: .7rem 1.1rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-2); min-width: 130px; transition: transform .06s ease, box-shadow .14s ease, border-color .14s ease; }
+.seam__node:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.seam__node b { font-size: .96rem; font-weight: 800; color: var(--ink-900); }
+.seam__node span { font-size: .76rem; color: var(--ink-500); font-weight: 600; }
+.seam__node--inv:hover { border-color: var(--brand-400); }
+.seam__node--pred { border-color: color-mix(in srgb, var(--brand-500) 30%, var(--border)); }
+.seam__node--pred b { color: var(--brand-500); }
+.seam__node--dec { border-color: color-mix(in srgb, var(--success) 35%, var(--border)); }
+.seam__node--dec b { color: #15803d; }
+.seam__arrow { display: flex; align-items: center; color: var(--ink-400); font-weight: 800; font-size: 1.2rem; }
+.seam__note { margin: .5rem 0 0; font-size: .86rem; color: var(--ink-500); line-height: 1.5; }
+.seam__note b { color: var(--ink-900); }
+
+@media (max-width: 560px) { .seam__arrow { transform: rotate(90deg); } .seam__flow { flex-direction: column; } }
