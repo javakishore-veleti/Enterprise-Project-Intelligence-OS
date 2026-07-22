@@ -13,10 +13,16 @@ from risk_analytics_api.dtos.responses import (
     AttentionFindingRow,
     DashboardFindingSummary,
     DashboardTotals,
+    ForecastRecord,
+    ForecastResponse,
+    ForecastsPageResponse,
     InvestigationRecord,
     InvestigationResponse,
     InvestigationsPageResponse,
     ReportResponse,
+    ScenarioRecord,
+    ScenarioResponse,
+    ScenariosPageResponse,
 )
 
 
@@ -131,3 +137,41 @@ class InvestigationDao(ABC):
     @abstractmethod
     def get_investigation(self, investigation_id: str) -> InvestigationResponse | None:
         """Return one full investigation, or None if absent."""
+
+
+class ForecastDao(ABC):
+    """Persistence of delivery-forecast runs (PostgreSQL)."""
+
+    @abstractmethod
+    def insert_forecast(self, record: ForecastRecord) -> None:
+        """Persist one full forecast row."""
+
+    @abstractmethod
+    def list_forecasts(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> ForecastsPageResponse:
+        """Newest-first history page. Filters by ``scope`` (requested_by) and a
+        case-insensitive ``q`` across project_key/narrative. Capped at the newest 100."""
+
+    @abstractmethod
+    def get_forecast(self, forecast_id: str) -> ForecastResponse | None:
+        """Return one full forecast, or None if absent."""
+
+
+class ScenarioDao(ABC):
+    """Persistence of digital-twin scenario runs (PostgreSQL)."""
+
+    @abstractmethod
+    def insert_scenario(self, record: ScenarioRecord) -> None:
+        """Persist one full scenario row."""
+
+    @abstractmethod
+    def list_scenarios(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> ScenariosPageResponse:
+        """Newest-first history page. Filters by ``scope`` (requested_by) and a
+        case-insensitive ``q`` across project_key/scenario/narrative. Capped at the newest 100."""
+
+    @abstractmethod
+    def get_scenario(self, scenario_id: str) -> ScenarioResponse | None:
+        """Return one full scenario, or None if absent."""

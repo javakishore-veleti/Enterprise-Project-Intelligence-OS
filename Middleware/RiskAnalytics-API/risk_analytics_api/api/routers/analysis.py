@@ -11,16 +11,25 @@ from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
     provide_get_attention_feed_facade,
     provide_get_dashboard_activity_facade,
+    provide_get_early_warnings_facade,
+    provide_get_forecast_facade,
     provide_get_investigation_facade,
+    provide_get_scenario_facade,
     provide_investigate_project_facade,
     provide_list_analysis_runs_facade,
+    provide_list_forecasts_facade,
     provide_list_investigation_templates_facade,
     provide_list_investigations_facade,
+    provide_list_scenarios_facade,
+    provide_run_forecast_facade,
+    provide_run_scenario_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
 from risk_analytics_api.dtos.requests import (
+    ForecastRequest,
     InvestigateRequest,
+    ScenarioRequest,
     StartAnalysisRequest,
     StartPortfolioAnalysisRequest,
 )
@@ -29,20 +38,32 @@ from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    EarlyWarningsResponse,
+    ForecastResponse,
+    ForecastsPageResponse,
     InvestigationResponse,
     InvestigationsPageResponse,
     InvestigationTemplateResponse,
+    ScenarioResponse,
+    ScenariosPageResponse,
 )
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.get_early_warnings import GetEarlyWarningsFacade
+from risk_analytics_api.facades.get_forecast import GetForecastFacade
 from risk_analytics_api.facades.get_investigation import GetInvestigationFacade
+from risk_analytics_api.facades.get_scenario import GetScenarioFacade
 from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
+from risk_analytics_api.facades.list_forecasts import ListForecastsFacade
 from risk_analytics_api.facades.list_investigation_templates import (
     ListInvestigationTemplatesFacade,
 )
 from risk_analytics_api.facades.list_investigations import ListInvestigationsFacade
+from risk_analytics_api.facades.list_scenarios import ListScenariosFacade
+from risk_analytics_api.facades.run_forecast import RunForecastFacade
+from risk_analytics_api.facades.run_scenario import RunScenarioFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
@@ -167,6 +188,119 @@ def get_investigation(
     facade: GetInvestigationFacade = Depends(provide_get_investigation_facade),
 ) -> InvestigationResponse:
     return facade.execute(investigation_id)
+
+
+# --- Predict: Delivery Forecast -------------------------------------------
+
+
+@router.post(
+    "/forecast",
+    response_model=ForecastResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="runForecast",
+)
+def run_forecast(
+    request: ForecastRequest,
+    facade: RunForecastFacade = Depends(provide_run_forecast_facade),
+) -> ForecastResponse:
+    return facade.execute(request)
+
+
+@router.get(
+    "/forecasts",
+    response_model=ForecastsPageResponse,
+    operation_id="listForecasts",
+)
+def list_forecasts(
+    scope: str | None = Query(
+        default=None, description="Filter to forecasts requested_by this subject."),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive search across project_key and narrative.",
+    ),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    facade: ListForecastsFacade = Depends(provide_list_forecasts_facade),
+) -> ForecastsPageResponse:
+    return facade.execute(scope, q, limit, offset)
+
+
+@router.get(
+    "/forecasts/{forecast_id}",
+    response_model=ForecastResponse,
+    operation_id="getForecast",
+)
+def get_forecast(
+    forecast_id: str,
+    facade: GetForecastFacade = Depends(provide_get_forecast_facade),
+) -> ForecastResponse:
+    return facade.execute(forecast_id)
+
+
+# --- Predict: Digital-Twin Scenario Simulator -----------------------------
+
+
+@router.post(
+    "/scenarios",
+    response_model=ScenarioResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="runScenario",
+)
+def run_scenario(
+    request: ScenarioRequest,
+    facade: RunScenarioFacade = Depends(provide_run_scenario_facade),
+) -> ScenarioResponse:
+    return facade.execute(request)
+
+
+@router.get(
+    "/scenarios",
+    response_model=ScenariosPageResponse,
+    operation_id="listScenarios",
+)
+def list_scenarios(
+    scope: str | None = Query(
+        default=None, description="Filter to scenarios requested_by this subject."),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive search across project_key, scenario, and narrative.",
+    ),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    facade: ListScenariosFacade = Depends(provide_list_scenarios_facade),
+) -> ScenariosPageResponse:
+    return facade.execute(scope, q, limit, offset)
+
+
+@router.get(
+    "/scenarios/{scenario_id}",
+    response_model=ScenarioResponse,
+    operation_id="getScenario",
+)
+def get_scenario(
+    scenario_id: str,
+    facade: GetScenarioFacade = Depends(provide_get_scenario_facade),
+) -> ScenarioResponse:
+    return facade.execute(scenario_id)
+
+
+# --- Predict: Early-Warning (computed on read) ----------------------------
+
+
+@router.get(
+    "/early-warnings",
+    response_model=EarlyWarningsResponse,
+    operation_id="getEarlyWarnings",
+)
+def get_early_warnings(
+    scope: str | None = Query(
+        default=None,
+        description="Comma-separated project_keys to scope to. Absent -> all projects.",
+    ),
+    limit: int = Query(default=10, ge=1, le=100),
+    facade: GetEarlyWarningsFacade = Depends(provide_get_early_warnings_facade),
+) -> EarlyWarningsResponse:
+    return facade.execute(scope, limit)
 
 
 @router.post(

@@ -48,3 +48,28 @@ class InvestigateRequest(TypedModel):
         description="Investigation template to bias the agent's focus. Unknown/absent -> 'full'.",
     )
     requested_by: str | None = Field(default=None)
+
+
+class ForecastRequest(TypedModel):
+    """Ask the Predict engine for a delivery forecast on one project.
+
+    Deterministic code computes the on-time probability + credible interval +
+    slip range + drivers from the project's metric-history trajectory; the LLM
+    (delivery-forecasting persona) then narrates it (bull/bear/would-change-mind).
+    """
+
+    project_key: str = Field(min_length=1)
+    requested_by: str | None = Field(default=None)
+
+
+class ScenarioRequest(TypedModel):
+    """Run a digital-twin what-if for one project.
+
+    ``scenario`` is a free-text what-if (e.g. "move 2 engineers to Payments").
+    Deterministic code re-forecasts under the scenario and propagates the impact
+    along dependency links + shared contributors; the LLM narrates the trade-off.
+    """
+
+    project_key: str = Field(min_length=1)
+    scenario: str = Field(min_length=1, description="Free-text what-if to simulate.")
+    requested_by: str | None = Field(default=None)

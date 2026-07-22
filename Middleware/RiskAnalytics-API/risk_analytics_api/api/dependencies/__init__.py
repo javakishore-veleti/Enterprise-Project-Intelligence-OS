@@ -9,20 +9,29 @@ from risk_analytics_api.daos.attention import PostgresAttentionDao
 from risk_analytics_api.daos.connection import MongoDatabaseFactory, PostgresDatabase
 from risk_analytics_api.daos.dashboard import PostgresDashboardDao
 from risk_analytics_api.daos.evidence import MongoEvidenceDao
+from risk_analytics_api.daos.forecasts import PostgresForecastDao
 from risk_analytics_api.daos.graph_runs import PostgresGraphRunDao
 from risk_analytics_api.daos.investigations import PostgresInvestigationDao
 from risk_analytics_api.daos.reports import PostgresReportDao
 from risk_analytics_api.daos.risk_findings import PostgresRiskFindingDao
+from risk_analytics_api.daos.scenarios import PostgresScenarioDao
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.get_early_warnings import GetEarlyWarningsFacade
+from risk_analytics_api.facades.get_forecast import GetForecastFacade
 from risk_analytics_api.facades.get_investigation import GetInvestigationFacade
+from risk_analytics_api.facades.get_scenario import GetScenarioFacade
 from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
+from risk_analytics_api.facades.list_forecasts import ListForecastsFacade
 from risk_analytics_api.facades.list_investigation_templates import (
     ListInvestigationTemplatesFacade,
 )
 from risk_analytics_api.facades.list_investigations import ListInvestigationsFacade
+from risk_analytics_api.facades.list_scenarios import ListScenariosFacade
+from risk_analytics_api.facades.run_forecast import RunForecastFacade
+from risk_analytics_api.facades.run_scenario import RunScenarioFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 from risk_analytics_api.graphs.project_risk_manager import build_agent as build_specialist
@@ -31,8 +40,11 @@ from risk_analytics_api.services.analysis_orchestration import (
 )
 from risk_analytics_api.services.attention import DefaultAttentionService
 from risk_analytics_api.services.dashboard import DefaultDashboardService
+from risk_analytics_api.services.early_warning import DefaultEarlyWarningService
 from risk_analytics_api.services.evidence_retrieval import DefaultEvidenceRetrievalService
+from risk_analytics_api.services.forecast import DefaultForecastService
 from risk_analytics_api.services.investigation import DefaultInvestigationService
+from risk_analytics_api.services.scenario import DefaultScenarioService
 
 
 @lru_cache
@@ -99,6 +111,53 @@ def provide_get_investigation_facade() -> GetInvestigationFacade:
 
 def provide_list_investigation_templates_facade() -> ListInvestigationTemplatesFacade:
     return ListInvestigationTemplatesFacade(_investigation_service())
+
+
+def _forecast_service() -> DefaultForecastService:
+    return DefaultForecastService(
+        mongo=get_mongo(),
+        evidence_dao=MongoEvidenceDao(get_mongo()),
+        agent_config_gateway=PostgresAgentConfigGateway(get_postgres()),
+        settings=get_settings(),
+        forecasts_dao=PostgresForecastDao(get_postgres()),
+    )
+
+
+def provide_run_forecast_facade() -> RunForecastFacade:
+    return RunForecastFacade(_forecast_service())
+
+
+def provide_list_forecasts_facade() -> ListForecastsFacade:
+    return ListForecastsFacade(_forecast_service())
+
+
+def provide_get_forecast_facade() -> GetForecastFacade:
+    return GetForecastFacade(_forecast_service())
+
+
+def _scenario_service() -> DefaultScenarioService:
+    return DefaultScenarioService(
+        mongo=get_mongo(),
+        agent_config_gateway=PostgresAgentConfigGateway(get_postgres()),
+        settings=get_settings(),
+        scenarios_dao=PostgresScenarioDao(get_postgres()),
+    )
+
+
+def provide_run_scenario_facade() -> RunScenarioFacade:
+    return RunScenarioFacade(_scenario_service())
+
+
+def provide_list_scenarios_facade() -> ListScenariosFacade:
+    return ListScenariosFacade(_scenario_service())
+
+
+def provide_get_scenario_facade() -> GetScenarioFacade:
+    return GetScenarioFacade(_scenario_service())
+
+
+def provide_get_early_warnings_facade() -> GetEarlyWarningsFacade:
+    return GetEarlyWarningsFacade(DefaultEarlyWarningService(get_mongo()))
 
 
 def provide_get_dashboard_activity_facade() -> GetDashboardActivityFacade:

@@ -253,6 +253,197 @@ class InvestigationRecord(TypedModel):
     created_at: datetime
 
 
+# --- Predict: Delivery Forecast -------------------------------------------
+
+
+class ForecastDriver(TypedModel):
+    """A factor moving the forecast, with the direction of its recent movement."""
+
+    #: The factor name (e.g. "resolution_velocity", "blocker_burn_rate").
+    factor: str
+    #: Which way the factor moved recently.
+    direction: str  # up | down | flat
+    #: Human-readable detail of the movement and why it matters.
+    detail: str
+
+
+class ForecastResponse(TypedModel):
+    """A delivery forecast: deterministic probability/interval/slip + drivers,
+    plus the grounded LLM narrative (bull/bear/would-change-mind)."""
+
+    forecast_id: str
+    project_key: str
+    #: Always null on a forecast (the field exists to mirror investigations).
+    question: str | None = None
+    on_time_probability: float
+    probability_low: float
+    probability_high: float
+    projected_slip_days_low: int
+    projected_slip_days_high: int
+    outlook: str  # on_track | at_risk | off_track
+    drivers: list[ForecastDriver] = []
+    bull_case: str = ""
+    bear_case: str = ""
+    would_change_mind: str = ""
+    narrative: str = ""
+    confidence: float
+    status: str = "COMPLETED"
+    run_id: str
+    created_at: datetime
+
+
+class ForecastSummary(TypedModel):
+    """Compact view of a past forecast (for the history list)."""
+
+    forecast_id: str
+    project_key: str
+    on_time_probability: float | None = None
+    outlook: str | None = None
+    projected_slip_days_low: int | None = None
+    projected_slip_days_high: int | None = None
+    confidence: float | None = None
+    status: str
+    created_at: datetime
+
+
+class ForecastsPageResponse(TypedModel):
+    """A capped, newest-first page of forecast history (max 100 rows)."""
+
+    total: int
+    returned: int
+    offset: int
+    limit: int
+    items: list[ForecastSummary] = []
+
+
+class ForecastRecord(TypedModel):
+    """Cross-layer persistence object: a full forecast row for the DAO to insert."""
+
+    forecast_id: str
+    project_key: str
+    requested_by: str | None = None
+    status: str
+    on_time_probability: float | None = None
+    probability_low: float | None = None
+    probability_high: float | None = None
+    projected_slip_days_low: int | None = None
+    projected_slip_days_high: int | None = None
+    outlook: str | None = None
+    drivers: list[ForecastDriver] = []
+    bull_case: str | None = None
+    bear_case: str | None = None
+    would_change_mind: str | None = None
+    narrative: str | None = None
+    confidence: float | None = None
+    run_id: str | None = None
+    created_at: datetime
+
+
+# --- Predict: Digital-Twin Scenario Simulator -----------------------------
+
+
+class ScenarioCascade(TypedModel):
+    """One project the scenario propagates to (via dependency links or shared staff)."""
+
+    project_key: str
+    #: Short label of the effect on the target (e.g. "delivery slip risk").
+    effect: str
+    #: Why this project is affected (the dependency / shared-contributor link).
+    reason: str
+    magnitude: str  # high | medium | low
+
+
+class ScenarioResponse(TypedModel):
+    """A digital-twin scenario result: re-forecast + portfolio cascade + narrative."""
+
+    scenario_id: str
+    project_key: str
+    scenario: str
+    base_on_time_probability: float
+    projected_on_time_probability: float
+    probability_delta: float
+    base_slip_days: int
+    projected_slip_days: int
+    portfolio_risk_delta: float
+    cascades: list[ScenarioCascade] = []
+    narrative: str = ""
+    confidence: float
+    status: str = "COMPLETED"
+    run_id: str
+    created_at: datetime
+
+
+class ScenarioSummary(TypedModel):
+    """Compact view of a past scenario (for the history list)."""
+
+    scenario_id: str
+    project_key: str
+    scenario: str
+    projected_on_time_probability: float | None = None
+    probability_delta: float | None = None
+    confidence: float | None = None
+    status: str
+    created_at: datetime
+
+
+class ScenariosPageResponse(TypedModel):
+    """A capped, newest-first page of scenario history (max 100 rows)."""
+
+    total: int
+    returned: int
+    offset: int
+    limit: int
+    items: list[ScenarioSummary] = []
+
+
+class ScenarioRecord(TypedModel):
+    """Cross-layer persistence object: a full scenario row for the DAO to insert."""
+
+    scenario_id: str
+    project_key: str
+    requested_by: str | None = None
+    scenario: str
+    status: str
+    base_on_time_probability: float | None = None
+    projected_on_time_probability: float | None = None
+    probability_delta: float | None = None
+    base_slip_days: int | None = None
+    projected_slip_days: int | None = None
+    portfolio_risk_delta: float | None = None
+    cascades: list[ScenarioCascade] = []
+    narrative: str | None = None
+    confidence: float | None = None
+    run_id: str | None = None
+    created_at: datetime
+
+
+# --- Predict: Early-Warning (computed on read, not persisted) --------------
+
+
+class EarlyWarning(TypedModel):
+    """A detected adverse inflection in a project's metric trajectory."""
+
+    project_key: str
+    #: The metric that moved adversely (e.g. "reopen_rate").
+    metric: str
+    from_value: float
+    to_value: float
+    #: Human-readable window the move happened over.
+    window: str
+    direction: str  # up | down
+    severity: str  # high | medium | low
+    #: Plain-language cause of the inflection.
+    cause: str
+    confidence: float
+    detected_at: datetime
+
+
+class EarlyWarningsResponse(TypedModel):
+    """Ranked adverse inflections across the in-scope projects (most severe first)."""
+
+    items: list[EarlyWarning] = []
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str
