@@ -84,25 +84,40 @@
 .viewmore { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--brand-500); }
 .viewmore:hover { color: var(--brand-400); gap: .5rem; }
 
-/* Top project cards */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
-.pcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .55rem; transition: box-shadow .14s ease, transform .06s ease, border-color .14s ease; }
+/* Top project cards — professional risk tile */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 1rem; }
+.pcard {
+  position: relative; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.15rem 1.25rem 1.1rem 1.4rem;
+  display: flex; flex-direction: column; gap: .85rem; overflow: hidden;
+  transition: box-shadow .14s ease, transform .06s ease, border-color .14s ease;
+}
+.pcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.pcard--high::before { background: var(--danger); }
+.pcard--medium::before { background: var(--warning); }
+.pcard--low::before { background: var(--success); }
 .pcard:hover { box-shadow: var(--shadow); border-color: var(--border-strong); transform: translateY(-2px); }
-.pcard__head { display: flex; align-items: center; justify-content: space-between; }
-.pcard__key { font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-weight: 700; color: var(--brand-500); font-size: .9rem; }
-.pcard__score { font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; }
+.pcard__head { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; }
+.pcard__id { display: flex; flex-direction: column; min-width: 0; gap: .1rem; }
+.pcard__key { font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-weight: 800; color: var(--ink-900); font-size: 1rem; }
+.pcard__name { font-size: .78rem; color: var(--ink-500); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard__scorebox { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex: none; }
+.pcard__score { font-size: 1.55rem; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
 .pcard__score--high { color: var(--danger); }
 .pcard__score--medium { color: var(--warning); }
 .pcard__score--low { color: var(--success); }
-.pcard__name { font-size: .9rem; color: var(--ink-700); font-weight: 600; }
-.pcard__bar { height: 6px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
+.pcard__bar { height: 5px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
 .pcard__fill { display: block; height: 100%; border-radius: 999px; }
 .pcard__fill--high { background: linear-gradient(90deg,#f87171,#dc2626); }
 .pcard__fill--medium { background: linear-gradient(90deg,#fbbf24,#ea580c); }
 .pcard__fill--low { background: linear-gradient(90deg,#34d399,#16a34a); }
-.pcard__headline { font-size: .78rem; color: var(--ink-500); line-height: 1.4; min-height: 2.2em; }
-.pcard__foot { display: flex; align-items: center; justify-content: space-between; }
-.pcard__meta { font-size: .76rem; color: var(--ink-400); font-weight: 600; }
+.pstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; }
+.pstat { display: flex; flex-direction: column; align-items: center; gap: .12rem; padding: .55rem .2rem; background: var(--bg-2); border-radius: 9px; }
+.pstat__num { font-size: 1.05rem; font-weight: 800; color: var(--ink-900); letter-spacing: -.02em; line-height: 1; }
+.pstat__num--risk { color: var(--danger); }
+.pstat__lbl { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-400); }
+.pcard__foot { display: flex; align-items: center; justify-content: space-between; color: var(--brand-500); }
+.pcard__meta { font-size: .74rem; color: var(--ink-500); font-weight: 600; }
 
 .badge { display: inline-flex; align-items: center; padding: .22rem .6rem; border-radius: 999px; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
 .badge--high, .badge--critical { background: #fee2e2; color: #b91c1c; }

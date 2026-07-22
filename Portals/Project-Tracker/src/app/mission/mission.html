@@ -106,17 +106,26 @@
     </div>
     <div class="cards">
       @for (p of topProjects(); track p.project_key) {
-        <a class="pcard" routerLink="/decide" [queryParams]="{ project: p.project_key }">
+        <a class="pcard pcard--{{ scoreClass(p.risk_score) }}" routerLink="/decide" [queryParams]="{ project: p.project_key }">
           <div class="pcard__head">
-            <span class="pcard__key mono">{{ p.project_key }}</span>
-            <span class="pcard__score pcard__score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
+            <div class="pcard__id">
+              <span class="pcard__key mono">{{ p.project_key }}</span>
+              <span class="pcard__name">{{ p.name }}</span>
+            </div>
+            <div class="pcard__scorebox">
+              <span class="pcard__score pcard__score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
+              <span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span>
+            </div>
           </div>
-          <div class="pcard__name">{{ p.name }}</div>
           <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
-          <div class="pcard__headline">{{ p.headline }}</div>
+          <div class="pstats">
+            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
+            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
+            <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">avg age</span></div>
+          </div>
           <div class="pcard__foot">
-            <span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span>
-            <span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} open</span>
+            <span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} of {{ p.issue_count.toLocaleString() }} open</span>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
           </div>
         </a>
       }
