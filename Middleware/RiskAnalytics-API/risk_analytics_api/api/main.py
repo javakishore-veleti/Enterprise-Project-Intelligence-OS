@@ -1,11 +1,17 @@
 """FastAPI application factory for the Risk Analytics API."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+import os
 
-from fastapi import Depends
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from risk_analytics_api.api.exception_handlers import register_exception_handlers
+
+_CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:4200,http://localhost:4201,http://127.0.0.1:4200,http://127.0.0.1:4201",
+).split(",")
 from risk_analytics_api.api.routers import analysis, health
 from risk_analytics_api.common.configuration import get_settings
 from risk_analytics_api.common.logging import configure_logging
@@ -26,6 +32,10 @@ def create_app() -> FastAPI:
         docs_url="/docs",
     )
 
+    app.add_middleware(
+        CORSMiddleware, allow_origins=_CORS_ORIGINS, allow_credentials=True,
+        allow_methods=["*"], allow_headers=["*"],
+    )
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(analysis.router, dependencies=[Depends(authenticate)])  # opt-in auth
