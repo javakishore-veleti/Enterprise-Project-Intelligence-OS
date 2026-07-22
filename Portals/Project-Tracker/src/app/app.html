@@ -73,7 +73,10 @@
       </a>
       @if (onHelp()) {
         <div class="sidebar__sub">
-          <a routerLink="/help" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Predict</a>
+          <a routerLink="/help" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Mission</a>
+          <a routerLink="/help" [queryParams]="{ v: 'watch' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Watch</a>
+          <a routerLink="/help" [queryParams]="{ v: 'investigate' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Investigate</a>
+          <a routerLink="/help" [queryParams]="{ v: 'predict' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Predict</a>
           <a routerLink="/help" [queryParams]="{ v: 'decide' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Decide</a>
         </div>
       }

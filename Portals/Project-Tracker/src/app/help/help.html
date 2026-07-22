@@ -1,54 +1,138 @@
 <section class="help">
-  <app-about title="Predict vs. Decide"
-    text="Two adjacent verbs, one clean line between them: Predict tells you what will happen (a forecast you review); Decide tells you what to do about it (a plan you approve and it acts on). Predict explores possibilities with uncertainty; Decide commits to an action. This page is the reference for that boundary." />
+  <app-about title="Help"
+    text="A reference for each part of the product. Every Help page follows the same shape: what the view is, what it provides, what data it uses, how it differs from the other views, and the agents currently available for that context. Pick a view from the Help sub-menu on the left." />
 
   <div class="help__head">
     <h1>{{ heading() }}</h1>
-    <p class="help__lead">How <strong>Predict</strong> and <strong>Decide</strong> differ — and how they hand off.</p>
+    <p class="help__lead">{{ info().whatItIs }}</p>
   </div>
 
-  <!-- Comparison table -->
-  <div class="cmp-wrap">
-    <table class="cmp">
-      <thead>
-        <tr>
-          <th class="cmp__dim"></th>
-          <th class="cmp__predict">
-            <span class="cmp__verb">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 5-7"/><polyline points="17 5 21 5 21 9"/></svg>
-              Predict
-            </span>
-          </th>
-          <th class="cmp__decide">
-            <span class="cmp__verb">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              Decide
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of rows; track r.dim) {
-          <tr>
-            <td class="cmp__dim">{{ r.dim }}</td>
-            <td class="cmp__predict">{{ r.predict }}</td>
-            <td class="cmp__decide">{{ r.decide }}</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+  <!-- Table of contents -->
+  <nav class="toc" aria-label="On this page">
+    <span class="toc__lbl">On this page</span>
+    <ul>
+      @for (t of toc(); track t.id) {
+        <li><a [href]="'#' + t.id">{{ t.label }}</a></li>
+      }
+    </ul>
+  </nav>
+
+  <!-- What it is -->
+  <div class="hsec" id="what-it-is">
+    <h2 class="hsec__h">What it is</h2>
+    <p class="hsec__p">{{ info().whatItIs }}</p>
   </div>
 
-  <!-- The seam -->
-  <div class="seam">
-    <span class="seam__lbl">How they connect</span>
-    <div class="seam__flow">
-      <a class="seam__node seam__node--inv" routerLink="/investigate"><b>Investigate</b><span>why</span></a>
-      <span class="seam__arrow">→</span>
-      <a class="seam__node seam__node--pred" routerLink="/predict"><b>Predict</b><span>what happens next</span></a>
-      <span class="seam__arrow">→</span>
-      <a class="seam__node seam__node--dec" routerLink="/decide"><b>Decide</b><span>what to do</span></a>
+  <!-- What it provides -->
+  <div class="hsec" id="provides">
+    <h2 class="hsec__h">{{ info().providesLabel }}</h2>
+    <ul class="ticks">
+      @for (p of info().provides; track p) { <li>{{ p }}</li> }
+    </ul>
+  </div>
+
+  <!-- What data it uses -->
+  <div class="hsec" id="data">
+    <h2 class="hsec__h">What data it uses</h2>
+    <div class="chips">
+      @for (d of info().data; track d) { <span class="chip">{{ d }}</span> }
     </div>
-    <p class="seam__note">Predict’s highest-impact “what-if” is exactly what hands off into a Decide plan — the <b>Take to Decide →</b> button is that bridge.</p>
   </div>
+
+  <!-- How it differs from the other views -->
+  <div class="hsec" id="differs">
+    <h2 class="hsec__h">How it differs from the other views</h2>
+    <div class="cmp-wrap">
+      <table class="diff">
+        <tbody>
+          @for (d of differs(); track d.link) {
+            <tr>
+              <td class="diff__verb"><a routerLink="/help" [queryParams]="{ v: d.link }">{{ d.verb }}</a></td>
+              <td class="diff__line">{{ d.line }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Agents available for this context -->
+  <div class="hsec" id="agents">
+    <h2 class="hsec__h">Agents available for this context <span class="hsec__count">{{ total() }} shown</span></h2>
+    <div class="atable__bar">
+      <div class="atable__search">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input type="search" placeholder="Search agents by name, type, framework, role…" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+      </div>
+    </div>
+
+    @if (total() === 0) {
+      <p class="empty">No agents match “{{ search() }}”.</p>
+    } @else {
+      <div class="panel"><div class="tbl-wrap">
+        <table class="atable">
+          <thead><tr><th>Agent</th><th>Key</th><th>Type</th><th>Framework</th><th>Role</th></tr></thead>
+          <tbody>
+            @for (a of paged(); track a.key) {
+              <tr>
+                <td class="atable__name">{{ a.name }}</td>
+                <td><span class="mono">{{ a.key }}</span></td>
+                <td><span class="tag tag--{{ a.type.toLowerCase() }}">{{ a.type }}</span></td>
+                <td>{{ a.framework }}</td>
+                <td class="atable__role">{{ a.role }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div></div>
+
+      <div class="pager">
+        <span class="pager__info">Showing {{ pageStart() }}–{{ pageEnd() }} of {{ total() }}{{ total() >= maxRows ? ' (capped at ' + maxRows + ')' : '' }}</span>
+        <div class="pager__btns">
+          <button type="button" [disabled]="page() === 0" (click)="prevPage()">← Prev</button>
+          <span class="pager__page">Page {{ page() + 1 }} / {{ pageCount() }}</span>
+          <button type="button" [disabled]="page() >= pageCount() - 1" (click)="nextPage()">Next →</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Predict vs Decide (only on those two topics) -->
+  @if (isPredictOrDecide()) {
+    <div class="hsec" id="compare">
+      <h2 class="hsec__h">Predict vs. Decide</h2>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <thead>
+            <tr>
+              <th class="cmp__dim"></th>
+              <th class="cmp__predict"><span class="cmp__verb">Predict</span></th>
+              <th class="cmp__decide"><span class="cmp__verb">Decide</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rows; track r.dim) {
+              <tr>
+                <td class="cmp__dim">{{ r.dim }}</td>
+                <td class="cmp__predict">{{ r.predict }}</td>
+                <td class="cmp__decide">{{ r.decide }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="seam">
+        <span class="seam__lbl">How they connect</span>
+        <div class="seam__flow">
+          <a class="seam__node seam__node--inv" routerLink="/investigate"><b>Investigate</b><span>why</span></a>
+          <span class="seam__arrow">→</span>
+          <a class="seam__node seam__node--pred" routerLink="/predict"><b>Predict</b><span>what happens next</span></a>
+          <span class="seam__arrow">→</span>
+          <a class="seam__node seam__node--dec" routerLink="/decide"><b>Decide</b><span>what to do</span></a>
+        </div>
+        <p class="seam__note">Predict’s highest-impact “what-if” is exactly what hands off into a Decide plan — the <b>Take to Decide →</b> button is that bridge.</p>
+      </div>
+    </div>
+  }
 </section>
