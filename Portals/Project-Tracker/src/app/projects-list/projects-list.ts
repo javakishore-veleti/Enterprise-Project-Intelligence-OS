@@ -23,7 +23,7 @@ export class ProjectsList {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
-  protected view: 'cards' | 'table' = 'table';
+  protected view: 'cards' | 'table' = 'cards';
   protected asOf = '';
   protected query = '';
   protected readonly todayStr = this.isoDate(0);

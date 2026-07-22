@@ -25,8 +25,8 @@
   <div class="toolbar">
     <div class="toolbar__group">
       <div class="viewtoggle">
-        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Table</button>
         <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Cards</button>
+        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Table</button>
       </div>
       <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
     </div>
