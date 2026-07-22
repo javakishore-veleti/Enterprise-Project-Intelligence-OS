@@ -66,51 +66,52 @@
       </div>
       <span class="console__live">LangGraph · tool-using · evidence-grounded</span>
     </div>
+  </div>
 
-    <div class="queue">
-      @for (q of queue(); track q.project.project_key; let first = $first) {
-        <button type="button" class="qcard qcard--{{ q.signal }}"
-                [class.qcard--active]="target === q.project.project_key"
-                [disabled]="investigating()" (click)="runQueued(q)">
-          <div class="qcard__top">
-            <span class="qcard__key mono">{{ q.project.project_key }}</span>
-            <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
-          </div>
-          <div class="qcard__angle">{{ q.angle }}</div>
-          <div class="qcard__q">“{{ q.question }}”</div>
-          <div class="qcard__cta">
-            @if (investigating() && target === q.project.project_key) { <span class="run__spin run__spin--dark"></span> investigating… }
-            @else if (investigation() && target === q.project.project_key) { ✓ investigated — see below }
-            @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Investigation }
-          </div>
-        </button>
-      }
-    </div>
-
-    <button type="button" class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())">
-      {{ showAdvanced() ? '– Hide' : '+ Investigate something specific' }} <span class="adv-hint">(advanced — pick a project & ask your own question)</span>
-    </button>
-    @if (showAdvanced()) {
-      <div class="console__form">
-        <label class="fld fld--target">
-          <span class="fld__lbl">Project</span>
-          <select [(ngModel)]="target">
-            @for (p of allProjects(); track p.project_key) {
-              <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
-            }
-          </select>
-        </label>
-        <label class="fld fld--q">
-          <span class="fld__lbl">Your question</span>
-          <input type="text" placeholder="e.g. Is the vendor API the real blocker?" [(ngModel)]="question" (keyup.enter)="runManual()" />
-        </label>
-        <button class="run" type="button" [disabled]="!target || investigating()" (click)="runManual()">
-          @if (investigating()) { <span class="run__spin"></span> Investigating… }
-          @else { Investigate }
-        </button>
-      </div>
+  <!-- Queue of agent-scoped investigations (light, readable, risk-colored) -->
+  <div class="queue">
+    @for (q of queue(); track q.project.project_key) {
+      <button type="button" class="qcard qcard--{{ q.signal }}"
+              [class.qcard--active]="target === q.project.project_key"
+              [disabled]="investigating()" (click)="runQueued(q)">
+        <div class="qcard__top">
+          <span class="qcard__key mono">{{ q.project.project_key }}</span>
+          <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
+        </div>
+        <div class="qcard__angle">{{ q.angle }}</div>
+        <div class="qcard__q">“{{ q.question }}”</div>
+        <div class="qcard__cta qcard__cta--{{ q.signal }}">
+          @if (investigating() && target === q.project.project_key) { <span class="run__spin run__spin--dark"></span> investigating… }
+          @else if (investigation() && target === q.project.project_key) { ✓ investigated — see below }
+          @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Investigation }
+        </div>
+      </button>
     }
   </div>
+
+  <button type="button" class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())">
+    {{ showAdvanced() ? '– Hide' : '+ Investigate something specific' }} <span class="adv-hint">(advanced — pick a project &amp; ask your own question)</span>
+  </button>
+  @if (showAdvanced()) {
+    <div class="advform">
+      <label class="fld fld--target">
+        <span class="fld__lbl">Project</span>
+        <select [(ngModel)]="target">
+          @for (p of allProjects(); track p.project_key) {
+            <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="fld fld--q">
+        <span class="fld__lbl">Your question</span>
+        <input type="text" placeholder="e.g. Is the vendor API the real blocker?" [(ngModel)]="question" (keyup.enter)="runManual()" />
+      </label>
+      <button class="run" type="button" [disabled]="!target || investigating()" (click)="runManual()">
+        @if (investigating()) { <span class="run__spin"></span> Investigating… }
+        @else { Investigate }
+      </button>
+    </div>
+  }
 
   @if (invError()) {
     <div class="alert alert--error"><span>{{ invError() }}</span></div>
