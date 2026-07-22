@@ -41,6 +41,20 @@ interface GroupCard {
   members: number;
 }
 
+/** A/B comparison of two forecast instances of the same subject (older → newer). */
+interface ForecastDelta {
+  a: ForecastSummary;
+  b: ForecastSummary;
+  onTimeA: number;
+  onTimeB: number;
+  onTimeDelta: number;
+  confA: number;
+  confB: number;
+  confDelta: number;
+  outlookChanged: boolean;
+  outlookImproved: boolean | null;
+}
+
 /**
  * Predict = the projection surface. It answers "what will happen next" and never
  * commits an action (that's Decide). Four views: the agent's ranked delivery
@@ -109,6 +123,25 @@ export class Predict {
   protected readonly forecasting = signal(false);
   protected readonly forecast = signal<Forecast | null>(null);
   protected readonly fcError = signal<string | null>(null);
+  /** The project/group whose forecasts we're tracking (null → show subject selector). */
+  protected readonly fcSubject = signal<PredictTarget | null>(null);
+  /** Past forecast runs for the selected subject (its projects' rows), newest first. */
+  protected readonly fcInstances = signal<ForecastSummary[]>([]);
+  protected readonly fcInstancesLoading = signal(false);
+  protected readonly fcInstancesError = signal<string | null>(null);
+  /** The forecast_id currently shown in the briefing (highlights its instance row). */
+  protected readonly activeForecastId = signal<string | null>(null);
+  /** forecast_ids selected for A/B compare (max 2). */
+  protected readonly fcCompare = signal<ReadonlySet<string>>(new Set());
+
+  /** Rolled-up risk score of the selected forecast subject (project score or group max). */
+  protected readonly fcSubjectRisk = computed<number | null>(() => {
+    const t = this.fcSubject();
+    if (!t) return null;
+    if (t.type === 'project') return this.projectByKey(t.key)?.risk_score ?? null;
+    const g = this.groups().find((x) => x.group_key === t.key);
+    return g ? this.groupRisk(g).max : null;
+  });
 
   // --- scenario state ---
   protected scText = '';
@@ -154,6 +187,7 @@ export class Predict {
     toObservable(this.scope.userKey).subscribe(() => {
       this.load();
       if (this.subview() === 'warnings' && this.warnTarget()) this.loadWarnings();
+      if (this.subview() === 'forecasts' && this.fcSubject()) this.loadForecastInstances();
       if (this.subview() === 'history') this.reloadHistory();
     });
     toObservable(this.subview).subscribe((v) => {
@@ -227,29 +261,152 @@ export class Predict {
     if (this.subview() === 'warnings') {
       this.warnTarget.set(t);
       this.loadWarnings();
+    } else if (this.subview() === 'forecasts') {
+      this.selectForecastSubject(t);
     } else {
       this.scTargetSel.set(t);
       this.resetScenario();
     }
   }
   protected isActiveTarget(type: 'project' | 'group', key: string): boolean {
-    const t = this.subview() === 'warnings' ? this.warnTarget() : this.scTargetSel();
+    const t = this.subview() === 'warnings' ? this.warnTarget()
+      : this.subview() === 'forecasts' ? this.fcSubject()
+      : this.scTargetSel();
     return !!t && t.type === type && t.key === key;
   }
 
-  // --- forecasts ---
+  // --- forecasts (subject → tracked instances) ---
+  /** Pick a project/group as the forecast subject and load its past instances. */
+  protected selectForecastSubject(t: PredictTarget): void {
+    this.fcSubject.set(t);
+    this.resetForecast();
+    this.fcCompare.set(new Set());
+    this.loadForecastInstances();
+  }
+  /** Return to the subject selector. */
+  protected changeForecastSubject(): void {
+    this.fcSubject.set(null);
+    this.fcInstances.set([]);
+    this.fcInstancesError.set(null);
+    this.fcCompare.set(new Set());
+    this.resetForecast();
+  }
+  /** Focus the Forecasts view on a specific project (e.g. handed off from history). */
+  protected selectForecastProject(key: string): void {
+    this.selectForecastSubject(this.targetFromProjectKey(key));
+  }
+
+  private loadForecastInstances(): void {
+    const t = this.fcSubject();
+    if (!t) return;
+    this.fcInstancesLoading.set(true);
+    this.fcInstancesError.set(null);
+    const keys = new Set(t.projectKeys);
+    this.risk.listForecasts({ scope: this.scope.userKey() || null, limit: 100 }).subscribe({
+      next: (page) => {
+        const rows = page.items
+          .filter((r) => keys.has(r.project_key))
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+        this.fcInstances.set(rows);
+        this.fcInstancesLoading.set(false);
+      },
+      error: () => { this.fcInstancesError.set('Unable to load past forecasts for this subject.'); this.fcInstancesLoading.set(false); },
+    });
+  }
+
+  /** Run a new forecast on the subject's anchor; prepend the row and show its briefing. */
+  protected runForecastForSubject(): void {
+    const t = this.fcSubject();
+    if (t) this.runForecast(t.anchor);
+  }
+
   protected runForecast(projectKey: string): void {
     if (!projectKey || this.forecasting()) return;
     this.fcTarget = projectKey;
     this.forecasting.set(true);
     this.fcError.set(null);
     this.forecast.set(null);
+    this.activeForecastId.set(null);
     this.risk.runForecast(projectKey, this.scope.userKey() || 'director').subscribe({
-      next: (f) => { this.forecast.set(f); this.forecasting.set(false); },
+      next: (f) => {
+        this.forecast.set(f);
+        this.forecasting.set(false);
+        this.activeForecastId.set(f.forecast_id);
+        if (this.fcSubject()) this.prependInstance(f);
+      },
       error: () => { this.fcError.set('The Forecast Agent could not run. Is RiskAnalytics-API on :8004 up (ANTHROPIC_API_KEY set)?'); this.forecasting.set(false); },
     });
   }
-  protected resetForecast(): void { this.forecast.set(null); this.fcError.set(null); }
+
+  /** Open one past forecast instance in the briefing (no navigation). */
+  protected viewInstance(id: string): void {
+    if (this.forecasting()) return;
+    this.forecasting.set(true);
+    this.fcError.set(null);
+    this.forecast.set(null);
+    this.activeForecastId.set(null);
+    this.risk.getForecast(id).subscribe({
+      next: (f) => { this.forecast.set(f); this.fcTarget = f.project_key; this.activeForecastId.set(f.forecast_id); this.forecasting.set(false); },
+      error: () => { this.fcError.set('Unable to load that forecast.'); this.forecasting.set(false); },
+    });
+  }
+
+  /** Fold a freshly-run full forecast into the instances table as a summary row. */
+  private prependInstance(f: Forecast): void {
+    const row: ForecastSummary = {
+      forecast_id: f.forecast_id,
+      project_key: f.project_key,
+      on_time_probability: f.on_time_probability,
+      outlook: f.outlook,
+      projected_slip_days_low: f.projected_slip_days_low,
+      projected_slip_days_high: f.projected_slip_days_high,
+      confidence: f.confidence,
+      status: f.status,
+      created_at: f.created_at,
+    };
+    this.fcInstances.update((rows) => [row, ...rows.filter((r) => r.forecast_id !== f.forecast_id)]);
+  }
+
+  protected resetForecast(): void { this.forecast.set(null); this.fcError.set(null); this.activeForecastId.set(null); }
+
+  // --- forecast compare (A/B over two instances) ---
+  protected toggleCompare(id: string): void {
+    this.fcCompare.update((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else if (n.size < 2) n.add(id);
+      return n;
+    });
+  }
+  protected isCompared(id: string): boolean { return this.fcCompare().has(id); }
+  protected get fcCompareCount(): number { return this.fcCompare().size; }
+  protected clearCompare(): void { this.fcCompare.set(new Set()); }
+
+  private outlookRank(o: string | null | undefined): number {
+    return o === 'on_track' ? 2 : o === 'at_risk' ? 1 : o === 'off_track' ? 0 : 1;
+  }
+  /** The two selected instances, ordered older → newer, with computed deltas. */
+  protected readonly compareDelta = computed<ForecastDelta | null>(() => {
+    const sel = this.fcCompare();
+    if (sel.size !== 2) return null;
+    const pair = this.fcInstances()
+      .filter((r) => sel.has(r.forecast_id))
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+    if (pair.length !== 2) return null;
+    const [a, b] = pair;
+    const onTimeA = this.pct(a.on_time_probability), onTimeB = this.pct(b.on_time_probability);
+    const confA = this.pct(a.confidence), confB = this.pct(b.confidence);
+    const ra = this.outlookRank(a.outlook), rb = this.outlookRank(b.outlook);
+    return {
+      a, b,
+      onTimeA, onTimeB, onTimeDelta: onTimeB - onTimeA,
+      confA, confB, confDelta: confB - confA,
+      outlookChanged: (a.outlook || '') !== (b.outlook || ''),
+      outlookImproved: rb === ra ? null : rb > ra,
+    };
+  });
+  protected outlookLabel(o: string | null | undefined): string { return (o || '—').replace('_', ' '); }
+  protected signedNum(n: number): string { return (n > 0 ? '+' : '') + n; }
 
   // --- scenarios ---
   /** Focus the Scenarios view on a project (e.g. handed off from a forecast). */
@@ -386,9 +543,17 @@ export class Predict {
 
   protected openForecast(id: string): void {
     this.router.navigate(['/predict/forecasts']);
-    this.forecasting.set(true); this.fcError.set(null); this.forecast.set(null);
+    this.forecasting.set(true); this.fcError.set(null); this.forecast.set(null); this.activeForecastId.set(null);
+    this.fcCompare.set(new Set());
     this.risk.getForecast(id).subscribe({
-      next: (f) => { this.forecast.set(f); this.fcTarget = f.project_key; this.forecasting.set(false); },
+      next: (f) => {
+        this.forecast.set(f);
+        this.fcTarget = f.project_key;
+        this.activeForecastId.set(f.forecast_id);
+        this.fcSubject.set(this.targetFromProjectKey(f.project_key));
+        this.loadForecastInstances();
+        this.forecasting.set(false);
+      },
       error: () => { this.fcError.set('Unable to load that forecast.'); this.forecasting.set(false); },
     });
   }

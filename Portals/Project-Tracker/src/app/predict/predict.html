@@ -62,36 +62,110 @@
         <div class="banner__badge banner__badge--pred">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 5-7"/><polyline points="17 5 21 5 21 9"/></svg>
         </div>
-        <div class="banner__title"><h2>Delivery forecasts</h2><p>The agent ranks the projects most at risk of missing their date. Run a forecast to get an on-time probability, a credible interval, and the drivers.</p></div>
-        <span class="banner__live">metric-history · credible interval</span>
+        <div class="banner__title"><h2>Delivery forecasts</h2><p>Pick a project or group as the subject. Each forecast is a tracked instance — run new ones anytime, review past runs, and compare how the call moved.</p></div>
+        <span class="banner__live">subject · tracked instances</span>
       </div>
 
-      <div class="queue">
-        @for (p of forecastQueue(); track p.project_key) {
-          <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
-                  [class.qcard--active]="fcTarget === p.project_key" [disabled]="forecasting()" (click)="runForecast(p.project_key)">
-            <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
-              @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
-            </div>
-            <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
-            <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
-            <div class="qcard__cta qcard__cta--{{ riskScoreClass(p.risk_score) }}">
-              @if (forecasting() && fcTarget === p.project_key) { <span class="spin spin--dark"></span> forecasting… }
-              @else if (forecast() && fcTarget === p.project_key) { ✓ forecast ready — see below }
-              @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Forecast }
-            </div>
-          </button>
+      @if (!fcSubject()) {
+        <div class="pick"><h3 class="pick__h">Pick a forecast subject</h3><p class="pick__sub">Choose the project or group you want to forecast. A group forecasts on its highest-risk member and tracks every member's runs.</p></div>
+        @if (forecastQueue().length) {
+          <div class="quickpick">
+            <span class="quickpick__lbl">Top at-risk:</span>
+            @for (p of forecastQueue().slice(0, 5); track p.project_key) {
+              <button type="button" class="quickpick__chip quickpick__chip--{{ riskScoreClass(p.risk_score) }}" (click)="pickProject(p)">
+                <span class="mono">{{ p.project_key }}</span><span class="quickpick__risk">risk {{ p.risk_score | number:'1.0-0' }}</span>
+              </button>
+            }
+          </div>
         }
-      </div>
+        <ng-container [ngTemplateOutlet]="selector" [ngTemplateOutletContext]="{ showAll: false }"></ng-container>
+      } @else {
+        <div class="selbar">
+          <span class="selchip">
+            <span class="selchip__type selchip__type--{{ fcSubject()!.type }}">{{ fcSubject()!.type }}</span>
+            <span class="selchip__name">{{ fcSubject()!.name }}</span>
+            @if (fcSubjectRisk() !== null) { <span class="badge badge--{{ riskScoreClass(fcSubjectRisk()!) }}">risk {{ fcSubjectRisk() }}</span> }
+            @if (fcSubject()!.type === 'group') { <span class="selchip__anchor">on {{ fcSubject()!.anchor }}</span> }
+          </span>
+          <button type="button" class="selchip__change" (click)="changeForecastSubject()">Change</button>
+          <button type="button" class="run" [disabled]="forecasting()" (click)="runForecastForSubject()">
+            @if (forecasting()) { <span class="spin"></span> Running… } @else {
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run new forecast
+            }
+          </button>
+        </div>
 
-      @if (fcError()) { <div class="alert alert--error"><span>{{ fcError() }}</span></div> }
-      @if (forecasting()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Forecasting {{ projectName(fcTarget) }}.</strong><p>Computing the trajectory, credible interval and drivers, then narrating the call — ~30–60&nbsp;seconds.</p></div></div> }
+        @if (fcError()) { <div class="alert alert--error"><span>{{ fcError() }}</span></div> }
+        @if (forecasting()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Forecasting {{ projectName(fcTarget) }}.</strong><p>Computing the trajectory, credible interval and drivers, then narrating the call — ~30–60&nbsp;seconds.</p></div></div> }
+
+        <!-- forecast instances (past runs for this subject) -->
+        <div class="fc-instances">
+          <div class="fc-instances__head">
+            <h3 class="block__h">Forecast instances <span class="block__sub">{{ fcInstances().length }} run{{ fcInstances().length === 1 ? '' : 's' }} for {{ fcSubject()!.name }}</span></h3>
+            @if (fcCompareCount > 0) { <button type="button" class="crit__clear" (click)="clearCompare()">comparing {{ fcCompareCount }}/2 — clear</button> }
+          </div>
+
+          @if (fcInstancesError()) { <div class="alert alert--error"><span>{{ fcInstancesError() }}</span></div> }
+          @if (fcInstancesLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading past forecasts…</p> }
+          @else if (fcInstances().length === 0) {
+            <div class="empty">No forecasts yet for {{ fcSubject()!.name }} — run one with “Run new forecast” above.</div>
+          } @else {
+            <div class="panel"><div class="tbl-wrap"><table>
+              <thead><tr><th class="chkcol"></th><th>When</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th class="actcol"></th></tr></thead>
+              <tbody>
+                @for (h of fcInstances(); track h.forecast_id) {
+                  <tr [class.is-active]="activeForecastId() === h.forecast_id" (click)="viewInstance(h.forecast_id)">
+                    <td class="chkcol" (click)="$event.stopPropagation()">
+                      <input type="checkbox" [checked]="isCompared(h.forecast_id)" [disabled]="!isCompared(h.forecast_id) && fcCompareCount >= 2" (change)="toggleCompare(h.forecast_id)" title="Select to compare" />
+                    </td>
+                    <td class="when">{{ h.created_at }}</td>
+                    <td class="num"><span class="prob--{{ probClass(pct(h.on_time_probability)) }}">{{ pct(h.on_time_probability) }}%</span></td>
+                    <td>@if (h.outlook) { <span class="badge badge--{{ outlookClass(h.outlook) }}">{{ h.outlook.replace('_',' ') }}</span> } @else { — }</td>
+                    <td class="num">{{ h.projected_slip_days_low }}–{{ h.projected_slip_days_high }}</td>
+                    <td class="num">{{ pct(h.confidence) }}%</td>
+                    <td><span class="badge badge--{{ h.status === 'COMPLETED' ? 'low' : h.status === 'FAILED' ? 'high' : 'medium' }}">{{ h.status }}</span></td>
+                    <td class="rowacts" (click)="$event.stopPropagation()">
+                      <button type="button" class="rowact" (click)="viewInstance(h.forecast_id)">View</button>
+                      <button type="button" class="rowact" [disabled]="forecasting()" (click)="runForecastForSubject()">Re-run</button>
+                      <a class="rowact rowact--go" routerLink="/decide" [queryParams]="{ project: h.project_key }">Take to Decide →</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table></div></div>
+          }
+
+          @if (compareDelta(); as cd) {
+            <div class="cmp">
+              <div class="cmp__head"><span class="cmp__lbl">Comparing two forecasts</span><span class="cmp__sum">outlook {{ cd.outlookChanged ? (cd.outlookImproved === true ? 'improved' : cd.outlookImproved === false ? 'worsened' : 'changed') : 'unchanged' }} {{ outlookLabel(cd.a.outlook) }} → {{ outlookLabel(cd.b.outlook) }}, on-time {{ signedNum(cd.onTimeDelta) }}%</span></div>
+              <div class="cmp__grid">
+                <div class="cmp__card">
+                  <div class="cmp__when"><span class="cmp__tag">older</span>{{ cd.a.created_at }}</div>
+                  <div class="cmp__row"><span class="cmp__k">On-time</span><span class="cmp__v prob--{{ probClass(cd.onTimeA) }}">{{ cd.onTimeA }}%</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Outlook</span><span class="badge badge--{{ outlookClass(cd.a.outlook) }}">{{ outlookLabel(cd.a.outlook) }}</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Slip (d)</span><span class="cmp__v">{{ cd.a.projected_slip_days_low }}–{{ cd.a.projected_slip_days_high }}</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Confidence</span><span class="cmp__v">{{ cd.confA }}%</span></div>
+                </div>
+                <div class="cmp__arrow">→</div>
+                <div class="cmp__card">
+                  <div class="cmp__when"><span class="cmp__tag">newer</span>{{ cd.b.created_at }}</div>
+                  <div class="cmp__row"><span class="cmp__k">On-time</span><span class="cmp__v prob--{{ probClass(cd.onTimeB) }}">{{ cd.onTimeB }}%</span> <span class="cmp__d" [class.up]="cd.onTimeDelta < 0" [class.down]="cd.onTimeDelta > 0">{{ signedNum(cd.onTimeDelta) }}%</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Outlook</span><span class="badge badge--{{ outlookClass(cd.b.outlook) }}">{{ outlookLabel(cd.b.outlook) }}</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Slip (d)</span><span class="cmp__v">{{ cd.b.projected_slip_days_low }}–{{ cd.b.projected_slip_days_high }}</span></div>
+                  <div class="cmp__row"><span class="cmp__k">Confidence</span><span class="cmp__v">{{ cd.confB }}%</span> <span class="cmp__d" [class.up]="cd.confDelta < 0" [class.down]="cd.confDelta > 0">{{ signedNum(cd.confDelta) }}%</span></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
 
       @if (forecast(); as f) {
         <div class="briefing">
           <div class="verdict">
             <div class="verdict__main">
-              <div class="eyebrow"><span class="mono verdict__proj">{{ f.project_key }}</span> · delivery forecast <span class="badge badge--{{ outlookClass(f.outlook) }}">{{ f.outlook.replace('_',' ') }}</span></div>
+              <div class="eyebrow"><span class="mono verdict__proj">{{ f.project_key }}</span> · delivery forecast <span class="badge badge--{{ outlookClass(f.outlook) }}">{{ f.outlook.replace('_',' ') }}</span>
+                @if (fcSubject()?.type === 'group') { <span class="eyebrow__cascade">on {{ f.project_key }} — for group {{ fcSubject()!.name }}</span> }
+              </div>
               <div class="prob">
                 <span class="prob__num prob--{{ probClass(pct(f.on_time_probability)) }}">{{ pct(f.on_time_probability) }}%</span>
                 <span class="prob__lbl">on-time probability<br><b>{{ pct(f.probability_low) }}%–{{ pct(f.probability_high) }}%</b> credible interval</span>
@@ -130,6 +204,7 @@
             <button type="button" class="go go--ghost" (click)="resetForecast()">Clear</button>
           </div>
         </div>
+      }
       }
     }
 
