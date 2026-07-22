@@ -1,6 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { NotificationService } from './ui/notification.service';
+
+const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
+  '/': { title: 'Portfolio Overview', crumb: 'Projects' },
+  '/risk': { title: 'Project Risk', crumb: 'Risk Analysis' },
+};
 
 @Component({
   selector: 'app-root',
@@ -10,13 +16,28 @@ import { NotificationService } from './ui/notification.service';
 })
 export class App {
   protected readonly notifications = inject(NotificationService);
+  private readonly router = inject(Router);
+
   protected readonly toasts = this.notifications.toasts;
   protected readonly confirm = this.notifications.pendingConfirm;
   protected readonly navOpen = signal(true);
+  protected readonly pageTitle = signal('Portfolio Overview');
+  protected readonly pageCrumb = signal('Projects');
 
   protected readonly today = new Date().toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
   });
+
+  constructor() {
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        const path = e.urlAfterRedirects.split('?')[0];
+        const meta = PAGE_TITLES[path] ?? PAGE_TITLES['/'];
+        this.pageTitle.set(meta.title);
+        this.pageCrumb.set(meta.crumb);
+      });
+  }
 
   protected toggleNav(): void {
     this.navOpen.update((v) => !v);
