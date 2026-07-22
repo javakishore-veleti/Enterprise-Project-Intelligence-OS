@@ -16,10 +16,11 @@ import { Component, Input } from '@angular/core';
       display: flex; align-items: flex-start; gap: .7rem;
       background: #fffbeb;
       border: 1px solid #fde68a;
-      border-radius: 12px; padding: .75rem 1rem; margin-bottom: 1.4rem;
+      border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: 1.4rem;
     }
-    .about__icon { color: #d97706; flex: none; margin-top: .05rem; }
-    .about__text { margin: 0; font-size: .86rem; color: #78560f; line-height: 1.45; }
+    .about__icon { color: #d97706; flex: none; margin-top: .15rem; }
+    .about__icon svg { width: 20px; height: 20px; }
+    .about__text { margin: 0; font-size: 1rem; color: #78560f; line-height: 1.5; }
     .about__text b { color: #92400e; font-weight: 800; }
   `],
 })
