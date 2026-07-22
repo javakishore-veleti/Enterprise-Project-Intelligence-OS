@@ -1,49 +1,49 @@
 /* ============================================================================
    Enterprise Project Intelligence OS — professional design system
-   Palette is indigo/violet on light violet-tinted surfaces. No gray, no black:
-   even "dark" text is deep indigo, borders/shadows are indigo-tinted.
-   Global element rules cascade into Angular components (emulated encapsulation).
+   Palette: NAVY sidebar + AZURE-BLUE accent on clean white / light-slate
+   surfaces, with slate-gray text. Status colors (green/orange/red) used only
+   in small amounts. Global element rules cascade into Angular components.
    ============================================================================ */
 :root {
-  /* Brand */
-  --brand-600: #5b3df5;
-  --brand-500: #6d28d9;
-  --brand-400: #7c3aed;
-  --brand-300: #a78bfa;
-  --brand-grad: linear-gradient(135deg, #6d28d9 0%, #4f46e5 55%, #5b3df5 100%);
-  --sidebar-grad: linear-gradient(180deg, #2e1065 0%, #4c1d95 60%, #5b21b6 100%);
+  /* Brand — Azure Blue */
+  --brand-600: #0369a1;
+  --brand-500: #0284c7;
+  --brand-400: #0ea5e9;
+  --brand-300: #7dd3fc;
+  --brand-grad: linear-gradient(135deg, #0369a1 0%, #0284c7 55%, #0ea5e9 100%);
+  --sidebar-grad: linear-gradient(180deg, #0f2942 0%, #12395c 55%, #0c4a6e 100%);
 
-  /* Ink (never black/gray — deep indigo) */
-  --ink-900: #1e1b4b;
-  --ink-700: #312a72;
-  --ink-500: #5b53a6;
-  --ink-400: #7b73c0;
+  /* Ink — professional slate */
+  --ink-900: #0f172a;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --ink-400: #94a3b8;
 
-  /* Surfaces (violet-tinted, never gray) */
-  --bg: #f4f3fe;
-  --bg-2: #ecebfd;
+  /* Surfaces — white + light slate */
+  --bg: #f8fafc;
+  --bg-2: #f1f5f9;
   --surface: #ffffff;
-  --surface-alt: #faf9ff;
-  --border: #e5e2fb;
-  --border-strong: #d6d1f7;
+  --surface-alt: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
 
-  /* Status */
-  --success: #059669; --success-bg: #d1fae5;
-  --warning: #d97706; --warning-bg: #fef3c7;
-  --danger:  #e11d48; --danger-bg:  #ffe4e6;
-  --info:    #2563eb; --info-bg:    #dbeafe;
+  /* Status (used sparingly) */
+  --success: #16a34a; --success-bg: #dcfce7;
+  --warning: #ea580c; --warning-bg: #ffedd5;
+  --danger:  #dc2626; --danger-bg:  #fee2e2;
+  --info:    #0284c7; --info-bg:    #e0f2fe;
 
   /* Severity */
-  --sev-high: #e11d48; --sev-high-bg: #ffe4e6;
-  --sev-medium: #d97706; --sev-medium-bg: #fef3c7;
-  --sev-low: #059669; --sev-low-bg: #d1fae5;
+  --sev-high: #dc2626; --sev-high-bg: #fee2e2;
+  --sev-medium: #ea580c; --sev-medium-bg: #ffedd5;
+  --sev-low: #16a34a; --sev-low-bg: #dcfce7;
 
-  --radius: 14px;
-  --radius-sm: 9px;
-  --shadow-sm: 0 1px 2px rgba(76, 29, 149, 0.08), 0 1px 3px rgba(76, 29, 149, 0.06);
-  --shadow: 0 6px 20px rgba(76, 29, 149, 0.10), 0 2px 6px rgba(76, 29, 149, 0.06);
-  --shadow-lg: 0 18px 50px rgba(46, 16, 101, 0.22);
-  --ring: 0 0 0 4px rgba(109, 40, 217, 0.16);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 14px 36px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.06);
+  --ring: 0 0 0 4px rgba(2, 132, 199, 0.16);
 }
 
 * { box-sizing: border-box; }
@@ -54,14 +54,17 @@ body {
   font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
   color: var(--ink-900);
   background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(124, 58, 237, 0.10), transparent 60%),
-    radial-gradient(1000px 500px at -10% 10%, rgba(79, 70, 229, 0.08), transparent 55%),
+    radial-gradient(1200px 620px at 100% -20%, rgba(2, 132, 199, 0.045), transparent 60%),
     var(--bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
   line-height: 1.5;
 }
 
-h1, h2, h3, h4 { color: var(--ink-900); margin: 0 0 .35rem; font-weight: 700; letter-spacing: -0.01em; }
+h1, h2, h3, h4 { color: var(--ink-900); margin: 0 0 .35rem; font-weight: 700; letter-spacing: -0.018em; }
 h1 { font-size: 1.6rem; }
 h2 { font-size: 1.2rem; }
 h3 { font-size: 1rem; }
@@ -69,7 +72,7 @@ p { margin: 0 0 .5rem; }
 a { color: var(--brand-500); text-decoration: none; }
 a:hover { color: var(--brand-400); }
 
-::selection { background: rgba(109, 40, 217, 0.18); }
+::selection { background: rgba(2, 132, 199, 0.18); }
 
 /* Scrollbars */
 *::-webkit-scrollbar { width: 11px; height: 11px; }
@@ -98,10 +101,10 @@ button, .btn {
   background: var(--brand-grad);
   color: #fff;
   font-weight: 600; font-size: .88rem;
-  box-shadow: 0 6px 16px rgba(91, 33, 182, 0.28);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.18), 0 1px 2px rgba(30, 27, 75, 0.10);
   transition: transform .06s ease, box-shadow .15s ease, filter .15s ease, background .15s ease;
 }
-button:hover, .btn:hover { filter: brightness(1.05); box-shadow: 0 10px 22px rgba(91, 33, 182, 0.34); }
+button:hover, .btn:hover { filter: brightness(1.04); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.24), 0 2px 4px rgba(30, 27, 75, 0.10); }
 button:active, .btn:active { transform: translateY(1px); }
 button:disabled, .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; filter: none; }
 button:focus-visible, .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: none; box-shadow: var(--ring); }
@@ -112,7 +115,7 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, input:focus-visible, 
 }
 .btn--ghost:hover { background: var(--surface-alt); border-color: var(--brand-300); filter: none; }
 .btn--subtle { background: var(--bg-2); color: var(--brand-500); box-shadow: none; }
-.btn--danger { background: linear-gradient(135deg, #e11d48, #be123c); box-shadow: 0 6px 16px rgba(190,18,60,.28); }
+.btn--danger { background: linear-gradient(135deg, #e11d48, #be123c); box-shadow: 0 2px 6px rgba(190,18,60,.20), 0 1px 2px rgba(30,27,75,.10); }
 .btn--sm { padding: .4rem .7rem; font-size: .8rem; }
 
 /* ---- Forms ---------------------------------------------------------------- */
@@ -134,14 +137,14 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--br
 /* ---- Tables --------------------------------------------------------------- */
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .9rem; }
 thead th {
-  text-align: left; font-weight: 700; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--brand-500);
+  text-align: left; font-weight: 700; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-500);
   background: var(--surface-alt);
-  padding: .7rem .9rem; border-bottom: 1px solid var(--border);
+  padding: .65rem .9rem; border-bottom: 1px solid var(--border);
 }
-tbody td { padding: .7rem .9rem; border-bottom: 1px solid var(--border); color: var(--ink-700); }
+tbody td { padding: .78rem .9rem; border-bottom: 1px solid var(--border); color: var(--ink-700); }
 tbody tr { transition: background .12s ease; }
-tbody tr:hover { background: var(--bg-2); }
+tbody tr:hover { background: var(--surface-alt); }
 tbody tr:last-child td { border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .mono { font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace; font-weight: 600; color: var(--brand-500); }
@@ -149,8 +152,8 @@ tbody tr:last-child td { border-bottom: none; }
 /* ---- Badges / pills ------------------------------------------------------- */
 .badge {
   display: inline-flex; align-items: center; gap: .35rem;
-  padding: .2rem .6rem; border-radius: 999px;
-  font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+  padding: .18rem .55rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 700; letter-spacing: .01em;
   background: var(--bg-2); color: var(--brand-500);
 }
 .badge--high   { background: var(--sev-high-bg);   color: var(--sev-high); }
@@ -167,7 +170,8 @@ tbody tr:last-child td { border-bottom: none; }
   border: 1px solid var(--border); background: var(--surface-alt);
   color: var(--ink-700); font-size: .88rem;
 }
-.alert__icon { font-size: 1.1rem; line-height: 1.3; }
+.alert__icon { display: inline-flex; flex: none; margin-top: .05rem; }
+.alert__icon svg { display: block; }
 .alert--error   { background: var(--danger-bg);  border-color: #fbb6c4; color: #9f1239; }
 .alert--success { background: var(--success-bg); border-color: #a7f3d0; color: #065f46; }
 .alert--warning { background: var(--warning-bg); border-color: #fcd9a5; color: #92400e; }

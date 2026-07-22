@@ -40,9 +40,9 @@
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   padding: .65rem 1.3rem; border: 1px solid transparent; border-radius: var(--radius-sm);
   background: var(--brand-grad); color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer;
-  box-shadow: 0 6px 16px rgba(91,33,182,.28); transition: filter .15s ease, transform .06s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 16px rgba(2,132,199,.28); transition: filter .15s ease, transform .06s ease, box-shadow .15s ease;
 }
-.risk__btn:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 10px 22px rgba(91,33,182,.34); }
+.risk__btn:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 10px 22px rgba(2,132,199,.34); }
 .risk__btn:active { transform: translateY(1px); }
 .risk__btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .risk__btn--ghost { background: var(--surface); color: var(--brand-500); border-color: var(--border-strong); box-shadow: var(--shadow-sm); }

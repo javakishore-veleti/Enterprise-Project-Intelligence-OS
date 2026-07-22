@@ -46,8 +46,4 @@ export class App {
   protected toggleNav(): void {
     this.navOpen.update((v) => !v);
   }
-
-  protected toastIcon(kind: string): string {
-    return kind === 'success' ? '✓' : kind === 'error' ? '!' : kind === 'warning' ? '⚠' : 'i';
-  }
 }

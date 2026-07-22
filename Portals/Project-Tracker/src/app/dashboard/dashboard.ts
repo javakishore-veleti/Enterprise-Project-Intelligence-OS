@@ -34,6 +34,24 @@ export class Dashboard implements OnInit, OnDestroy {
     () => this.findings().filter((f) => ['HIGH', 'CRITICAL'].includes((f.severity || '').toUpperCase())).length,
   );
 
+  /** Distribution of recent findings by severity — drives the stacked bar. */
+  protected readonly severityMix = computed(() => {
+    const keys = ['critical', 'high', 'medium', 'low'] as const;
+    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const f of this.findings()) {
+      const s = (f.severity || '').toLowerCase();
+      if (s in counts) counts[s] += 1;
+    }
+    const total = keys.reduce((n, k) => n + counts[k], 0);
+    const segments = keys.map((k) => ({
+      key: k,
+      label: k.charAt(0).toUpperCase() + k.slice(1),
+      count: counts[k],
+      pct: total ? (counts[k] / total) * 100 : 0,
+    }));
+    return { segments, total };
+  });
+
   ngOnInit(): void {
     // Poll immediately, then every POLL_MS. Run the recurring timer OUTSIDE
     // Angular's zone so it doesn't keep the app perpetually unstable; hop back

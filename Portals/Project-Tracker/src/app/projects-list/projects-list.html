@@ -4,21 +4,27 @@
   <!-- KPI summary cards -->
   <div class="kpis">
     <div class="kpi">
-      <div class="kpi__icon kpi__icon--brand">▦</div>
+      <div class="kpi__icon kpi__icon--brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </div>
       <div class="kpi__body">
         <span class="kpi__label">Projects</span>
         <span class="kpi__value">{{ total() }}</span>
       </div>
     </div>
     <div class="kpi">
-      <div class="kpi__icon kpi__icon--info">∑</div>
+      <div class="kpi__icon kpi__icon--info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg>
+      </div>
       <div class="kpi__body">
         <span class="kpi__label">Total Issues</span>
         <span class="kpi__value">{{ totalIssues().toLocaleString() }}</span>
       </div>
     </div>
     <div class="kpi">
-      <div class="kpi__icon kpi__icon--warning">◷</div>
+      <div class="kpi__icon kpi__icon--warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15.5 14"/></svg>
+      </div>
       <div class="kpi__body">
         <span class="kpi__label">Open Issues</span>
         <span class="kpi__value">{{ totalOpen().toLocaleString() }}</span>
@@ -26,7 +32,9 @@
       </div>
     </div>
     <div class="kpi">
-      <div class="kpi__icon kpi__icon--danger">⚠</div>
+      <div class="kpi__icon kpi__icon--danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
       <div class="kpi__body">
         <span class="kpi__label">At-Risk Projects</span>
         <span class="kpi__value">{{ atRisk() }}</span>
@@ -59,7 +67,7 @@
     }
     @if (error()) {
       <div class="alert alert--error" style="margin: 1rem;">
-        <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+        <span class="alert__icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span>{{ error() }}</span>
       </div>
     }
 
@@ -86,8 +94,8 @@
                   @if (project.category) { <span class="badge">{{ project.category }}</span> }
                   @else { <span class="muted">—</span> }
                 </td>
-                <td class="num">{{ (project.issue_count ?? 0).toLocaleString() }}</td>
-                <td class="num">{{ (project.open_issue_count ?? 0).toLocaleString() }}</td>
+                <td class="num">{{ project.issue_count.toLocaleString() }}</td>
+                <td class="num">{{ project.open_issue_count.toLocaleString() }}</td>
                 <td>
                   <div class="health">
                     <div class="health__bar">
@@ -97,7 +105,10 @@
                   </div>
                 </td>
                 <td class="num">
-                  <a class="row-action" routerLink="/risk" [queryParams]="{ project: project.project_key }">Analyze →</a>
+                  <a class="row-action" routerLink="/risk" [queryParams]="{ project: project.project_key }">
+                    <span>Analyze</span>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                  </a>
                 </td>
               </tr>
             } @empty {
