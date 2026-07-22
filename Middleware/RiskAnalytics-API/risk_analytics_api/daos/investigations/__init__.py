@@ -122,8 +122,9 @@ class PostgresInvestigationDao(InvestigationDao):
 
 
 def _to_summary(r: tuple) -> InvestigationSummary:
+    # pg8000 returns the uuid PK as a UUID object; the DTO is a string.
     return InvestigationSummary(
-        investigation_id=r[0], project_key=r[1], question=r[2], template_key=r[3],
+        investigation_id=str(r[0]), project_key=r[1], question=r[2], template_key=r[3],
         status=r[4], root_cause=r[5], confidence=r[6], created_at=r[7],
     )
 
@@ -131,7 +132,7 @@ def _to_summary(r: tuple) -> InvestigationSummary:
 def _to_response(r: tuple) -> InvestigationResponse:
     # r[2] is requested_by (persisted but not surfaced on the conclusion DTO).
     return InvestigationResponse(
-        investigation_id=r[0], project_key=r[1],
+        investigation_id=str(r[0]), project_key=r[1],
         question=r[3], template_key=r[4], status=r[5],
         root_cause=r[6] or "", confidence=float(r[7]) if r[7] is not None else 0.0,
         recommended_action=r[8] or "",
