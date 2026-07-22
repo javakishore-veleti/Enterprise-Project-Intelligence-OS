@@ -2,6 +2,58 @@
   <app-about title="Predict"
     text="What will happen next. The agent makes a forecast you review — an on-time probability with a credible interval and its drivers — plus a Digital-Twin what-if simulator and proactive early-warnings. Predict projects and explores; it never commits an action (that is Decide). Every forecast and scenario hands off with a Take to Decide → button." />
 
+  <!-- ============ shared target selector (Scenarios + Early-Warning) ============ -->
+  <ng-template #selector let-showAll="showAll">
+    @if (loading()) { <p class="status"><span class="spin spin--dark"></span> Loading projects…</p> }
+    @else {
+      <div class="targets">
+        <div class="tgroup">
+          <div class="tgroup__lbl">Projects</div>
+          <div class="tgrid">
+            @if (showAll) {
+              <button type="button" class="qcard qcard--all" [class.qcard--active]="isActiveTarget('group', '__all__')" (click)="watchAll()">
+                <div class="qcard__top"><span class="qcard__key">Watch all my projects</span></div>
+                <span class="qcard__badge qcard__badge--all">full scope</span>
+                <div class="qcard__meta">{{ kpiProjects() }} projects · {{ kpiAtRisk() }} at risk</div>
+                <div class="qcard__cta qcard__cta--all">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg> Watch all
+                </div>
+              </button>
+            }
+            @for (p of allProjects(); track p.project_key) {
+              <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
+                      [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
+                <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
+                  @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
+                </div>
+                <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
+                <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
+              </button>
+            }
+          </div>
+        </div>
+        @if (groupCards().length) {
+          <div class="tgroup">
+            <div class="tgroup__lbl">Project groups</div>
+            <div class="tgrid">
+              @for (gc of groupCards(); track gc.group.group_key) {
+                <button type="button" class="qcard qcard--{{ riskScoreClass(gc.max) }}"
+                        [class.qcard--active]="isActiveTarget('group', gc.group.group_key)" (click)="pickGroup(gc)">
+                  <div class="qcard__top"><span class="qcard__key">{{ gc.group.name }}</span></div>
+                  <span class="qcard__badge qcard__badge--{{ riskScoreClass(gc.max) }}">risk {{ gc.max }}</span>
+                  <div class="qcard__meta">{{ gc.members }} project{{ gc.members === 1 ? '' : 's' }} · avg {{ gc.avg }}</div>
+                  <div class="qcard__cta qcard__cta--{{ riskScoreClass(gc.max) }}">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> group
+                  </div>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </ng-template>
+
   @switch (subview()) {
 
     <!-- ============================ FORECASTS ============================ -->
@@ -74,7 +126,7 @@
 
           <div class="handoff">
             <a class="go" routerLink="/decide" [queryParams]="{ project: f.project_key }">Take to Decide <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-            <a class="go go--ghost" routerLink="/predict/scenarios" (click)="scTarget = f.project_key">Simulate a what-if →</a>
+            <a class="go go--ghost" routerLink="/predict/scenarios" (click)="selectScenarioProject(f.project_key)">Simulate a what-if →</a>
             <button type="button" class="go go--ghost" (click)="resetForecast()">Clear</button>
           </div>
         </div>
@@ -91,32 +143,52 @@
         <span class="banner__live">what-if · cascade</span>
       </div>
 
-      <div class="simform">
-        <label class="fld"><span class="fld__lbl">Project</span>
-          <select [(ngModel)]="scTarget">
-            <option value="" disabled>Select…</option>
-            @for (p of allProjects(); track p.project_key) { <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option> }
-          </select>
-        </label>
-        <label class="fld fld--grow"><span class="fld__lbl">What if…</span>
-          <input type="text" placeholder="e.g. move 2 engineers onto the blocker backlog" [(ngModel)]="scText" (keyup.enter)="runScenario()" />
-        </label>
-        <button class="run" type="button" [disabled]="!scTarget || !scText.trim() || simulating()" (click)="runScenario()">
-          @if (simulating()) { <span class="spin"></span> Simulating… } @else { Simulate }
-        </button>
-      </div>
-      <div class="probes"><span class="probes__lbl">Try:</span>
-        @for (p of probes; track p.label) { <button type="button" class="probe" [disabled]="simulating()" (click)="runProbe(p)">{{ p.label }}</button> }
-      </div>
+      @if (!scTargetSel()) {
+        <div class="pick"><h3 class="pick__h">Pick a project or group to explore</h3><p class="pick__sub">Choose what to run the what-if against. A group simulates on its highest-risk project and cascades across its members.</p></div>
+        <ng-container [ngTemplateOutlet]="selector" [ngTemplateOutletContext]="{ showAll: false }"></ng-container>
+      } @else {
+        <div class="selbar">
+          <span class="selchip">
+            <span class="selchip__type selchip__type--{{ scTargetSel()!.type }}">{{ scTargetSel()!.type }}</span>
+            <span class="selchip__name">{{ scTargetSel()!.name }}</span>
+            @if (scTargetSel()!.type === 'group') { <span class="selchip__anchor">on {{ scTargetSel()!.anchor }}</span> }
+          </span>
+          <button type="button" class="selchip__change" (click)="changeScenarioTarget()">Change</button>
+        </div>
 
-      @if (scError()) { <div class="alert alert--error"><span>{{ scError() }}</span></div> }
-      @if (simulating()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Simulating on {{ projectName(scTarget) }}.</strong><p>Re-forecasting and tracing the cascade through dependencies and shared contributors — ~30–60&nbsp;seconds.</p></div></div> }
+        <div class="simform simform--one">
+          <label class="fld fld--grow"><span class="fld__lbl">What if…</span>
+            <input type="text" placeholder="e.g. move 2 engineers onto the blocker backlog" [(ngModel)]="scText" (keyup.enter)="runScenario()" />
+          </label>
+          <button class="run" type="button" [disabled]="!scText.trim() || simulating()" (click)="runScenario()">
+            @if (simulating()) { <span class="spin"></span> Simulating… } @else { Simulate }
+          </button>
+        </div>
+
+        <div class="probes"><span class="probes__lbl">Try:</span>
+          @for (p of defaultProbes; track p.label) { <button type="button" class="probe" [disabled]="simulating()" (click)="runProbe(p)">{{ p.label }}</button> }
+          @for (p of customProbes(); track $index) {
+            <span class="probe probe--custom">
+              <button type="button" class="probe__run" [disabled]="simulating()" (click)="runProbe(p)">{{ p.label }}</button>
+              <button type="button" class="probe__x" title="Remove" (click)="removeCustomProbe(p)">×</button>
+            </span>
+          }
+          <span class="addprobe">
+            <input type="text" placeholder="add your own what-if…" [(ngModel)]="newProbe" (keyup.enter)="addCustomProbe()" />
+            <button type="button" class="addprobe__btn" [disabled]="!newProbe.trim()" (click)="addCustomProbe()">Add</button>
+          </span>
+        </div>
+
+        @if (scError()) { <div class="alert alert--error"><span>{{ scError() }}</span></div> }
+        @if (simulating()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Simulating on {{ projectName(scTargetSel()!.anchor) }}.</strong><p>Re-forecasting and tracing the cascade through dependencies and shared contributors — ~30–60&nbsp;seconds.</p></div></div> }
 
       @if (scenario(); as s) {
         <div class="briefing">
           <div class="verdict">
             <div class="verdict__main">
-              <div class="eyebrow"><span class="mono verdict__proj">{{ s.project_key }}</span> · what-if</div>
+              <div class="eyebrow"><span class="mono verdict__proj">{{ s.project_key }}</span> · what-if
+                @if (scResultTarget()?.type === 'group') { <span class="eyebrow__cascade">simulated on {{ scResultTarget()!.anchor }} — cascades across {{ scResultTarget()!.name }}</span> }
+              </div>
               <p class="scen__q">“{{ s.scenario }}”</p>
               <div class="delta">
                 <span class="delta__from">{{ pct(s.base_on_time_probability) }}%</span>
@@ -152,6 +224,7 @@
           </div>
         </div>
       }
+      }
     }
 
     <!-- ============================ EARLY-WARNING ============================ -->
@@ -164,31 +237,52 @@
         <span class="banner__live">proactive · trajectory inflection</span>
       </div>
 
-      @if (warningsError()) { <div class="alert alert--error"><span>{{ warningsError() }}</span></div> }
-      @if (warningsLoading()) { <p class="status"><span class="spin spin--dark"></span> Scanning trajectories…</p> }
-      @else if (warnings().length === 0) {
-        <div class="empty">No adverse inflections right now — the agent found nothing trending sharply worse across your projects. It re-checks as metrics move over time.</div>
+      <div class="kpis">
+        <div class="kpi"><span class="kpi__num">{{ kpiProjects() }}</span><span class="kpi__lbl">projects in scope</span></div>
+        <div class="kpi kpi--warn"><span class="kpi__num">{{ kpiAtRisk() }}</span><span class="kpi__lbl">at-risk (High+Med)</span></div>
+        <div class="kpi"><span class="kpi__num">{{ kpiGroups() }}</span><span class="kpi__lbl">project groups</span></div>
+        <div class="kpi kpi--danger"><span class="kpi__num">{{ warnTarget() ? kpiHighWarnings() : '—' }}</span><span class="kpi__lbl">high-severity warnings</span></div>
+      </div>
+
+      @if (!warnTarget()) {
+        <div class="pick"><h3 class="pick__h">Choose what to watch</h3><p class="pick__sub">Pick a project or group — or watch everything in scope.</p></div>
+        <ng-container [ngTemplateOutlet]="selector" [ngTemplateOutletContext]="{ showAll: true }"></ng-container>
       } @else {
-        <div class="warns">
-          @for (w of warnings(); track $index) {
-            <div class="warn warn--{{ sevClass(w.severity) }}">
-              <div class="warn__sev warn__sev--{{ sevClass(w.severity) }}">{{ w.severity }}</div>
-              <div class="warn__body">
-                <div class="warn__top"><span class="mono warn__key">{{ w.project_key }}</span><span class="warn__metric">{{ w.metric.replace('_',' ') }}</span></div>
-                <div class="warn__move"><b>{{ w.from_value | number:'1.0-2' }}</b> → <b class="warn__to">{{ w.to_value | number:'1.0-2' }}</b> <span class="warn__win">over {{ w.window }}</span></div>
-                <p class="warn__cause">{{ w.cause }}</p>
-              </div>
-              <a class="warn__go" routerLink="/investigate">Investigate →</a>
-            </div>
-          }
+        <div class="selbar">
+          <span class="selchip">
+            <span class="selchip__type selchip__type--{{ warnTarget()!.type }}">{{ warnTarget()!.key === '__all__' ? 'all' : warnTarget()!.type }}</span>
+            <span class="selchip__name">{{ warnTarget()!.name }}</span>
+            <span class="selchip__anchor">{{ warnTarget()!.projectKeys.length }} project(s)</span>
+          </span>
+          <button type="button" class="selchip__change" (click)="changeWarnTarget()">Change</button>
         </div>
+
+        @if (warningsError()) { <div class="alert alert--error"><span>{{ warningsError() }}</span></div> }
+        @if (warningsLoading()) { <p class="status"><span class="spin spin--dark"></span> Scanning trajectories…</p> }
+        @else if (warnings().length === 0) {
+          <div class="empty">No adverse inflections right now — the agent found nothing trending sharply worse across {{ warnTarget()!.name }}. It re-checks as metrics move over time.</div>
+        } @else {
+          <div class="warns">
+            @for (w of warnings(); track $index) {
+              <div class="warn warn--{{ sevClass(w.severity) }}">
+                <div class="warn__sev warn__sev--{{ sevClass(w.severity) }}">{{ w.severity }}</div>
+                <div class="warn__body">
+                  <div class="warn__top"><span class="mono warn__key">{{ w.project_key }}</span><span class="warn__metric">{{ w.metric.replace('_',' ') }}</span></div>
+                  <div class="warn__move"><b>{{ w.from_value | number:'1.0-2' }}</b> → <b class="warn__to">{{ w.to_value | number:'1.0-2' }}</b> <span class="warn__win">over {{ w.window }}</span></div>
+                  <p class="warn__cause">{{ w.cause }}</p>
+                </div>
+                <a class="warn__go" routerLink="/investigate">Investigate →</a>
+              </div>
+            }
+          </div>
+        }
       }
     }
 
     <!-- ============================ HISTORY ============================ -->
     @case ('history') {
       <div class="hist__bar">
-        <div class="hist__title"><h2>Prediction history</h2><span class="hist__count">{{ histTotal() }} recent · newest 100</span></div>
+        <div class="hist__title"><h2>Prediction history</h2><span class="hist__count">{{ histCriteriaCount > 0 ? (histKind === 'forecasts' ? filteredFc().length : filteredSc().length) + ' of ' + histTotal() + ' (filtered)' : histTotal() + ' recent · newest 100' }}</span></div>
         <div class="segjoin">
           <button type="button" [class.is-on]="histKind === 'forecasts'" (click)="setHistKind('forecasts')">Forecasts</button>
           <button type="button" [class.is-on]="histKind === 'scenarios'" (click)="setHistKind('scenarios')">Scenarios</button>
@@ -200,15 +294,34 @@
         </div>
       </div>
 
+      <div class="crit">
+        <div class="crit__head">
+          <span class="crit__lbl">Filter by project / group</span>
+          @if (histCriteriaCount > 0) { <button type="button" class="crit__clear" (click)="clearHistCriteria()">filtered by {{ histCriteriaCount }} criteria — clear</button> }
+        </div>
+        <div class="critchips">
+          @for (p of allProjects(); track p.project_key) {
+            <button type="button" class="critchip" [class.is-on]="isHistSelected('p:' + p.project_key)" (click)="toggleHistCriterion('p:' + p.project_key)">
+              <span class="critchip__dot critchip__dot--{{ riskScoreClass(p.risk_score) }}"></span><span class="mono">{{ p.project_key }}</span>
+            </button>
+          }
+          @for (gc of groupCards(); track gc.group.group_key) {
+            <button type="button" class="critchip critchip--group" [class.is-on]="isHistSelected('g:' + gc.group.group_key)" (click)="toggleHistCriterion('g:' + gc.group.group_key)">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>{{ gc.group.name }}
+            </button>
+          }
+        </div>
+      </div>
+
       @if (histError()) { <div class="alert alert--error"><span>{{ histError() }}</span></div> }
       @if (histLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading…</p> }
       @else if (histKind === 'forecasts') {
-        @if (fcHistory().length === 0) { <div class="empty">No forecasts yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict">Forecasts</a>.</div> }
+        @if (filteredFc().length === 0) { <div class="empty">No forecasts{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict">Forecasts</a>.</div> }
         @else {
           <div class="panel"><div class="tbl-wrap"><table>
             <thead><tr><th>Project</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
             <tbody>
-              @for (h of fcHistory(); track h.forecast_id) {
+              @for (h of filteredFc(); track h.forecast_id) {
                 <tr (click)="openForecast(h.forecast_id)">
                   <td><span class="mono">{{ h.project_key }}</span></td>
                   <td class="num"><span class="prob--{{ probClass(pct(h.on_time_probability)) }}">{{ pct(h.on_time_probability) }}%</span></td>
@@ -224,12 +337,12 @@
           <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
         }
       } @else {
-        @if (scHistory().length === 0) { <div class="empty">No scenarios yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict/scenarios">Scenarios</a>.</div> }
+        @if (filteredSc().length === 0) { <div class="empty">No scenarios{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict/scenarios">Scenarios</a>.</div> }
         @else {
           <div class="panel"><div class="tbl-wrap"><table>
             <thead><tr><th>Project</th><th>What-if</th><th class="num">Projected</th><th class="num">Δ</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
             <tbody>
-              @for (h of scHistory(); track h.scenario_id) {
+              @for (h of filteredSc(); track h.scenario_id) {
                 <tr (click)="openScenario(h.scenario_id)">
                   <td><span class="mono">{{ h.project_key }}</span></td>
                   <td class="scen__cell">{{ h.scenario }}</td>
