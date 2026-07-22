@@ -19,6 +19,7 @@ export interface PortfolioProject {
 
 export interface PortfolioSummary {
   scope: { user_key: string | null; project_count: number; scoped: boolean };
+  as_of?: string | null;
   portfolio_score: number;
   overall_risk: RiskBand;
   totals: { projects: number; issues: number; open_issues: number };

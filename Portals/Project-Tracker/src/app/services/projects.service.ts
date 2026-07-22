@@ -61,8 +61,11 @@ export class ProjectsService {
    * projects when a user key is supplied (X-User-Key seam → SSO subject later).
    * Ranking happens in the DB; the client only ever receives the top N.
    */
-  getPortfolioSummary(top = 15, userKey?: string | null): Observable<PortfolioSummary> {
-    const params = new HttpParams().set('top', top);
+  getPortfolioSummary(top = 15, userKey?: string | null, asOf?: string): Observable<PortfolioSummary> {
+    let params = new HttpParams().set('top', top);
+    if (asOf) {
+      params = params.set('as_of', asOf);
+    }
     let headers = new HttpHeaders();
     if (userKey) {
       headers = headers.set('X-User-Key', userKey);

@@ -1,123 +1,87 @@
 <section class="projects">
-  <app-about title="Investigate" text="The evidence layer — browse every project and its computed metrics. This is the standing risk register the intelligence is built on; search, sort, and drill into any project to run analysis." />
-  <p class="projects__subtitle">Delivery-health across every project in the evidence store.</p>
+  <app-about title="Investigate" text="The evidence layer — browse every project and its computed metrics. This is the standing risk register the intelligence is built on; the numbers below reflect the selected date." />
 
-  <!-- KPI summary cards -->
+  @if (error()) {
+    <div class="alert alert--error"><span class="alert__icon">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span><span>{{ error() }}</span></div>
+  }
+
+  <p class="projects__subtitle">Delivery-health across every project in the evidence store<span class="asofnote">{{ isToday ? ' · as of today' : ' · as of ' + asOf }}</span>.</p>
+
+  <!-- Date-aware KPI boxes -->
   <div class="kpis">
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--brand">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <div class="kpi"><div class="kpi__icon kpi__icon--brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <div class="kpi__body"><span class="kpi__label">Projects</span><span class="kpi__value">{{ totals().projects }}</span></div></div>
+    <div class="kpi"><div class="kpi__icon kpi__icon--info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></div>
+      <div class="kpi__body"><span class="kpi__label">Total Issues</span><span class="kpi__value">{{ totals().issues.toLocaleString() }}</span></div></div>
+    <div class="kpi"><div class="kpi__icon kpi__icon--warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
+      <div class="kpi__body"><span class="kpi__label">Open Issues</span><span class="kpi__value">{{ totals().open_issues.toLocaleString() }}</span></div></div>
+    <div class="kpi"><div class="kpi__icon kpi__icon--danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="kpi__body"><span class="kpi__label">At-Risk Projects</span><span class="kpi__value stat--risk">{{ bands().high + bands().medium }}</span><span class="kpi__sub">{{ bands().high }} high · {{ bands().medium }} medium</span></div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="toolbar">
+    <div class="toolbar__group">
+      <div class="viewtoggle">
+        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Table</button>
+        <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Cards</button>
       </div>
-      <div class="kpi__body">
-        <span class="kpi__label">Projects</span>
-        <span class="kpi__value">{{ total() }}</span>
-      </div>
+      <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
     </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--info">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg>
-      </div>
-      <div class="kpi__body">
-        <span class="kpi__label">Total Issues</span>
-        <span class="kpi__value">{{ totalIssues().toLocaleString() }}</span>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--warning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15.5 14"/></svg>
-      </div>
-      <div class="kpi__body">
-        <span class="kpi__label">Open Issues</span>
-        <span class="kpi__value">{{ totalOpen().toLocaleString() }}</span>
-        <span class="kpi__sub">{{ asPercent(openRatio()) }} of backlog open</span>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--danger">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <div class="kpi__body">
-        <span class="kpi__label">At-Risk Projects</span>
-        <span class="kpi__value">{{ atRisk() }}</span>
-        <span class="kpi__sub">≥ 50% backlog open</span>
-      </div>
+    <div class="datectl">
+      <button type="button" class="chip" [class.chip--on]="isToday" (click)="setToday()">Today</button>
+      <button type="button" class="chip" [class.chip--on]="asOf && !isToday" (click)="setYesterday()">Yesterday</button>
+      <label class="datectl__pick"><span>as of</span><input type="date" [(ngModel)]="asOf" [max]="todayStr" (ngModelChange)="onDateChange()" /></label>
     </div>
   </div>
 
-  <!-- Table card -->
-  <div class="panel">
-    <div class="panel__head">
-      <h2 class="panel__title">Projects</h2>
-      <div class="projects__toolbar">
-        <input
-          type="search"
-          class="projects__search"
-          placeholder="Search projects by key or name…"
-          [(ngModel)]="query"
-          (ngModelChange)="onQueryChange($event)"
-          aria-label="Search projects"
-        />
-        @if (!loading()) {
-          <span class="projects__count">{{ total() }} result(s)</span>
-        }
-      </div>
-    </div>
-
-    @if (loading()) {
-      <p class="projects__status"><span class="spinner spinner--brand"></span> Loading projects…</p>
-    }
-    @if (error()) {
-      <div class="alert alert--error" style="margin: 1rem;">
-        <span class="alert__icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span>{{ error() }}</span>
-      </div>
-    }
-
-    @if (!loading() && !error()) {
+  @if (loading()) {
+    <p class="projects__status"><span class="spinner spinner--brand"></span> Loading…</p>
+  } @else if (projects().length === 0) {
+    <p class="empty">No projects{{ query ? ' match “' + query + '”' : ' for this date' }}.</p>
+  } @else if (view === 'table') {
+    <!-- Table view -->
+    <div class="panel">
       <div class="projects__table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Project Key</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th class="num">Issues</th>
-              <th class="num">Open</th>
-              <th>Backlog Health</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead><tr><th>Project</th><th>Category</th><th class="num">Risk</th><th class="num">Blockers</th><th class="num">Reopen</th><th class="num">Aging</th><th class="num">Open</th><th></th></tr></thead>
           <tbody>
-            @for (project of projects(); track project.project_key) {
+            @for (p of projects(); track p.project_key) {
               <tr>
-                <td class="mono">{{ project.project_key }}</td>
-                <td>{{ project.name }}</td>
-                <td>
-                  @if (project.category) { <span class="badge">{{ project.category }}</span> }
-                  @else { <span class="muted">—</span> }
-                </td>
-                <td class="num">{{ project.issue_count.toLocaleString() }}</td>
-                <td class="num">{{ project.open_issue_count.toLocaleString() }}</td>
-                <td>
-                  <div class="health">
-                    <div class="health__bar">
-                      <span class="health__fill {{ healthClass(project) }}" [style.width.%]="ratio(project) * 100"></span>
-                    </div>
-                    <span class="health__pct">{{ asPercent(ratio(project)) }}</span>
-                  </div>
-                </td>
-                <td class="num">
-                  <a class="row-action" routerLink="/risk" [queryParams]="{ project: project.project_key }">
-                    <span>Analyze</span>
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-                  </a>
-                </td>
+                <td><span class="mono">{{ p.project_key }}</span> <span class="pname">{{ p.name }}</span></td>
+                <td>@if (p.category) { <span class="badge">{{ p.category }}</span> } @else { <span class="muted">—</span> }</td>
+                <td class="num"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span> <span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span></td>
+                <td class="num" [class.risk]="p.blocker_count > 50">{{ p.blocker_count.toLocaleString() }}</td>
+                <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
+                <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
+                <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
+                <td class="num"><a class="row-action" routerLink="/decide" [queryParams]="{ project: p.project_key }">Analyze →</a></td>
               </tr>
-            } @empty {
-              <tr><td class="projects__empty" colspan="7">No projects found.</td></tr>
             }
           </tbody>
         </table>
       </div>
-    }
-  </div>
+    </div>
+  } @else {
+    <!-- Cards view -->
+    <div class="cards">
+      @for (p of projects(); track p.project_key) {
+        <a class="pcard pcard--{{ scoreClass(p.risk_score) }}" routerLink="/decide" [queryParams]="{ project: p.project_key }">
+          <div class="pcard__head">
+            <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
+            <div class="pcard__scorebox"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span><span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span></div>
+          </div>
+          <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
+          <div class="pstats">
+            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
+            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
+            <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">avg age</span></div>
+          </div>
+          <div class="pcard__foot"><span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} of {{ p.issue_count.toLocaleString() }} open</span></div>
+        </a>
+      }
+    </div>
+  }
 </section>

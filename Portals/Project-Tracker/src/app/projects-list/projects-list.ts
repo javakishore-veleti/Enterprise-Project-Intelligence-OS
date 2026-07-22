@@ -1,94 +1,63 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
 
-import { Project } from '../models/project';
+import { PortfolioProject, PortfolioSummary } from '../models/portfolio';
 import { ProjectsService } from '../services/projects.service';
 import { About } from '../ui/about';
+import { UserScopeService } from '../ui/user-scope.service';
 
 @Component({
   selector: 'app-projects-list',
-  imports: [FormsModule, RouterLink, About],
+  imports: [FormsModule, RouterLink, DecimalPipe, About],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
 })
-export class ProjectsList implements OnInit, OnDestroy {
-  protected readonly projects = signal<Project[]>([]);
-  protected readonly total = signal(0);
-  protected readonly loading = signal(false);
+export class ProjectsList {
+  private readonly projectsService = inject(ProjectsService);
+  protected readonly scope = inject(UserScopeService);
+
+  protected readonly summary = signal<PortfolioSummary | null>(null);
+  protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
-  query = '';
+  protected view: 'cards' | 'table' = 'table';
+  protected asOf = '';
+  protected query = '';
+  protected readonly todayStr = this.isoDate(0);
 
-  private readonly search$ = new Subject<string>();
-  private sub?: Subscription;
-
-  /** Portfolio KPIs computed from the loaded projects. */
-  protected readonly totalIssues = computed(() =>
-    this.projects().reduce((s, p) => s + (p.issue_count ?? 0), 0),
-  );
-  protected readonly totalOpen = computed(() =>
-    this.projects().reduce((s, p) => s + (p.open_issue_count ?? 0), 0),
-  );
-  protected readonly openRatio = computed(() => {
-    const t = this.totalIssues();
-    return t > 0 ? this.totalOpen() / t : 0;
+  /** Projects in scope, filtered by the search query. */
+  protected readonly projects = computed<PortfolioProject[]>(() => {
+    const all = this.summary()?.top_projects ?? [];
+    const q = this.query.trim().toLowerCase();
+    return q ? all.filter((p) => p.project_key.toLowerCase().includes(q) || (p.name || '').toLowerCase().includes(q)) : all;
   });
-  protected readonly atRisk = computed(() =>
-    this.projects().filter((p) => (p.issue_count ?? 0) > 0 && (p.open_issue_count ?? 0) / (p.issue_count ?? 1) >= 0.5).length,
-  );
+  protected readonly totals = computed(() => this.summary()?.totals ?? { projects: 0, issues: 0, open_issues: 0 });
+  protected readonly bands = computed(() => this.summary()?.risk_bands ?? { high: 0, medium: 0, low: 0, unscored: 0 });
 
-  constructor(private readonly projectsService: ProjectsService) {}
-
-  ngOnInit(): void {
-    this.sub = this.search$
-      .pipe(
-        startWith(this.query),
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((query) => {
-          this.loading.set(true);
-          this.error.set(null);
-          return this.projectsService.searchProjects({ query: query.trim(), limit: 50 });
-        }),
-      )
-      .subscribe({
-        next: (response) => {
-          this.projects.set(response.items);
-          this.total.set(response.page.total);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.error.set('Unable to load projects. Is the Projects-API running on :8003?');
-          this.projects.set([]);
-          this.total.set(0);
-          this.loading.set(false);
-        },
-      });
+  constructor() {
+    toObservable(this.scope.userKey).subscribe(() => this.load());
   }
 
-  onQueryChange(value: string): void {
-    this.search$.next(value);
+  private load(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.projectsService.getPortfolioSummary(50, this.scope.userKey() || null, this.asOf || undefined).subscribe({
+      next: (s) => { this.summary.set(s); this.loading.set(false); },
+      error: () => { this.error.set('Unable to load projects. Is the Projects-API running on :8003?'); this.loading.set(false); },
+    });
   }
 
-  /** Open-issue ratio for one project (0–1), for the inline health bar. */
-  protected ratio(p: Project): number {
-    const issues = p.issue_count ?? 0;
-    return issues > 0 ? (p.open_issue_count ?? 0) / issues : 0;
-  }
+  protected onDateChange(): void { this.load(); }
+  protected setToday(): void { this.asOf = ''; this.load(); }
+  protected setYesterday(): void { this.asOf = this.isoDate(-1); this.load(); }
+  protected get isToday(): boolean { return this.asOf === '' || this.asOf === this.todayStr; }
 
-  protected healthClass(p: Project): string {
-    const r = this.ratio(p);
-    return r >= 0.5 ? 'is-high' : r >= 0.25 ? 'is-medium' : 'is-low';
-  }
+  protected bandClass(band: string): string { return (band || 'low').toLowerCase(); }
+  protected scoreClass(score: number): string { return score >= 66 ? 'high' : score >= 33 ? 'medium' : 'low'; }
+  protected pctOf(v: number): number { return Math.round((v ?? 0) * 100); }
 
-  protected asPercent(v: number): string {
-    return `${Math.round(v * 100)}%`;
-  }
-
-  ngOnDestroy(): void {
-    this.sub?.unsubscribe();
-  }
+  private isoDate(days: number): string { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 }
