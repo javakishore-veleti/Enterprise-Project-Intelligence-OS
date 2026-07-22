@@ -99,9 +99,15 @@ class PortfolioSummaryResponse(TypedModel):
 
     Optionally scoped to a caller's assigned projects (``scope``). ``portfolio_score``
     is a severity-weighted 0..100 roll-up of the scoped projects.
+
+    ``as_of`` echoes the applied point-in-time date (ISO ``YYYY-MM-DD``) when the
+    caller asked for a historical view — totals/bands/scores then reflect each
+    project's latest metrics snapshot on/before that date; ``null`` means the
+    newest snapshot per project (live view).
     """
 
     scope: PortfolioScope
+    as_of: str | None = None
     portfolio_score: float
     overall_risk: str
     totals: PortfolioTotals

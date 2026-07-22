@@ -7,6 +7,8 @@ user). The narrowing itself happens in the DB (see the DAO ``$match``).
 """
 from __future__ import annotations
 
+from datetime import date
+
 from projects_api.dtos.responses import PortfolioSummaryResponse
 from projects_api.interfaces.daos import ProjectAssignmentsDao
 from projects_api.interfaces.facades import PortfolioSummaryUseCase
@@ -22,7 +24,12 @@ class PortfolioSummaryFacade(PortfolioSummaryUseCase):
         self._service = service
         self._assignments = assignments
 
-    def execute(self, top: int, user_key: str | None = None) -> PortfolioSummaryResponse:
+    def execute(
+        self,
+        top: int,
+        user_key: str | None = None,
+        as_of: date | None = None,
+    ) -> PortfolioSummaryResponse:
         project_keys: list[str] | None = None
         scoped = False
         if user_key and self._assignments is not None:
@@ -32,5 +39,5 @@ class PortfolioSummaryFacade(PortfolioSummaryUseCase):
                 project_keys = assigned
                 scoped = True
         return self._service.summarize(
-            top, project_keys=project_keys, user_key=user_key, scoped=scoped
+            top, project_keys=project_keys, user_key=user_key, scoped=scoped, as_of=as_of
         )

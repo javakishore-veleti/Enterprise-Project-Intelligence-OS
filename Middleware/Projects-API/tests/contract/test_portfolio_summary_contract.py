@@ -1,6 +1,8 @@
 """Contract tests for GET /api/v1/projects/portfolio-summary (fake DAO)."""
 from __future__ import annotations
 
+from datetime import date
+
 from fastapi.testclient import TestClient
 
 from projects_api.api.dependencies import provide_portfolio_summary_facade
@@ -25,18 +27,35 @@ AGGREGATE = PortfolioAggregate(
 # user_key -> assigned project keys (the scoping seam).
 ASSIGNMENTS = {"mgr-calm": ["CALM"]}
 
+# Date of each project's latest metrics snapshot (drives the as_of filter).
+SNAPSHOT_DATES = {"RISKY": date(2026, 7, 10), "CALM": date(2026, 6, 1)}
+
 
 class _FakePortfolioDao(PortfolioSummaryDao):
-    def portfolio_data(self, project_keys: list[str] | None = None) -> PortfolioAggregate:
+    def portfolio_data(
+        self,
+        project_keys: list[str] | None = None,
+        as_of: date | None = None,
+    ) -> PortfolioAggregate:
         if project_keys is None:
-            return AGGREGATE
-        allowed = set(project_keys)
-        scoped = [r for r in SCORED if r.project_key in allowed]
+            total_projects = AGGREGATE.total_projects
+            total_issues = AGGREGATE.total_issues
+            total_open = AGGREGATE.total_open_issues
+            scored = list(SCORED)
+        else:
+            allowed = set(project_keys)
+            scored = [r for r in SCORED if r.project_key in allowed]
+            total_projects = len(scored)
+            total_issues = sum(r.issue_count for r in scored)
+            total_open = sum(r.open_issue_count for r in scored)
+        if as_of is not None:
+            # as_of trims scored rows only; totals come from the projects roll-up.
+            scored = [r for r in scored if SNAPSHOT_DATES.get(r.project_key) <= as_of]
         return PortfolioAggregate(
-            total_projects=len(scoped),
-            total_issues=sum(r.issue_count for r in scoped),
-            total_open_issues=sum(r.open_issue_count for r in scoped),
-            scored=scoped,
+            total_projects=total_projects,
+            total_issues=total_issues,
+            total_open_issues=total_open,
+            scored=scored,
         )
 
 
@@ -59,8 +78,9 @@ def test_portfolio_summary_full_shape_default_top() -> None:
     assert resp.status_code == 200
     body = resp.json()
 
-    # new top-level fields: scope, portfolio_score, computed_at
+    # new top-level fields: scope, as_of, portfolio_score, computed_at
     assert body["scope"] == {"user_key": None, "project_count": 4, "scoped": False}
+    assert body["as_of"] is None                    # live view by default
     assert 0.0 <= body["portfolio_score"] <= 100.0
     assert body["portfolio_score"] > 0.0
     assert isinstance(body["computed_at"], str) and body["computed_at"]
@@ -142,6 +162,73 @@ def test_portfolio_summary_unknown_user_falls_back_to_all() -> None:
     body = resp.json()
     assert body["scope"] == {"user_key": "nobody", "project_count": 4, "scoped": False}
     assert [p["project_key"] for p in body["top_projects"]] == ["RISKY", "CALM"]
+
+
+def test_portfolio_summary_as_of_narrows_to_snapshots_on_or_before_date() -> None:
+    # RISKY's snapshot (2026-07-10) is AFTER as_of -> excluded; CALM stays.
+    resp = _client().get(
+        "/api/v1/projects/portfolio-summary", params={"as_of": "2026-07-05"})
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["as_of"] == "2026-07-05"            # echoed back
+    keys = [p["project_key"] for p in body["top_projects"]]
+    assert keys == ["CALM"]
+    assert "RISKY" not in keys
+    # 4 total projects, only CALM scored as-of -> 3 unscored
+    assert body["risk_bands"]["unscored"] == 3
+    assert body["risk_bands"]["high"] == 0
+    # totals come from the projects roll-up (time-independent), unchanged
+    assert body["totals"] == {"projects": 4, "issues": 1100, "open_issues": 1002}
+
+
+def test_portfolio_summary_as_of_includes_snapshot_on_exact_date() -> None:
+    # as_of exactly on RISKY's snapshot date -> both projects scored (inclusive).
+    resp = _client().get(
+        "/api/v1/projects/portfolio-summary", params={"as_of": "2026-07-10"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["as_of"] == "2026-07-10"
+    assert [p["project_key"] for p in body["top_projects"]] == ["RISKY", "CALM"]
+    assert body["risk_bands"]["unscored"] == 2      # both scored; 4 total
+
+
+def test_portfolio_summary_as_of_absent_is_unchanged() -> None:
+    resp = _client().get("/api/v1/projects/portfolio-summary")
+    body = resp.json()
+    assert body["as_of"] is None
+    assert [p["project_key"] for p in body["top_projects"]] == ["RISKY", "CALM"]
+
+
+def test_portfolio_summary_bad_as_of_is_422() -> None:
+    assert _client().get(
+        "/api/v1/projects/portfolio-summary",
+        params={"as_of": "not-a-date"}).status_code == 422
+    assert _client().get(
+        "/api/v1/projects/portfolio-summary",
+        params={"as_of": "2026-13-99"}).status_code == 422
+
+
+def test_portfolio_summary_as_of_combined_with_scoping_and_top() -> None:
+    # mgr-calm scoped to CALM; CALM's snapshot (2026-06-01) is on/before as_of.
+    resp = _client().get(
+        "/api/v1/projects/portfolio-summary",
+        params={"as_of": "2026-07-05", "top": 1},
+        headers={"X-User-Key": "mgr-calm"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["as_of"] == "2026-07-05"
+    assert body["scope"] == {"user_key": "mgr-calm", "project_count": 1, "scoped": True}
+    assert [p["project_key"] for p in body["top_projects"]] == ["CALM"]
+    assert len(body["top_projects"]) <= 1
+
+
+def test_portfolio_summary_as_of_param_in_openapi_schema() -> None:
+    schema = _client().get("/openapi.json").json()
+    params = schema["paths"]["/api/v1/projects/portfolio-summary"]["get"]["parameters"]
+    as_of_param = next(p for p in params if p["name"] == "as_of")
+    # optional date param (nullable / not required)
+    assert as_of_param["required"] is False
 
 
 def test_portfolio_summary_default_top_is_15() -> None:

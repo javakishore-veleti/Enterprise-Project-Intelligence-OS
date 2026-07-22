@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 
 from projects_api.dtos.common import PortfolioAggregate
 from projects_api.dtos.responses import (
@@ -61,12 +62,22 @@ class PortfolioSummaryDao(ABC):
     their latest metrics and rolls up totals server-side."""
 
     @abstractmethod
-    def portfolio_data(self, project_keys: list[str] | None = None) -> PortfolioAggregate:
+    def portfolio_data(
+        self,
+        project_keys: list[str] | None = None,
+        as_of: date | None = None,
+    ) -> PortfolioAggregate:
         """Totals over projects + latest-metrics rows for scored projects.
 
         When ``project_keys`` is provided, the aggregation is narrowed to those
         keys **in the database** (``$match project_key $in [...]``) so scoping
         never pulls the full portfolio into Python.
+
+        When ``as_of`` is provided, each project's scored row is drawn from its
+        latest metrics snapshot with ``computed_at <= end-of-day(as_of)`` (the
+        ``$match`` on ``computed_at`` runs **in the database** before the
+        latest-per-project group); projects with no qualifying snapshot drop out
+        and are counted as unscored.
         """
 
 

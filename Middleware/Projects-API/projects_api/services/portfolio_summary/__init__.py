@@ -29,7 +29,7 @@ High-band, else Medium if any is Medium-band, else Low.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from projects_api.dtos.common import PortfolioScoredRow
 from projects_api.dtos.responses import (
@@ -151,8 +151,9 @@ class DefaultPortfolioSummaryService(PortfolioSummaryService):
         project_keys: list[str] | None = None,
         user_key: str | None = None,
         scoped: bool = False,
+        as_of: date | None = None,
     ) -> PortfolioSummaryResponse:
-        data = self._dao.portfolio_data(project_keys)
+        data = self._dao.portfolio_data(project_keys, as_of=as_of)
 
         scored: list[tuple[float, str, PortfolioScoredRow]] = []
         high = medium = low = 0
@@ -199,6 +200,7 @@ class DefaultPortfolioSummaryService(PortfolioSummaryService):
                 project_count=data.total_projects,
                 scoped=scoped,
             ),
+            as_of=as_of.isoformat() if as_of is not None else None,
             portfolio_score=roll_up,
             overall_risk=overall,
             totals=PortfolioTotals(

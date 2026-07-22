@@ -1,6 +1,8 @@
 """Unit tests for the portfolio-summary service against an in-memory fake DAO."""
 from __future__ import annotations
 
+from datetime import date
+
 from projects_api.dtos.common import PortfolioAggregate, PortfolioScoredRow
 from projects_api.interfaces.daos import PortfolioSummaryDao
 from projects_api.services.portfolio_summary import (
@@ -13,23 +15,54 @@ from projects_api.services.portfolio_summary import (
 
 
 class FakePortfolioSummaryDao(PortfolioSummaryDao):
-    """In-memory fake that honors the DB-side ``project_keys`` scoping filter so
-    the scoping behaviour is actually exercised (not just passed through)."""
+    """In-memory fake that honors the DB-side ``project_keys`` scoping filter AND
+    the ``as_of`` snapshot filter so both behaviours are actually exercised (not
+    just passed through).
 
-    def __init__(self, aggregate: PortfolioAggregate) -> None:
+    ``snapshot_dates`` maps a project_key to the date of its latest metrics
+    snapshot; when ``as_of`` is given only projects whose snapshot lands on/before
+    that date stay scored (mirroring the DB ``$match`` on ``computed_at``). Totals
+    come from the (time-independent) projects roll-up, so ``as_of`` only trims the
+    scored rows — dropped projects become ``unscored``.
+    """
+
+    def __init__(
+        self,
+        aggregate: PortfolioAggregate,
+        snapshot_dates: dict[str, date] | None = None,
+    ) -> None:
         self._aggregate = aggregate
+        self._snapshot_dates = snapshot_dates or {}
+        self.last_as_of: date | None = None
 
-    def portfolio_data(self, project_keys: list[str] | None = None) -> PortfolioAggregate:
-        if project_keys is None:
-            return self._aggregate
-        allowed = set(project_keys)
-        scoped = [r for r in self._aggregate.scored if r.project_key in allowed]
-        # Totals recomputed over the scoped rows (mirrors the DB $match).
+    def portfolio_data(
+        self,
+        project_keys: list[str] | None = None,
+        as_of: date | None = None,
+    ) -> PortfolioAggregate:
+        self.last_as_of = as_of
+        scored = list(self._aggregate.scored)
+        total_projects = self._aggregate.total_projects
+        total_issues = self._aggregate.total_issues
+        total_open = self._aggregate.total_open_issues
+        if project_keys is not None:
+            allowed = set(project_keys)
+            scored = [r for r in scored if r.project_key in allowed]
+            # Totals recomputed over the scoped rows (mirrors the DB $match).
+            total_projects = len(scored)
+            total_issues = sum(r.issue_count for r in scored)
+            total_open = sum(r.open_issue_count for r in scored)
+        if as_of is not None:
+            scored = [
+                r for r in scored
+                if r.project_key in self._snapshot_dates
+                and self._snapshot_dates[r.project_key] <= as_of
+            ]
         return PortfolioAggregate(
-            total_projects=len(scoped),
-            total_issues=sum(r.issue_count for r in scoped),
-            total_open_issues=sum(r.open_issue_count for r in scoped),
-            scored=scoped,
+            total_projects=total_projects,
+            total_issues=total_issues,
+            total_open_issues=total_open,
+            scored=scored,
         )
 
 
@@ -191,3 +224,80 @@ def test_summarize_scoped_narrows_to_project_keys_in_db() -> None:
     assert result.totals.projects == 2
     assert result.risk_bands.high == 0             # HIGH excluded
     assert result.risk_bands.unscored == 0
+
+
+# --- as_of point-in-time view --------------------------------------------- #
+def _as_of_service(scored, total_projects, snapshot_dates, total_issues=0, total_open=0):
+    agg = PortfolioAggregate(
+        total_projects=total_projects, total_issues=total_issues,
+        total_open_issues=total_open, scored=scored,
+    )
+    return DefaultPortfolioSummaryService(
+        FakePortfolioSummaryDao(agg, snapshot_dates=snapshot_dates)
+    )
+
+
+def test_summarize_as_of_none_is_unchanged_and_echoes_null() -> None:
+    result = _service([HIGH, MID, LOW], total_projects=3).summarize(top=15)
+    assert result.as_of is None
+    assert [p.project_key for p in result.top_projects] == ["HIGH", "MID", "LOW"]
+
+
+def test_summarize_as_of_narrows_to_snapshots_on_or_before_date() -> None:
+    # HIGH snapshot is AFTER the as_of date -> excluded (unscored); MID/LOW stay.
+    snapshots = {
+        "HIGH": date(2026, 7, 10),
+        "MID": date(2026, 7, 1),
+        "LOW": date(2026, 6, 15),
+    }
+    result = _as_of_service(
+        [HIGH, MID, LOW], total_projects=3, snapshot_dates=snapshots
+    ).summarize(top=15, as_of=date(2026, 7, 5))
+
+    keys = [p.project_key for p in result.top_projects]
+    assert keys == ["MID", "LOW"]                  # HIGH's snapshot is too recent
+    assert "HIGH" not in keys
+    assert result.as_of == "2026-07-05"            # echoed back as ISO string
+    assert result.risk_bands.high == 0             # HIGH dropped out
+    assert result.risk_bands.unscored == 1         # 3 total - 2 scored as-of
+
+
+def test_summarize_as_of_before_all_snapshots_is_all_unscored() -> None:
+    snapshots = {"HIGH": date(2026, 7, 10), "MID": date(2026, 7, 1)}
+    result = _as_of_service(
+        [HIGH, MID], total_projects=2, snapshot_dates=snapshots
+    ).summarize(top=15, as_of=date(2026, 1, 1))
+    assert result.top_projects == []
+    assert result.risk_bands.unscored == 2
+    assert result.overall_risk == "Low"
+    assert result.as_of == "2026-01-01"
+
+
+def test_summarize_as_of_threads_to_dao() -> None:
+    agg = PortfolioAggregate(
+        total_projects=1, total_issues=0, total_open_issues=0, scored=[HIGH],
+    )
+    dao = FakePortfolioSummaryDao(agg, snapshot_dates={"HIGH": date(2026, 1, 1)})
+    DefaultPortfolioSummaryService(dao).summarize(top=5, as_of=date(2026, 7, 5))
+    assert dao.last_as_of == date(2026, 7, 5)
+
+
+def test_summarize_as_of_and_scoping_apply_together() -> None:
+    # Scope to MID/LOW; as_of excludes MID's too-recent snapshot -> only LOW.
+    snapshots = {
+        "HIGH": date(2026, 7, 1),
+        "MID": date(2026, 7, 10),
+        "LOW": date(2026, 6, 1),
+    }
+    result = _as_of_service(
+        [HIGH, MID, LOW], total_projects=3, snapshot_dates=snapshots
+    ).summarize(
+        top=15, project_keys=["MID", "LOW"], user_key="mgr-x", scoped=True,
+        as_of=date(2026, 7, 5),
+    )
+    keys = [p.project_key for p in result.top_projects]
+    assert keys == ["LOW"]                          # HIGH out of scope, MID too recent
+    assert result.scope.scoped is True
+    assert result.as_of == "2026-07-05"
+    assert result.scope.project_count == 2          # scoped totals unaffected by as_of
+    assert result.risk_bands.unscored == 1          # 2 scoped - 1 as-of scored

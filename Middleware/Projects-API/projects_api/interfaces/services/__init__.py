@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 
 from projects_api.dtos.requests import (
     CreateProjectGroupRequest,
@@ -61,6 +62,7 @@ class PortfolioSummaryService(ABC):
         project_keys: list[str] | None = None,
         user_key: str | None = None,
         scoped: bool = False,
+        as_of: date | None = None,
     ) -> PortfolioSummaryResponse: ...
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 
 from projects_api.dtos.requests import (
     CreateProjectGroupRequest,
@@ -35,7 +36,12 @@ class GetProjectMetricsUseCase(ABC):
 
 class PortfolioSummaryUseCase(ABC):
     @abstractmethod
-    def execute(self, top: int, user_key: str | None = None) -> PortfolioSummaryResponse: ...
+    def execute(
+        self,
+        top: int,
+        user_key: str | None = None,
+        as_of: date | None = None,
+    ) -> PortfolioSummaryResponse: ...
 
 
 class ProjectGroupsUseCase(ABC):

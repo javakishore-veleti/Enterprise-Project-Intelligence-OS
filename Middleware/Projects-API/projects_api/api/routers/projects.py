@@ -1,6 +1,8 @@
 """Project query endpoints (HTTP concerns + validation only)."""
 from __future__ import annotations
 
+from datetime import date
+
 from fastapi import APIRouter, Depends, Header, Query
 
 from projects_api.api.dependencies import (
@@ -66,6 +68,12 @@ def search_projects(
 )
 def portfolio_summary(
     top: int = Query(default=15, ge=1, le=50),
+    as_of: date | None = Query(
+        default=None,
+        description="Point-in-time view: ISO date YYYY-MM-DD. Totals/bands/scores "
+        "reflect each project's latest metrics snapshot on/before this date. "
+        "Omit for the live (newest) view.",
+    ),
     x_user_key: str | None = Header(default=None, alias="X-User-Key"),
     facade: PortfolioSummaryFacade = Depends(provide_portfolio_summary_facade),
 ) -> PortfolioSummaryResponse:
@@ -74,8 +82,13 @@ def portfolio_summary(
     When an ``X-User-Key`` header identifies a user with project assignments, the
     ranking + totals + bands are scoped to that user's projects (the per-user
     scoping seam); otherwise it covers the whole portfolio.
+
+    An optional ``as_of`` date yields a historical view: each project's scored
+    row is drawn from its latest metrics snapshot on/before that date (both the
+    as-of filter and the per-user scoping apply together). A malformed date is
+    rejected with 422.
     """
-    return facade.execute(top, user_key=x_user_key)
+    return facade.execute(top, user_key=x_user_key, as_of=as_of)
 
 
 @router.get("/{project_key}", response_model=ProjectResponse, operation_id="getProject")
