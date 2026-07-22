@@ -96,3 +96,26 @@ class ScenarioRequest(TypedModel):
     project_key: str = Field(min_length=1)
     scenario: str = Field(min_length=1, description="Free-text what-if to simulate.")
     requested_by: str | None = Field(default=None)
+
+
+class DecisionRequest(TypedModel):
+    """Ask the Decide engine for prescriptive decision support on one project.
+
+    Decide leads with OPTIONS. Deterministic code assembles the evidence (the
+    delivery forecast, open blockers, top contributors); the LLM (mitigation-
+    planning persona) proposes 2-3 decision options — each with prioritized
+    actions + suggested owners — plus a comparison narrative.
+    """
+
+    project_key: str = Field(min_length=1)
+    requested_by: str | None = Field(default=None)
+    context: str | None = Field(
+        default=None,
+        description="Optional free-text steer, e.g. 'we must ship by Q3'.",
+    )
+
+
+class SelectOptionRequest(TypedModel):
+    """Choose one of a decision's generated options (its actions become the plan)."""
+
+    option_id: str = Field(min_length=1)

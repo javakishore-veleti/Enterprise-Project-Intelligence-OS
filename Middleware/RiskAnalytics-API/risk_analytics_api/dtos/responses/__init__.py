@@ -452,6 +452,86 @@ class EarlyWarningsResponse(TypedModel):
     items: list[EarlyWarning] = []
 
 
+# --- Decide: Options-first decision support --------------------------------
+
+
+class DecisionOption(TypedModel):
+    """One prescriptive decision option — Decide leads with these.
+
+    The chosen option's ``actions`` + ``suggested_owners`` ARE the plan (no
+    separate plan-generation step)."""
+
+    #: Stable id assigned by the service (e.g. "opt-1"), used to select the option.
+    option_id: str
+    title: str
+    summary: str = ""
+    #: Prioritized concrete steps (most important first).
+    actions: list[str] = []
+    #: Owners derived from the project's top contributors (history authorship).
+    suggested_owners: list[str] = []
+    predicted_outcome: str = ""
+    tradeoffs: str = ""
+    recovery_estimate: str = ""
+    confidence: float = 0.5
+
+
+class DecisionResponse(TypedModel):
+    """A prescriptive decision: the generated options + the comparison narrative,
+    plus which option was selected/approved. ``question`` always null (mirrors the
+    forecast DTO shape)."""
+
+    decision_id: str
+    project_key: str
+    #: Always null on a decision (the field exists to mirror investigations/forecasts).
+    question: str | None = None
+    options: list[DecisionOption] = []
+    selected_option_id: str | None = None
+    status: str  # DRAFTED | SELECTED | APPROVED | FAILED
+    narrative: str = ""
+    confidence: float
+    run_id: str
+    created_at: datetime
+    approved_at: datetime | None = None
+
+
+class DecisionSummary(TypedModel):
+    """Compact view of a past decision (for the history list)."""
+
+    decision_id: str
+    project_key: str
+    status: str
+    option_count: int
+    selected_option_id: str | None = None
+    confidence: float | None = None
+    created_at: datetime
+
+
+class DecisionsPageResponse(TypedModel):
+    """A capped, newest-first page of decision history (max 100 rows)."""
+
+    total: int
+    returned: int
+    offset: int
+    limit: int
+    items: list[DecisionSummary] = []
+
+
+class DecisionRecord(TypedModel):
+    """Cross-layer persistence object: a full decision row for the DAO to insert."""
+
+    decision_id: str
+    project_key: str
+    requested_by: str | None = None
+    status: str
+    options: list[DecisionOption] = []
+    selected_option_id: str | None = None
+    narrative: str | None = None
+    confidence: float | None = None
+    run_id: str | None = None
+    created_at: datetime
+    approved_at: datetime | None = None
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str
