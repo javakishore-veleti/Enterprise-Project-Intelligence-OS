@@ -1,105 +1,103 @@
-import { Component, NgZone, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subscription, timer } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 
-import { DashboardActivity } from '../models/analysis';
+import { AttentionItem } from '../models/analysis';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
 
-const POLL_MS = 20000;
+const PAGE = 20;
 
+/** Watch = the full Signals & Attention stream (the "View all attention" target). */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule, DecimalPipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard implements OnInit, OnDestroy {
-  private readonly riskService = inject(RiskAnalyticsService);
-  private readonly zone = inject(NgZone);
+export class Dashboard implements OnInit {
+  private readonly risk = inject(RiskAnalyticsService);
 
-  protected readonly activity = signal<DashboardActivity | null>(null);
+  protected readonly items = signal<AttentionItem[]>([]);
+  protected readonly total = signal(0);
   protected readonly loading = signal(true);
+  protected readonly loadingMore = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly refreshing = signal(false);
 
-  private sub?: Subscription;
-
-  protected readonly runs = computed(() => this.activity()?.recent_runs ?? []);
-  protected readonly findings = computed(() => this.activity()?.recent_findings ?? []);
-  protected readonly totals = computed(
-    () => this.activity()?.totals ?? { total_runs: 0, total_findings: 0, projects_analyzed: 0 },
-  );
-  protected readonly highSeverity = computed(
-    () => this.findings().filter((f) => ['HIGH', 'CRITICAL'].includes((f.severity || '').toUpperCase())).length,
-  );
-
-  /** Distribution of recent findings by severity — drives the stacked bar. */
-  protected readonly severityMix = computed(() => {
-    const keys = ['critical', 'high', 'medium', 'low'] as const;
-    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
-    for (const f of this.findings()) {
-      const s = (f.severity || '').toLowerCase();
-      if (s in counts) counts[s] += 1;
-    }
-    const total = keys.reduce((n, k) => n + counts[k], 0);
-    const segments = keys.map((k) => ({
-      key: k,
-      label: k.charAt(0).toUpperCase() + k.slice(1),
-      count: counts[k],
-      pct: total ? (counts[k] / total) * 100 : 0,
-    }));
-    return { segments, total };
-  });
+  /** as_of date (YYYY-MM-DD); '' = today (live). */
+  protected asOf = '';
+  protected readonly todayStr = this.isoDate(0);
+  protected offset = 0;
 
   ngOnInit(): void {
-    // Poll immediately, then every POLL_MS. Run the recurring timer OUTSIDE
-    // Angular's zone so it doesn't keep the app perpetually unstable; hop back
-    // into the zone only to apply signal updates.
-    this.zone.runOutsideAngular(() => {
-      this.sub = timer(0, POLL_MS)
-        .pipe(switchMap(() => {
-          this.zone.run(() => this.refreshing.set(true));
-          return this.riskService.getActivity(15);
-        }))
-        .subscribe({
-          next: (data) => this.zone.run(() => {
-            this.activity.set(data);
-            this.loading.set(false);
-            this.refreshing.set(false);
-            this.error.set(null);
-          }),
-          error: () => this.zone.run(() => {
-            this.loading.set(false);
-            this.refreshing.set(false);
-            this.error.set('Unable to load live activity. Is the RiskAnalytics-API running on :8004?');
-          }),
-        });
+    this.reload();
+  }
+
+  protected onDateChange(): void {
+    this.reload();
+  }
+
+  protected setToday(): void { this.asOf = ''; this.reload(); }
+  protected setYesterday(): void { this.asOf = this.isoDate(-1); this.reload(); }
+
+  protected get isToday(): boolean { return this.asOf === '' || this.asOf === this.todayStr; }
+
+  private reload(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.offset = 0;
+    this.risk.getAttention(PAGE, { asOf: this.asOf || undefined, offset: 0 }).subscribe({
+      next: (r) => {
+        this.items.set(r.items);
+        this.total.set(r.total);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Unable to load the attention feed. Is the RiskAnalytics-API running on :8004?');
+        this.loading.set(false);
+      },
     });
   }
 
-  ngOnDestroy(): void {
-    this.sub?.unsubscribe();
+  protected loadMore(): void {
+    if (this.loadingMore()) return;
+    this.loadingMore.set(true);
+    this.offset += PAGE;
+    this.risk.getAttention(PAGE, { asOf: this.asOf || undefined, offset: this.offset }).subscribe({
+      next: (r) => {
+        this.items.update((cur) => [...cur, ...r.items]);
+        this.total.set(r.total);
+        this.loadingMore.set(false);
+      },
+      error: () => this.loadingMore.set(false),
+    });
   }
 
-  protected severityClass(severity: string): string {
-    return (severity || 'unknown').toLowerCase();
+  protected severityClass(sev: string): string {
+    return (sev || 'unknown').toLowerCase();
   }
-
-  protected statusClass(status: string): string {
-    return (status || '').toLowerCase();
+  protected pctOf(v: number): number {
+    return Math.round((v ?? 0) * 100);
   }
-
-  /** "3m ago" style relative time from an ISO timestamp. */
-  protected ago(iso: string | null): string {
-    if (!iso) return '—';
+  protected primaryAction(a: AttentionItem): string | null {
+    return a.recommended_actions?.[0] ?? null;
+  }
+  protected ago(iso: string): string {
     const then = new Date(iso).getTime();
+    if (isNaN(then)) return '';
     const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
     if (secs < 60) return `${secs}s ago`;
-    const mins = Math.round(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.round(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.round(hrs / 24)}d ago`;
+    const m = Math.round(secs / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.round(h / 24)}d ago`;
+  }
+
+  /** ISO date string offset by `days` from today (browser-local). */
+  private isoDate(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
   }
 }
