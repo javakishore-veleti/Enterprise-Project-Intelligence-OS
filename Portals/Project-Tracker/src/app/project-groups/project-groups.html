@@ -1,0 +1,81 @@
+<section class="groups">
+  <div class="groups__intro">
+    <p class="subtitle">Organize projects into portfolios and evaluate their <strong>combined</strong> delivery risk.</p>
+    <button (click)="toggleForm()">
+      {{ showForm ? 'Close' : '+ New group' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
+  }
+
+  <!-- Create form -->
+  @if (showForm) {
+    <div class="form-card">
+      <h2 class="form-card__title">Create a project group</h2>
+      <div class="form-row">
+        <label class="field">
+          <span>Group name</span>
+          <input type="text" [(ngModel)]="formName" placeholder="e.g. Apache Ecosystem" />
+        </label>
+        <label class="field">
+          <span>Description (optional)</span>
+          <input type="text" [(ngModel)]="formDescription" placeholder="What ties these projects together" />
+        </label>
+      </div>
+      <span class="field__label">Member projects ({{ selected().size }} selected)</span>
+      <div class="picker">
+        @for (p of projects(); track p.project_key) {
+          <label class="chip" [class.chip--on]="isSelected(p.project_key)">
+            <input type="checkbox" [checked]="isSelected(p.project_key)" (change)="toggleProject(p.project_key)" />
+            <span class="mono">{{ p.project_key }}</span>
+          </label>
+        }
+      </div>
+      <div class="form-actions">
+        <button class="btn--ghost" (click)="toggleForm()">Cancel</button>
+        <button [disabled]="!canCreate() || saving()" (click)="create()">
+          @if (saving()) { <span class="spinner"></span> Creating… } @else { Create group }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Groups list -->
+  @if (loading()) {
+    <p class="groups__status"><span class="spinner spinner--brand"></span> Loading groups…</p>
+  } @else if (groups().length === 0) {
+    <div class="empty-card">
+      <div class="empty-card__icon">◵</div>
+      <h3>No groups yet</h3>
+      <p class="muted">Create a group to evaluate combined portfolio risk across related projects.</p>
+    </div>
+  } @else {
+    <div class="group-grid">
+      @for (g of groups(); track g.group_key) {
+        <article class="group">
+          <header class="group__head">
+            <div>
+              <h3 class="group__name">{{ g.name }}</h3>
+              @if (g.description) { <p class="group__desc">{{ g.description }}</p> }
+            </div>
+            <span class="badge">{{ g.project_keys.length }} projects</span>
+          </header>
+          <div class="group__members">
+            @for (k of g.project_keys; track k) {
+              <span class="member mono">{{ k }}</span>
+            }
+          </div>
+          <div class="group__actions">
+            <button class="btn--sm" [disabled]="runningKey() === g.group_key || g.project_keys.length === 0" (click)="runPortfolio(g)">
+              @if (runningKey() === g.group_key) { <span class="spinner"></span> Running… }
+              @else { ▶ Run Portfolio Risk }
+            </button>
+            <button class="btn--ghost btn--sm" (click)="remove(g)">Delete</button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

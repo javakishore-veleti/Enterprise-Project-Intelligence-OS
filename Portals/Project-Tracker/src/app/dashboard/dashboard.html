@@ -1,0 +1,105 @@
+<section class="dash">
+  <div class="dash__intro">
+    <p class="subtitle">Live delivery-risk intelligence — what the agents are doing right now and what they're finding.</p>
+    <span class="live" [class.live--on]="refreshing()"><span class="live__dot"></span> Live · auto-refresh 20s</span>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
+  }
+
+  <!-- KPI strip (dynamic totals) -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--brand">◈</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Analyses Run</span>
+        <span class="kpi__value">{{ totals().total_runs }}</span>
+        <span class="kpi__sub">across {{ totals().projects_analyzed }} project(s)</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--info">◆</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Findings Surfaced</span>
+        <span class="kpi__value">{{ totals().total_findings }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--danger">▲</div>
+      <div class="kpi__body">
+        <span class="kpi__label">High / Critical (recent)</span>
+        <span class="kpi__value">{{ highSeverity() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--warning">⟳</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Recent Runs Shown</span>
+        <span class="kpi__value">{{ runs().length }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash__grid">
+    <!-- Live agent activity -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Agent Execution Activity</h2>
+        <span class="panel__hint">how the agents are running</span>
+      </div>
+      @if (loading()) {
+        <p class="dash__status"><span class="spinner spinner--brand"></span> Loading activity…</p>
+      } @else {
+        <div class="panel__scroll">
+          <table>
+            <thead>
+              <tr><th>Project</th><th>Agents</th><th class="num">Findings</th><th>Status</th><th class="num">When</th></tr>
+            </thead>
+            <tbody>
+              @for (r of runs(); track r.run_id) {
+                <tr>
+                  <td class="mono">{{ r.project_key }}</td>
+                  <td><span class="pillcount">{{ r.agent_keys.length }} agent(s)</span></td>
+                  <td class="num">{{ r.finding_count }}</td>
+                  <td><span class="badge badge--{{ statusClass(r.status) }}">{{ r.status }}</span></td>
+                  <td class="num muted">{{ ago(r.started_at) }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="dash__empty">No analyses yet — run one from Project Risk.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Latest findings -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Latest Risk Findings</h2>
+        <span class="panel__hint">what the agents found</span>
+      </div>
+      @if (!loading()) {
+        <ul class="feed">
+          @for (f of findings(); track f.finding_id) {
+            <li class="feed__item">
+              <span class="badge badge--{{ severityClass(f.severity) }}">{{ f.severity }}</span>
+              <div class="feed__body">
+                <div class="feed__meta">
+                  <span class="mono">{{ f.project_key }}</span>
+                  <span class="feed__cat">{{ f.risk_category }}</span>
+                  <span class="muted">· {{ f.agent_key }}</span>
+                </div>
+                <p class="feed__text">{{ f.explanation }}</p>
+              </div>
+              <a class="feed__link" routerLink="/risk" [queryParams]="{ project: f.project_key }">→</a>
+            </li>
+          } @empty {
+            <li class="dash__empty">No findings yet.</li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</section>

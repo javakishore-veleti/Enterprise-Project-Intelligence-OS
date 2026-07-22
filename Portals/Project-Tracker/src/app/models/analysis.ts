@@ -78,3 +78,33 @@ export interface AnalysisRunsResponse {
   project_key: string;
   runs: AnalysisRunSummary[];
 }
+
+/** A recent finding surfaced on the dashboard (cross-project, trimmed). */
+export interface RecentFinding {
+  finding_id: string;
+  run_id: string;
+  project_key: string;
+  agent_key: string;
+  risk_category: string;
+  severity: string;
+  score: number;
+  explanation: string;
+}
+
+/** Response for GET /api/v1/analysis/activity — live cross-project dynamics. */
+export interface DashboardActivity {
+  recent_runs: AnalysisRunSummary[];
+  recent_findings: RecentFinding[];
+  totals: {
+    total_runs: number;
+    total_findings: number;
+    projects_analyzed: number;
+  };
+}
+
+/** Request body for POST /api/v1/analysis/portfolios/{group_key}. */
+export interface StartPortfolioRequest {
+  agents: string[];
+  project_keys: string[];
+  requested_by: string;
+}

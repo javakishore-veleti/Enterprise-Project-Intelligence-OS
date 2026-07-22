@@ -12,8 +12,16 @@
     <nav class="sidebar__nav">
       <span class="sidebar__section">Workspace</span>
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/projects" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
         <span>Projects</span>
+      </a>
+      <a routerLink="/groups" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M12 7h3a2 2 0 0 1 2 2v5M9 10v4a2 2 0 0 0 2 2h3"/></svg>
+        <span>Project Groups</span>
       </a>
       <a routerLink="/risk" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>

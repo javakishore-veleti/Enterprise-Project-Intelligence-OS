@@ -3,7 +3,13 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { AnalysisRun, AnalysisRunsResponse, StartAnalysisRequest } from '../models/analysis';
+import {
+  AnalysisRun,
+  AnalysisRunsResponse,
+  DashboardActivity,
+  StartAnalysisRequest,
+  StartPortfolioRequest,
+} from '../models/analysis';
 
 export interface StartAnalysisOptions {
   agents: string[];
@@ -43,6 +49,28 @@ export class RiskAnalyticsService {
   getRun(runId: string): Observable<AnalysisRun> {
     return this.http.get<AnalysisRun>(
       `${this.baseUrl}/analysis/runs/${encodeURIComponent(runId)}`,
+    );
+  }
+
+  /** Live cross-project activity for the dashboard (recent runs + findings + totals). */
+  getActivity(limit = 15): Observable<DashboardActivity> {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<DashboardActivity>(`${this.baseUrl}/analysis/activity`, { params });
+  }
+
+  /** Run a combined portfolio-risk analysis over a group's member projects. */
+  startPortfolioAnalysis(
+    groupKey: string,
+    options: { agents: string[]; projectKeys: string[]; requestedBy: string },
+  ): Observable<AnalysisRun> {
+    const body: StartPortfolioRequest = {
+      agents: options.agents,
+      project_keys: options.projectKeys,
+      requested_by: options.requestedBy,
+    };
+    return this.http.post<AnalysisRun>(
+      `${this.baseUrl}/analysis/portfolios/${encodeURIComponent(groupKey)}`,
+      body,
     );
   }
 
