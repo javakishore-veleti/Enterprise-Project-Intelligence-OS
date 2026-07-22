@@ -1,5 +1,6 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
 
@@ -8,7 +9,7 @@ import { ProjectsService } from '../services/projects.service';
 
 @Component({
   selector: 'app-projects-list',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
 })
@@ -22,6 +23,21 @@ export class ProjectsList implements OnInit, OnDestroy {
 
   private readonly search$ = new Subject<string>();
   private sub?: Subscription;
+
+  /** Portfolio KPIs computed from the loaded projects. */
+  protected readonly totalIssues = computed(() =>
+    this.projects().reduce((s, p) => s + (p.issue_count ?? 0), 0),
+  );
+  protected readonly totalOpen = computed(() =>
+    this.projects().reduce((s, p) => s + (p.open_issue_count ?? 0), 0),
+  );
+  protected readonly openRatio = computed(() => {
+    const t = this.totalIssues();
+    return t > 0 ? this.totalOpen() / t : 0;
+  });
+  protected readonly atRisk = computed(() =>
+    this.projects().filter((p) => (p.issue_count ?? 0) > 0 && (p.open_issue_count ?? 0) / (p.issue_count ?? 1) >= 0.5).length,
+  );
 
   constructor(private readonly projectsService: ProjectsService) {}
 
@@ -54,6 +70,21 @@ export class ProjectsList implements OnInit, OnDestroy {
 
   onQueryChange(value: string): void {
     this.search$.next(value);
+  }
+
+  /** Open-issue ratio for one project (0–1), for the inline health bar. */
+  protected ratio(p: Project): number {
+    const issues = p.issue_count ?? 0;
+    return issues > 0 ? (p.open_issue_count ?? 0) / issues : 0;
+  }
+
+  protected healthClass(p: Project): string {
+    const r = this.ratio(p);
+    return r >= 0.5 ? 'is-high' : r >= 0.25 ? 'is-medium' : 'is-low';
+  }
+
+  protected asPercent(v: number): string {
+    return `${Math.round(v * 100)}%`;
   }
 
   ngOnDestroy(): void {

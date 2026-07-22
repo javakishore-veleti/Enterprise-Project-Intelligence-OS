@@ -1,59 +1,116 @@
 <section class="projects">
   <header class="projects__header">
-    <h1>Projects</h1>
-    <p class="projects__subtitle">Delivery-health view over the Projects-API evidence store.</p>
+    <div>
+      <h1>Portfolio Overview</h1>
+      <p class="projects__subtitle">Delivery-health across every project in the evidence store.</p>
+    </div>
   </header>
 
-  <div class="projects__toolbar">
-    <input
-      type="search"
-      class="projects__search"
-      placeholder="Search projects by key or name…"
-      [(ngModel)]="query"
-      (ngModelChange)="onQueryChange($event)"
-      aria-label="Search projects"
-    />
-    @if (!loading()) {
-      <span class="projects__count">{{ total() }} result(s)</span>
-    }
+  <!-- KPI summary cards -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--brand">▦</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Projects</span>
+        <span class="kpi__value">{{ total() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--info">∑</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Total Issues</span>
+        <span class="kpi__value">{{ totalIssues().toLocaleString() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--warning">◷</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Open Issues</span>
+        <span class="kpi__value">{{ totalOpen().toLocaleString() }}</span>
+        <span class="kpi__sub">{{ asPercent(openRatio()) }} of backlog open</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--danger">⚠</div>
+      <div class="kpi__body">
+        <span class="kpi__label">At-Risk Projects</span>
+        <span class="kpi__value">{{ atRisk() }}</span>
+        <span class="kpi__sub">≥ 50% backlog open</span>
+      </div>
+    </div>
   </div>
 
-  @if (loading()) {
-    <p class="projects__status">Loading…</p>
-  }
-
-  @if (error()) {
-    <p class="projects__status projects__status--error">{{ error() }}</p>
-  }
-
-  @if (!loading() && !error()) {
-    <div class="projects__table-wrap">
-      <table class="projects__table">
-        <thead>
-          <tr>
-            <th>Project Key</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th class="num">Issues</th>
-            <th class="num">Open Issues</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (project of projects(); track project.project_key) {
-            <tr>
-              <td class="mono">{{ project.project_key }}</td>
-              <td>{{ project.name }}</td>
-              <td>{{ project.category ?? '—' }}</td>
-              <td class="num">{{ project.issue_count }}</td>
-              <td class="num">{{ project.open_issue_count }}</td>
-            </tr>
-          } @empty {
-            <tr>
-              <td class="projects__empty" colspan="5">No projects found.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+  <!-- Table card -->
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Projects</h2>
+      <div class="projects__toolbar">
+        <input
+          type="search"
+          class="projects__search"
+          placeholder="Search projects by key or name…"
+          [(ngModel)]="query"
+          (ngModelChange)="onQueryChange($event)"
+          aria-label="Search projects"
+        />
+        @if (!loading()) {
+          <span class="projects__count">{{ total() }} result(s)</span>
+        }
+      </div>
     </div>
-  }
+
+    @if (loading()) {
+      <p class="projects__status"><span class="spinner spinner--brand"></span> Loading projects…</p>
+    }
+    @if (error()) {
+      <div class="alert alert--error" style="margin: 1rem;">
+        <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+      </div>
+    }
+
+    @if (!loading() && !error()) {
+      <div class="projects__table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Project Key</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th class="num">Issues</th>
+              <th class="num">Open</th>
+              <th>Backlog Health</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (project of projects(); track project.project_key) {
+              <tr>
+                <td class="mono">{{ project.project_key }}</td>
+                <td>{{ project.name }}</td>
+                <td>
+                  @if (project.category) { <span class="badge">{{ project.category }}</span> }
+                  @else { <span class="muted">—</span> }
+                </td>
+                <td class="num">{{ (project.issue_count ?? 0).toLocaleString() }}</td>
+                <td class="num">{{ (project.open_issue_count ?? 0).toLocaleString() }}</td>
+                <td>
+                  <div class="health">
+                    <div class="health__bar">
+                      <span class="health__fill {{ healthClass(project) }}" [style.width.%]="ratio(project) * 100"></span>
+                    </div>
+                    <span class="health__pct">{{ asPercent(ratio(project)) }}</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <a class="row-action" routerLink="/risk" [queryParams]="{ project: project.project_key }">Analyze →</a>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td class="projects__empty" colspan="7">No projects found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
 </section>
