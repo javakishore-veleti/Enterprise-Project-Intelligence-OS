@@ -47,7 +47,7 @@
         <tbody>
           @for (d of differs(); track d.link) {
             <tr>
-              <td class="diff__verb"><a routerLink="/help" [queryParams]="{ v: d.link }">{{ d.verb }}</a></td>
+              <td class="diff__verb"><a [routerLink]="['/help', d.link]">{{ d.verb }}</a></td>
               <td class="diff__line">{{ d.line }}</td>
             </tr>
           }

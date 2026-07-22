@@ -165,9 +165,9 @@ export class Dashboard {
 
   constructor() {
     toObservable(this.scope.userKey).subscribe(() => this.reloadScope());
-    // The active sub-view is driven by the sidebar's indented sub-items (?v=).
-    this.route.queryParamMap.subscribe((pm) => {
-      const v = pm.get('v') as SubView;
+    // The active sub-view is driven by the sidebar's indented sub-items (path segment).
+    this.route.paramMap.subscribe((pm) => {
+      const v = pm.get('view') as SubView;
       this.subview.set((['attention', 'progress', 'agents'] as const).includes(v as any) ? v : 'attention');
       if (this.subview() === 'progress' && this.progProject) this.loadHistory();
     });

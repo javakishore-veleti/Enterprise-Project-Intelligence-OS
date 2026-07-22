@@ -140,9 +140,9 @@ export class Help {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly topic = toSignal(
-    this.route.queryParamMap.pipe(
+    this.route.paramMap.pipe(
       map((p) => {
-        const v = p.get('v') as Topic | null;
+        const v = p.get('view') as Topic | null;
         return v && HELP[v] ? v : 'mission';
       }),
     ),

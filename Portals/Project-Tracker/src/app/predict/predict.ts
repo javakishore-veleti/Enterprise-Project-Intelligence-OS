@@ -37,9 +37,9 @@ export class Predict {
   private readonly router = inject(Router);
 
   protected readonly subview = toSignal(
-    this.route.queryParamMap.pipe(
+    this.route.paramMap.pipe(
       map((p) => {
-        const v = p.get('v');
+        const v = p.get('view');
         return v === 'scenarios' || v === 'warnings' || v === 'history' ? v : 'forecasts';
       }),
     ),
@@ -193,7 +193,7 @@ export class Predict {
   protected get canNext(): boolean { return this.offset + this.pageSize < this.histTotal(); }
 
   protected openForecast(id: string): void {
-    this.router.navigate([], { queryParams: { v: null }, queryParamsHandling: 'merge' });
+    this.router.navigate(['/predict/forecasts']);
     this.forecasting.set(true); this.fcError.set(null); this.forecast.set(null);
     this.risk.getForecast(id).subscribe({
       next: (f) => { this.forecast.set(f); this.fcTarget = f.project_key; this.forecasting.set(false); },
@@ -201,7 +201,7 @@ export class Predict {
     });
   }
   protected openScenario(id: string): void {
-    this.router.navigate([], { queryParams: { v: 'scenarios' }, queryParamsHandling: 'merge' });
+    this.router.navigate(['/predict/scenarios']);
     this.simulating.set(true); this.scError.set(null); this.scenario.set(null);
     this.risk.getScenario(id).subscribe({
       next: (s) => { this.scenario.set(s); this.scTarget = s.project_key; this.simulating.set(false); },

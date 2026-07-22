@@ -41,11 +41,11 @@ export class ProjectsList {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  /** Sub-view driven by the sidebar sub-nav (?v=ask|history). */
+  /** Sub-view driven by the sidebar sub-nav (path segment: ask|history). */
   protected readonly subview = toSignal(
-    this.route.queryParamMap.pipe(
+    this.route.paramMap.pipe(
       map((p) => {
-        const v = p.get('v');
+        const v = p.get('view');
         return v === 'ask' || v === 'history' ? v : 'new';
       }),
     ),
@@ -152,7 +152,7 @@ export class ProjectsList {
   protected openInvestigation(id: string): void {
     this.investigating.set(true);
     this.invError.set(null);
-    this.router.navigate([], { queryParams: { v: null }, queryParamsHandling: 'merge' });
+    this.router.navigate(['/investigate/new']);
     this.risk.getInvestigation(id).subscribe({
       next: (inv) => { this.investigation.set(inv); this.target = inv.project_key; this.investigating.set(false); },
       error: () => { this.invError.set('Unable to load that investigation.'); this.investigating.set(false); },

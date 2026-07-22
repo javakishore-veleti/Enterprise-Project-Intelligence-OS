@@ -11,13 +11,17 @@ import { Help } from './help/help';
 
 export const routes: Routes = [
   { path: '', component: Mission },
-  { path: 'watch', component: Dashboard },
-  { path: 'investigate', component: ProjectsList },
+  { path: 'watch', pathMatch: 'full', redirectTo: 'watch/attention' },
+  { path: 'watch/:view', component: Dashboard },
+  { path: 'investigate', pathMatch: 'full', redirectTo: 'investigate/new' },
+  { path: 'investigate/:view', component: ProjectsList },
   { path: 'groups', component: ProjectGroups },
-  { path: 'predict', component: Predict },
+  { path: 'predict', pathMatch: 'full', redirectTo: 'predict/forecasts' },
+  { path: 'predict/:view', component: Predict },
   { path: 'decide', component: ProjectRisk },
   { path: 'knowledge', component: Knowledge },
-  { path: 'help', component: Help },
+  { path: 'help', pathMatch: 'full', redirectTo: 'help/mission' },
+  { path: 'help/:view', component: Help },
   // Back-compat redirects from the old entity-based routes.
   { path: 'projects', redirectTo: 'investigate' },
   { path: 'risk', redirectTo: 'decide' },

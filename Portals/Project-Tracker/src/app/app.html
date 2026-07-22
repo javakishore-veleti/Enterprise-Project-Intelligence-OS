@@ -39,9 +39,9 @@
       </a>
       @if (onWatch()) {
         <div class="sidebar__sub">
-          <a routerLink="/watch" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Attention</a>
-          <a routerLink="/watch" [queryParams]="{ v: 'progress' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Progress Graph</a>
-          <a routerLink="/watch" [queryParams]="{ v: 'agents' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Agent Outcomes</a>
+          <a routerLink="/watch/attention" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Attention</a>
+          <a routerLink="/watch/progress" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Progress Graph</a>
+          <a routerLink="/watch/agents" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Agent Outcomes</a>
         </div>
       }
       <a routerLink="/investigate" routerLinkActive="is-active">
@@ -50,9 +50,9 @@
       </a>
       @if (onInvestigate()) {
         <div class="sidebar__sub">
-          <a routerLink="/investigate" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">New Investigation</a>
-          <a routerLink="/investigate" [queryParams]="{ v: 'ask' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Ask Investigator</a>
-          <a routerLink="/investigate" [queryParams]="{ v: 'history' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Investigations</a>
+          <a routerLink="/investigate/new" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">New Investigation</a>
+          <a routerLink="/investigate/ask" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Ask Investigator</a>
+          <a routerLink="/investigate/history" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Investigations</a>
         </div>
       }
       <a routerLink="/predict" routerLinkActive="is-active">
@@ -61,10 +61,10 @@
       </a>
       @if (onPredict()) {
         <div class="sidebar__sub">
-          <a routerLink="/predict" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Forecasts</a>
-          <a routerLink="/predict" [queryParams]="{ v: 'scenarios' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Scenarios</a>
-          <a routerLink="/predict" [queryParams]="{ v: 'warnings' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Early-Warning</a>
-          <a routerLink="/predict" [queryParams]="{ v: 'history' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">History</a>
+          <a routerLink="/predict/forecasts" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Forecasts</a>
+          <a routerLink="/predict/scenarios" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Scenarios</a>
+          <a routerLink="/predict/warnings" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Early-Warning</a>
+          <a routerLink="/predict/history" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">History</a>
         </div>
       }
       <a routerLink="/decide" routerLinkActive="is-active">
@@ -81,11 +81,11 @@
       </a>
       @if (onHelp()) {
         <div class="sidebar__sub">
-          <a routerLink="/help" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Mission</a>
-          <a routerLink="/help" [queryParams]="{ v: 'watch' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Watch</a>
-          <a routerLink="/help" [queryParams]="{ v: 'investigate' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Investigate</a>
-          <a routerLink="/help" [queryParams]="{ v: 'predict' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Predict</a>
-          <a routerLink="/help" [queryParams]="{ v: 'decide' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Decide</a>
+          <a routerLink="/help/mission" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Mission</a>
+          <a routerLink="/help/watch" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Watch</a>
+          <a routerLink="/help/investigate" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Investigate</a>
+          <a routerLink="/help/predict" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Predict</a>
+          <a routerLink="/help/decide" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ exact: true }">Decide</a>
         </div>
       }
     </nav>

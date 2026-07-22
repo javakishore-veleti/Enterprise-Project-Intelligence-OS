@@ -74,7 +74,7 @@
 
           <div class="handoff">
             <a class="go" routerLink="/decide" [queryParams]="{ project: f.project_key }">Take to Decide <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-            <a class="go go--ghost" routerLink="/predict" [queryParams]="{ v: 'scenarios' }" (click)="scTarget = f.project_key">Simulate a what-if →</a>
+            <a class="go go--ghost" routerLink="/predict/scenarios" (click)="scTarget = f.project_key">Simulate a what-if →</a>
             <button type="button" class="go go--ghost" (click)="resetForecast()">Clear</button>
           </div>
         </div>
@@ -224,7 +224,7 @@
           <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
         }
       } @else {
-        @if (scHistory().length === 0) { <div class="empty">No scenarios yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict" [queryParams]="{ v: 'scenarios' }">Scenarios</a>.</div> }
+        @if (scHistory().length === 0) { <div class="empty">No scenarios yet{{ histQuery ? ' matching “' + histQuery + '”' : '' }}. Run one from <a routerLink="/predict/scenarios">Scenarios</a>.</div> }
         @else {
           <div class="panel"><div class="tbl-wrap"><table>
             <thead><tr><th>Project</th><th>What-if</th><th class="num">Projected</th><th class="num">Δ</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>

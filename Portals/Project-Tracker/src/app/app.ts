@@ -46,11 +46,12 @@ export class App {
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
         const path = e.urlAfterRedirects.split('?')[0];
-        this.onWatch.set(path === '/watch');
-        this.onInvestigate.set(path === '/investigate');
-        this.onPredict.set(path === '/predict');
-        this.onHelp.set(path === '/help');
-        const meta = PAGE_TITLES[path] ?? PAGE_TITLES['/'];
+        const parent = '/' + (path.split('/')[1] || '');
+        this.onWatch.set(parent === '/watch');
+        this.onInvestigate.set(parent === '/investigate');
+        this.onPredict.set(parent === '/predict');
+        this.onHelp.set(parent === '/help');
+        const meta = PAGE_TITLES[parent] ?? PAGE_TITLES['/'];
         this.pageTitle.set(meta.title);
         this.pageCrumb.set(meta.crumb);
       });
