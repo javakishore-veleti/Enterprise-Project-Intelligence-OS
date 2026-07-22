@@ -11,20 +11,27 @@ from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
     provide_get_attention_feed_facade,
     provide_get_dashboard_activity_facade,
+    provide_investigate_project_facade,
     provide_list_analysis_runs_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
-from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
+from risk_analytics_api.dtos.requests import (
+    InvestigateRequest,
+    StartAnalysisRequest,
+    StartPortfolioAnalysisRequest,
+)
 from risk_analytics_api.dtos.responses import (
     AnalysisRunListResponse,
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    InvestigationResponse,
 )
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
@@ -94,6 +101,19 @@ def start_project_analysis(
     facade: StartProjectAnalysisFacade = Depends(provide_start_project_analysis_facade),
 ) -> AnalysisRunResponse:
     return facade.execute(project_key, request)
+
+
+@router.post(
+    "/investigate",
+    response_model=InvestigationResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="investigateProject",
+)
+def investigate_project(
+    request: InvestigateRequest,
+    facade: InvestigateProjectFacade = Depends(provide_investigate_project_facade),
+) -> InvestigationResponse:
+    return facade.execute(request)
 
 
 @router.post(

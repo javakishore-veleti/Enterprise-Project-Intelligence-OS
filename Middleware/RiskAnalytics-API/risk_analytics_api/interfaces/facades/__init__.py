@@ -4,11 +4,16 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
+from risk_analytics_api.dtos.requests import (
+    InvestigateRequest,
+    StartAnalysisRequest,
+    StartPortfolioAnalysisRequest,
+)
 from risk_analytics_api.dtos.responses import (
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    InvestigationResponse,
 )
 
 
@@ -39,3 +44,8 @@ class GetAttentionFeedUseCase(ABC):
     def execute(
         self, top: int, as_of: date | None, projects: list[str] | None, offset: int
     ) -> AttentionResponse: ...
+
+
+class InvestigateProjectUseCase(ABC):
+    @abstractmethod
+    def execute(self, request: InvestigateRequest) -> InvestigationResponse: ...

@@ -157,6 +157,44 @@ class AttentionResponse(TypedModel):
     items: list[AttentionItem]
 
 
+class InvestigationStep(TypedModel):
+    """One step in the investigator's visible reasoning trace."""
+
+    #: What the agent did (the tool it called + how).
+    action: str
+    #: The bounded evidence the tool returned (compact summary).
+    observation: str
+    #: The hypothesis the agent was testing at this step.
+    hypothesis: str
+
+
+class EvidenceCitation(TypedModel):
+    """A cited piece of evidence pulled from the evidence store during the run."""
+
+    #: The evidence kind (the tool/source, e.g. "reopened_issues").
+    kind: str
+    #: Human-readable detail of what was observed.
+    detail: str
+    #: The count behind the citation, when the observation is a count (else None).
+    count: int | None = None
+
+
+class InvestigationResponse(TypedModel):
+    """The autonomous Investigation Agent's conclusion + evidence + confidence."""
+
+    project_key: str
+    question: str | None = None
+    hypotheses: list[str] = []
+    steps: list[InvestigationStep] = []
+    root_cause: str
+    causal_chain: list[str] = []
+    confidence: float
+    evidence: list[EvidenceCitation] = []
+    recommended_action: str
+    run_id: str
+    generated_at: datetime
+
+
 class HealthResponse(TypedModel):
     status: str
     service: str

@@ -125,8 +125,10 @@ export interface InvestigationEvidence {
 
 /** Result of the autonomous Investigation Agent — POST /api/v1/analysis/investigate. */
 export interface Investigation {
+  investigation_id: string;
   project_key: string;
   question: string | null;
+  template_key: string | null;
   hypotheses: string[];
   steps: InvestigationStep[];
   root_cause: string;
@@ -134,6 +136,7 @@ export interface Investigation {
   confidence: number;
   evidence: InvestigationEvidence[];
   recommended_action: string;
+  status: string;
   run_id: string;
   generated_at: string;
 }
@@ -142,7 +145,38 @@ export interface Investigation {
 export interface InvestigateRequest {
   project_key: string;
   question: string | null;
+  template_key: string | null;
   requested_by: string | null;
+}
+
+/** A lightweight row in the Investigations history list. */
+export interface InvestigationSummary {
+  investigation_id: string;
+  project_key: string;
+  question: string | null;
+  template_key: string | null;
+  status: string;
+  root_cause: string;
+  confidence: number;
+  created_at: string;
+}
+
+/** Response for GET /api/v1/analysis/investigations (paginated history). */
+export interface InvestigationsPage {
+  total: number;
+  returned: number;
+  offset: number;
+  limit: number;
+  items: InvestigationSummary[];
+}
+
+/** A pre-configured (user-editable) investigation template — the agents/steps to run. */
+export interface InvestigationTemplate {
+  template_key: string;
+  name: string;
+  description: string;
+  steps: string[];
+  editable: boolean;
 }
 
 /** One ranked attention item from GET /api/v1/analysis/attention. */

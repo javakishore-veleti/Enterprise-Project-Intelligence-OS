@@ -175,6 +175,25 @@ tbody tr:hover { background: var(--bg-2); }
 .pstat__lbl { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-400); }
 .pcard__cta { font-size: .78rem; font-weight: 700; color: var(--brand-500); }
 
+/* ============ investigations history ============ */
+.hist__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.hist__title { display: flex; align-items: baseline; gap: .7rem; }
+.hist__title h2 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--ink-900); letter-spacing: -.02em; }
+.hist__count { font-size: .8rem; color: var(--ink-400); font-weight: 600; }
+.hist__search { display: flex; align-items: center; gap: .4rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: .3rem .3rem .3rem .7rem; color: var(--ink-400); }
+.hist__search input { border: none; outline: none; background: transparent; font: inherit; font-size: .88rem; color: var(--ink-900); width: 280px; padding: .3rem 0; }
+.hist__search button { border: none; background: var(--brand-grad, linear-gradient(135deg,#38bdf8,#0284c7)); color: #fff; font-weight: 700; font-size: .82rem; padding: .42rem .9rem; border-radius: 8px; }
+.hist__tbl tbody tr { cursor: pointer; }
+.hist__q { color: var(--ink-700); max-width: 260px; }
+.hist__cause { color: var(--ink-900); font-weight: 600; max-width: 360px; }
+.hist__when { color: var(--ink-400); font-size: .82rem; white-space: nowrap; }
+.pager { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+.pager__info { font-size: .82rem; color: var(--ink-500); font-weight: 600; }
+.pager__btns { display: flex; gap: .5rem; }
+.pager__btns button { background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink-700); font-weight: 700; font-size: .84rem; padding: .45rem .9rem; border-radius: 8px; }
+.pager__btns button:disabled { opacity: .45; }
+.pager__btns button:not(:disabled):hover { border-color: var(--brand-400); color: var(--brand-500); }
+
 .alert { display: flex; gap: .7rem; align-items: center; padding: .85rem 1rem; border-radius: 10px; margin: 1rem 0; }
 .alert--error { background: var(--danger-bg, #fef2f2); color: #b91c1c; border: 1px solid #fca5a5; }
 

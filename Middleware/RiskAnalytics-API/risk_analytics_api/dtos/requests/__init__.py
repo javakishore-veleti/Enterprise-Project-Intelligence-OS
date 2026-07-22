@@ -29,3 +29,18 @@ class StartPortfolioAnalysisRequest(TypedModel):
         description="Projects to include. Empty -> resolve from the evidence store (bounded).",
     )
     requested_by: str = Field(default="system", min_length=1)
+
+
+class InvestigateRequest(TypedModel):
+    """Point the autonomous Investigation Agent at a project.
+
+    The agent forms hypotheses, calls evidence-store tools to gather bounded
+    facts, reasons, and concludes with a root cause + causal chain.
+    """
+
+    project_key: str = Field(min_length=1)
+    question: str | None = Field(
+        default=None,
+        description="Optional free-text steer, e.g. 'why is APACHE slipping?'.",
+    )
+    requested_by: str | None = Field(default=None)

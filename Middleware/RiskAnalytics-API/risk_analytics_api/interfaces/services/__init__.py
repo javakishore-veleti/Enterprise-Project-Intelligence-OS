@@ -6,12 +6,17 @@ from datetime import datetime
 
 from agent_core import EvidencePackage
 
-from risk_analytics_api.dtos.requests import StartAnalysisRequest, StartPortfolioAnalysisRequest
+from risk_analytics_api.dtos.requests import (
+    InvestigateRequest,
+    StartAnalysisRequest,
+    StartPortfolioAnalysisRequest,
+)
 from risk_analytics_api.dtos.responses import (
     AnalysisRunListResponse,
     AnalysisRunResponse,
     AttentionResponse,
     DashboardActivityResponse,
+    InvestigationResponse,
 )
 
 
@@ -37,6 +42,12 @@ class AnalysisOrchestrationService(ABC):
 
     @abstractmethod
     def list_runs(self, project_key: str, limit: int) -> AnalysisRunListResponse: ...
+
+
+class InvestigationService(ABC):
+    @abstractmethod
+    def investigate(self, request: InvestigateRequest) -> InvestigationResponse:
+        """Run the autonomous Investigation Agent and return its conclusion."""
 
 
 class DashboardService(ABC):

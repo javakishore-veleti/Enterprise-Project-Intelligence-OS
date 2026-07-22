@@ -15,6 +15,7 @@ from risk_analytics_api.daos.risk_findings import PostgresRiskFindingDao
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
@@ -25,6 +26,7 @@ from risk_analytics_api.services.analysis_orchestration import (
 from risk_analytics_api.services.attention import DefaultAttentionService
 from risk_analytics_api.services.dashboard import DefaultDashboardService
 from risk_analytics_api.services.evidence_retrieval import DefaultEvidenceRetrievalService
+from risk_analytics_api.services.investigation import DefaultInvestigationService
 
 
 @lru_cache
@@ -66,6 +68,16 @@ def provide_get_analysis_run_facade() -> GetAnalysisRunFacade:
 
 def provide_list_analysis_runs_facade() -> ListAnalysisRunsFacade:
     return ListAnalysisRunsFacade(_orchestration_service())
+
+
+def provide_investigate_project_facade() -> InvestigateProjectFacade:
+    return InvestigateProjectFacade(
+        DefaultInvestigationService(
+            mongo=get_mongo(),
+            agent_config_gateway=PostgresAgentConfigGateway(get_postgres()),
+            settings=get_settings(),
+        )
+    )
 
 
 def provide_get_dashboard_activity_facade() -> GetDashboardActivityFacade:

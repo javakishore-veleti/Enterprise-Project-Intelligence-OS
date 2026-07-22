@@ -2,6 +2,58 @@
   <app-about title="Investigate"
     text="You don't tell the agent what to look at — it decides. The Investigation Agent ranks the projects that most need attention, picks the right question for each one from that project's own evidence, and investigates. It reasons over evidence-store tools, then concludes with a root cause, a confidence score, and the exact evidence it used — which you can inspect and argue with. No searching, no knowing the right question." />
 
+  @if (subview() === 'history') {
+  <!-- ============ INVESTIGATIONS HISTORY ============ -->
+  <div class="hist">
+    <div class="hist__bar">
+      <div class="hist__title">
+        <h2>Investigations</h2>
+        <span class="hist__count">{{ historyTotal() }} recent · newest 100</span>
+      </div>
+      <div class="hist__search">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input type="search" placeholder="Search project, question, root cause…" [(ngModel)]="historyQuery" (keyup.enter)="searchHistory()" />
+        <button type="button" (click)="searchHistory()">Search</button>
+      </div>
+    </div>
+
+    @if (historyError()) {
+      <div class="alert alert--error"><span>{{ historyError() }}</span></div>
+    }
+
+    @if (historyLoading()) {
+      <p class="projects__status"><span class="run__spin run__spin--dark"></span> Loading investigations…</p>
+    } @else if (history().length === 0) {
+      <div class="empty">No investigations yet{{ historyQuery ? ' matching “' + historyQuery + '”' : '' }}. Run one from <a routerLink="/investigate">New Investigation</a>.</div>
+    } @else {
+      <div class="panel"><div class="tbl-wrap"><table class="hist__tbl">
+        <thead><tr><th>Project</th><th>Question / angle</th><th>Root cause</th><th class="num">Conf.</th><th>Status</th><th>When</th><th></th></tr></thead>
+        <tbody>
+          @for (h of history(); track h.investigation_id) {
+            <tr (click)="openInvestigation(h.investigation_id)">
+              <td><span class="mono">{{ h.project_key }}</span></td>
+              <td class="hist__q">{{ h.question || '—' }}</td>
+              <td class="hist__cause">{{ h.root_cause }}</td>
+              <td class="num"><span class="score score--{{ confClass(pctOf(h.confidence)) }}">{{ pctOf(h.confidence) }}%</span></td>
+              <td><span class="badge badge--{{ h.status === 'COMPLETED' ? 'low' : h.status === 'FAILED' ? 'high' : 'medium' }}">{{ h.status }}</span></td>
+              <td class="hist__when">{{ h.created_at }}</td>
+              <td class="num"><span class="row-action">View →</span></td>
+            </tr>
+          }
+        </tbody>
+      </table></div></div>
+
+      <div class="pager">
+        <span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ historyTotal() }}</span>
+        <div class="pager__btns">
+          <button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button>
+          <button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button>
+        </div>
+      </div>
+    }
+  </div>
+  } @else {
+
   <!-- ============ THE INVESTIGATION AGENT — its own queue (hero) ============ -->
   <div class="console">
     <div class="console__head">
@@ -241,4 +293,5 @@
       </div>
     }
   </div>
+  }
 </section>

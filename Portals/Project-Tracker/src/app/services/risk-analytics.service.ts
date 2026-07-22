@@ -10,6 +10,8 @@ import {
   DashboardActivity,
   Investigation,
   InvestigateRequest,
+  InvestigationsPage,
+  InvestigationTemplate,
   StartAnalysisRequest,
   StartPortfolioRequest,
 } from '../models/analysis';
@@ -53,13 +55,43 @@ export class RiskAnalyticsService {
    * calls evidence-store tools (LangGraph ReAct loop), and returns a root-cause
    * conclusion + reasoning trace + evidence + confidence. Runs the LLM (~30-60s).
    */
-  investigate(projectKey: string, question: string | null, requestedBy: string): Observable<Investigation> {
+  investigate(
+    projectKey: string,
+    question: string | null,
+    requestedBy: string,
+    templateKey: string | null = null,
+  ): Observable<Investigation> {
     const body: InvestigateRequest = {
       project_key: projectKey,
       question: question && question.trim() ? question.trim() : null,
+      template_key: templateKey,
       requested_by: requestedBy,
     };
     return this.http.post<Investigation>(`${this.baseUrl}/analysis/investigate`, body);
+  }
+
+  /** Paginated, searchable history of persisted investigations (newest first). */
+  listInvestigations(
+    opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {},
+  ): Observable<InvestigationsPage> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 20)
+      .set('offset', opts.offset ?? 0);
+    if (opts.scope) params = params.set('scope', opts.scope);
+    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
+    return this.http.get<InvestigationsPage>(`${this.baseUrl}/analysis/investigations`, { params });
+  }
+
+  /** Fetch one persisted investigation by its id. */
+  getInvestigation(investigationId: string): Observable<Investigation> {
+    return this.http.get<Investigation>(
+      `${this.baseUrl}/analysis/investigations/${encodeURIComponent(investigationId)}`,
+    );
+  }
+
+  /** The pre-configured (user-editable) investigation templates. */
+  listTemplates(): Observable<InvestigationTemplate[]> {
+    return this.http.get<InvestigationTemplate[]>(`${this.baseUrl}/analysis/investigation-templates`);
   }
 
   /** Fetch a previously started run by id. */

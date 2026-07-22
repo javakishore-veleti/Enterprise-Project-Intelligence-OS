@@ -48,6 +48,12 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
         <span>Investigate</span>
       </a>
+      @if (onInvestigate()) {
+        <div class="sidebar__sub">
+          <a routerLink="/investigate" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">New Investigation</a>
+          <a routerLink="/investigate" [queryParams]="{ v: 'history' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Investigations</a>
+        </div>
+      }
       <a routerLink="/predict" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 5-7"/><polyline points="17 5 21 5 21 9"/></svg>
         <span>Predict</span>

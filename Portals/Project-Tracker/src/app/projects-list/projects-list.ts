@@ -1,10 +1,11 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs/operators';
 
-import { Investigation } from '../models/analysis';
+import { Investigation, InvestigationSummary } from '../models/analysis';
 import { PortfolioProject, PortfolioSummary } from '../models/portfolio';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
@@ -37,6 +38,24 @@ export class ProjectsList {
   private readonly projectsService = inject(ProjectsService);
   private readonly risk = inject(RiskAnalyticsService);
   protected readonly scope = inject(UserScopeService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  /** Sub-view driven by the sidebar sub-nav (?v=history). */
+  protected readonly subview = toSignal(
+    this.route.queryParamMap.pipe(map((p) => (p.get('v') === 'history' ? 'history' : 'new'))),
+    { initialValue: 'new' as 'new' | 'history' },
+  );
+
+  // --- Investigations history (persisted) ---
+  protected readonly history = signal<InvestigationSummary[]>([]);
+  protected readonly historyTotal = signal(0);
+  protected readonly historyLoading = signal(false);
+  protected readonly historyError = signal<string | null>(null);
+  protected readonly pageSize = 20;
+  protected readonly maxRows = 100; // show at most the newest 100
+  protected offset = 0;
+  protected historyQuery = '';
 
   // --- evidence substrate (the register the agent reasons over) ---
   protected readonly summary = signal<PortfolioSummary | null>(null);
@@ -84,7 +103,57 @@ export class ProjectsList {
   protected readonly confidencePct = computed(() => Math.round((this.investigation()?.confidence ?? 0) * 100));
 
   constructor() {
-    toObservable(this.scope.userKey).subscribe(() => this.load());
+    toObservable(this.scope.userKey).subscribe(() => { this.load(); if (this.subview() === 'history') this.reloadHistory(); });
+    toObservable(this.subview).subscribe((v) => { if (v === 'history') this.reloadHistory(); });
+  }
+
+  // --- Investigations history ---
+
+  private reloadHistory(): void { this.offset = 0; this.loadHistory(); }
+
+  protected loadHistory(): void {
+    this.historyLoading.set(true);
+    this.historyError.set(null);
+    this.risk.listInvestigations({
+      scope: this.scope.userKey() || null,
+      q: this.historyQuery,
+      limit: this.pageSize,
+      offset: this.offset,
+    }).subscribe({
+      next: (page) => {
+        this.history.set(page.items);
+        this.historyTotal.set(Math.min(page.total, this.maxRows));
+        this.historyLoading.set(false);
+      },
+      error: () => {
+        this.historyError.set('Unable to load investigation history. Is the RiskAnalytics-API on :8004 up?');
+        this.historyLoading.set(false);
+      },
+    });
+  }
+
+  protected searchHistory(): void { this.reloadHistory(); }
+
+  protected nextPage(): void {
+    if (this.offset + this.pageSize < this.historyTotal()) { this.offset += this.pageSize; this.loadHistory(); }
+  }
+  protected prevPage(): void {
+    if (this.offset > 0) { this.offset = Math.max(0, this.offset - this.pageSize); this.loadHistory(); }
+  }
+  protected get pageStart(): number { return this.historyTotal() === 0 ? 0 : this.offset + 1; }
+  protected get pageEnd(): number { return Math.min(this.offset + this.pageSize, this.historyTotal()); }
+  protected get canPrev(): boolean { return this.offset > 0; }
+  protected get canNext(): boolean { return this.offset + this.pageSize < this.historyTotal(); }
+
+  /** Open a persisted investigation into the briefing (switches to the New view). */
+  protected openInvestigation(id: string): void {
+    this.investigating.set(true);
+    this.invError.set(null);
+    this.router.navigate([], { queryParams: { v: null }, queryParamsHandling: 'merge' });
+    this.risk.getInvestigation(id).subscribe({
+      next: (inv) => { this.investigation.set(inv); this.target = inv.project_key; this.investigating.set(false); },
+      error: () => { this.invError.set('Unable to load that investigation.'); this.investigating.set(false); },
+    });
   }
 
   private load(): void {
