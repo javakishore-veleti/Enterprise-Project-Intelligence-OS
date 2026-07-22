@@ -39,7 +39,10 @@ const ESSENCE: Record<Topic, { verb: string; phrase: string }> = {
   decide: { verb: 'Decide', phrase: 'prescribes what to do and acts on it (with approval)' },
 };
 
-// Shared agent catalog (the platform's LangGraph roster) — referenced per verb.
+// The platform's 16 registered agents (the authoritative roster in Admin → /agents).
+// Higher-level workflows (the Investigation Agent, delivery forecasts, what-if scenarios,
+// early-warnings) are built ON these agents — they are not separate registry entries — so
+// Help maps each verb to a subset of the same 16 and never invents extra rows.
 const A: Record<string, HelpAgent> = {
   schedule: { name: 'Schedule Risk', key: 'schedule_risk', type: 'Detector', framework: 'LangGraph', role: 'Timeline slippage from velocity, aging and throughput' },
   quality: { name: 'Quality Risk', key: 'quality_risk', type: 'Detector', framework: 'LangGraph', role: 'Reopen churn and critical-defect ratio' },
@@ -47,7 +50,7 @@ const A: Record<string, HelpAgent> = {
   dependency: { name: 'Dependency Risk', key: 'dependency_risk', type: 'Detector', framework: 'LangGraph', role: 'Blocking links and dependency depth' },
   resource: { name: 'Resource Risk', key: 'resource_risk', type: 'Detector', framework: 'LangGraph', role: 'Contributor concentration / bus-factor' },
   backlog: { name: 'Backlog Health', key: 'backlog_health', type: 'Detector', framework: 'LangGraph', role: 'Backlog growth and issue aging' },
-  forecasting: { name: 'Delivery Forecasting', key: 'delivery_forecasting', type: 'Forecaster', framework: 'LangGraph', role: 'Completion / slip projection over trajectory' },
+  forecasting: { name: 'Delivery Forecasting', key: 'delivery_forecasting', type: 'Detector', framework: 'LangGraph', role: 'Completion / slip projection over trajectory' },
   scoring: { name: 'Risk Scoring', key: 'risk_scoring', type: 'Review', framework: 'Deterministic', role: 'Ranks findings by severity × probability × confidence' },
   dedup: { name: 'Risk Deduplication', key: 'risk_deduplication', type: 'Review', framework: 'Deterministic', role: 'Merges duplicate findings' },
   correlation: { name: 'Risk Correlation', key: 'risk_correlation', type: 'Review', framework: 'Deterministic', role: 'Groups related findings and shared causes' },
@@ -57,10 +60,6 @@ const A: Record<string, HelpAgent> = {
   projectReport: { name: 'Project Reporting', key: 'project_reporting', type: 'Reporter', framework: 'LangGraph', role: 'Narrative report for a single project' },
   execReport: { name: 'Executive Reporting', key: 'executive_reporting', type: 'Reporter', framework: 'LangGraph', role: 'Portfolio-level executive summary' },
   manager: { name: 'Project Risk Manager', key: 'project_risk_manager', type: 'Orchestrator', framework: 'LangGraph', role: 'Coordinates the specialist fan-out and review pipeline' },
-  investigator: { name: 'Investigation Agent', key: 'investigation', type: 'Investigator', framework: 'LangGraph', role: 'Tool-using root-cause investigation over the evidence store' },
-  forecast: { name: 'Forecast Agent', key: 'forecast', type: 'Forecaster', framework: 'LangGraph', role: 'On-time probability + credible interval + drivers' },
-  scenario: { name: 'Scenario Simulator', key: 'scenario', type: 'Forecaster', framework: 'LangGraph', role: 'What-if re-forecast with dependency cascade' },
-  earlyWarning: { name: 'Early-Warning', key: 'early_warning', type: 'Monitor', framework: 'Deterministic', role: 'Detects adverse trajectory inflections' },
 };
 
 const HELP: Record<Topic, HelpTopic> = {
@@ -98,7 +97,7 @@ const HELP: Record<Topic, HelpTopic> = {
       'Cited evidence — the exact records behind the conclusion',
     ],
     data: ['Evidence store: issues, histories, links, contributors (Mongo)', 'Computed project_metrics', 'Persisted investigations (Postgres)'],
-    agents: [A['investigator'], A['critic'], A['correlation'], A['evidence'], A['quality'], A['dependency'], A['resource']],
+    agents: [A['manager'], A['critic'], A['correlation'], A['evidence'], A['quality'], A['dependency'], A['resource']],
   },
   predict: {
     key: 'predict', title: 'Predict',
@@ -110,7 +109,7 @@ const HELP: Record<Topic, HelpTopic> = {
       'Proactive early-warnings when a trajectory inflects for the worse',
     ],
     data: ['Metric-history time series (Mongo)', 'Dependency links + shared-contributor graph', 'Persisted forecasts / scenarios (Postgres)'],
-    agents: [A['forecast'], A['scenario'], A['earlyWarning'], A['forecasting'], A['dependency']],
+    agents: [A['forecasting'], A['schedule'], A['backlog'], A['dependency'], A['resource']],
   },
   decide: {
     key: 'decide', title: 'Decide',
@@ -215,6 +214,11 @@ export class Help {
 
   protected prevPage(): void { if (this.page() > 0) this.page.update((p) => p - 1); }
   protected nextPage(): void { if (this.page() < this.pageCount() - 1) this.page.update((p) => p + 1); }
+
+  /** Smooth-scroll to a section (avoids fragment hrefs, which resolve against <base>). */
+  protected jump(id: string): void {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   /** The Predict-vs-Decide comparison, row by row (shown on those two topics). */
   protected readonly rows = [

@@ -12,7 +12,7 @@
     <span class="toc__lbl">On this page</span>
     <ul>
       @for (t of toc(); track t.id) {
-        <li><a [href]="'#' + t.id">{{ t.label }}</a></li>
+        <li><button type="button" (click)="jump(t.id)">{{ t.label }}</button></li>
       }
     </ul>
   </nav>
