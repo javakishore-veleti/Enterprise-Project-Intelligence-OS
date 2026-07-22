@@ -31,6 +31,7 @@ export class App {
   protected readonly navOpen = signal(true);
   protected readonly pageTitle = signal('Portfolio Overview');
   protected readonly pageCrumb = signal('Projects');
+  protected readonly onWatch = signal(false);
 
   protected readonly today = new Date().toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -41,6 +42,7 @@ export class App {
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
         const path = e.urlAfterRedirects.split('?')[0];
+        this.onWatch.set(path === '/watch');
         const meta = PAGE_TITLES[path] ?? PAGE_TITLES['/'];
         this.pageTitle.set(meta.title);
         this.pageCrumb.set(meta.crumb);

@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AttentionItem } from '../models/analysis';
 import { ProjectMetrics } from '../models/project';
@@ -66,13 +66,24 @@ export class Dashboard {
   private readonly projectsSvc = inject(ProjectsService);
   protected readonly scope = inject(UserScopeService);
 
-  protected subview: SubView = 'attention';
+  private readonly route = inject(ActivatedRoute);
+  protected readonly subview = signal<SubView>('attention');
   protected readonly metricDefs = METRICS;
   protected readonly ranges = RANGES;
   protected readonly agentList = AGENTS;
 
   /** Projects in the current scope (for the selectors). */
   protected readonly scopeProjects = signal<string[]>([]);
+
+  protected readonly aboutTitle = computed(() =>
+    this.subview() === 'progress' ? 'Progress Graph' : this.subview() === 'agents' ? 'Agent Outcomes' : 'Watch');
+  protected readonly aboutText = computed(() => {
+    switch (this.subview()) {
+      case 'progress': return 'Track how any metric progressed over time — pick a project, metric, and range (last 7 days by default).';
+      case 'agents': return 'Outcomes per AI agent — how many findings each agent surfaced, by severity and project, in the current scope.';
+      default: return 'The full Signals & Attention stream — every risk item that needs action, ranked by urgency across your projects.';
+    }
+  });
 
   // ---- Attention workbench ----
   private readonly all = signal<AttentionItem[]>([]);
@@ -100,23 +111,41 @@ export class Dashboard {
   private readonly progHistory = signal<ProjectMetrics[]>([]);
   protected readonly progLoading = signal(false);
 
-  /** Points for the SVG chart within the selected range. */
+  /** Full chart geometry (axes, gridlines, area, line) for the selected range. */
   protected readonly progSeries = computed(() => {
+    const empty = { pts: [] as any[], line: '', area: '', yTicks: [] as any[], xTicks: [] as any[], min: 0, max: 0, first: null as any, last: null as any };
     const rangeMs = RANGES.find((r) => r.key === this.progRange)?.ms ?? RANGES[3].ms;
     const cutoff = Date.now() - rangeMs;
     const rows = this.progHistory()
       .map((h) => ({ t: new Date(h.computed_at).getTime(), v: Number(h[this.progMetric] ?? 0) }))
       .filter((p) => !isNaN(p.t) && p.t >= cutoff)
       .sort((a, b) => a.t - b.t);
-    if (rows.length === 0) return { pts: [], min: 0, max: 0, first: null, last: null, poly: '' };
+    if (rows.length === 0) return empty;
+
     const vs = rows.map((r) => r.v);
-    const min = Math.min(...vs), max = Math.max(...vs);
+    let min = Math.min(...vs), max = Math.max(...vs);
+    if (min === max) { const d = Math.abs(min) || 1; min -= d * 0.15; max += d * 0.15; } // avoid a flat line
+    if (min > 0 && (max - min) / max > 0.4) min = Math.max(0, min - (max - min) * 0.1);
+
+    const W = 820, H = 300, mL = 52, mR = 16, mT = 16, mB = 34;
+    const plotW = W - mL - mR, plotH = H - mT - mB, baseY = mT + plotH;
     const tMin = rows[0].t, tMax = rows[rows.length - 1].t;
-    const W = 640, H = 180, pad = 8;
-    const x = (t: number) => tMax === tMin ? W / 2 : pad + (t - tMin) / (tMax - tMin) * (W - 2 * pad);
-    const y = (v: number) => max === min ? H / 2 : H - pad - (v - min) / (max - min) * (H - 2 * pad);
+    const x = (t: number) => tMax === tMin ? mL + plotW / 2 : mL + (t - tMin) / (tMax - tMin) * plotW;
+    const y = (v: number) => baseY - (max === min ? 0.5 : (v - min) / (max - min)) * plotH;
+
     const pts = rows.map((r) => ({ x: x(r.t), y: y(r.v), v: r.v, t: r.t }));
-    return { pts, min, max, first: rows[0], last: rows[rows.length - 1], poly: pts.map((p) => `${p.x},${p.y}`).join(' ') };
+    const line = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const area = `M ${pts[0].x.toFixed(1)},${baseY} `
+      + pts.map((p) => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+      + ` L ${pts[pts.length - 1].x.toFixed(1)},${baseY} Z`;
+
+    const yTicks = [0, 1, 2, 3, 4].map((i) => { const v = min + (max - min) * (i / 4); return { y: y(v), v, x1: mL, x2: W - mR }; });
+    const step = Math.max(1, Math.ceil((pts.length - 1) / 5));
+    const xTicks: { x: number; t: number }[] = [];
+    for (let i = 0; i < pts.length; i += step) xTicks.push({ x: pts[i].x, t: pts[i].t });
+    if (xTicks[xTicks.length - 1]?.t !== pts[pts.length - 1].t) xTicks.push({ x: pts[pts.length - 1].x, t: pts[pts.length - 1].t });
+
+    return { pts, line, area, yTicks, xTicks, min, max, first: rows[0], last: rows[rows.length - 1], W, H, baseY };
   });
 
   // ---- Agents outcomes ----
@@ -136,6 +165,12 @@ export class Dashboard {
 
   constructor() {
     toObservable(this.scope.userKey).subscribe(() => this.reloadScope());
+    // The active sub-view is driven by the sidebar's indented sub-items (?v=).
+    this.route.queryParamMap.subscribe((pm) => {
+      const v = pm.get('v') as SubView;
+      this.subview.set((['attention', 'progress', 'agents'] as const).includes(v as any) ? v : 'attention');
+      if (this.subview() === 'progress' && this.progProject) this.loadHistory();
+    });
   }
 
   private reloadScope(): void {
@@ -158,7 +193,7 @@ export class Dashboard {
     this.scopeProjects.set(keys ?? []);
     if (keys?.length && !keys.includes(this.progProject)) this.progProject = keys[0];
     this.reloadAttention(keys);
-    if (this.subview === 'progress') this.loadHistory();
+    if (this.subview() === 'progress') this.loadHistory();
   }
 
   // Attention data
@@ -175,10 +210,6 @@ export class Dashboard {
   protected setYesterday(): void { this.asOf = this.isoDate(-1); this.onDateChange(); }
   protected get isToday(): boolean { return this.asOf === '' || this.asOf === this.todayStr; }
 
-  protected setSub(v: SubView): void {
-    this.subview = v;
-    if (v === 'progress' && this.progProject) this.loadHistory();
-  }
 
   protected loadHistory(): void {
     if (!this.progProject) return;
