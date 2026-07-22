@@ -1,15 +1,5 @@
 <section class="watch">
-  <div class="watch__intro">
-    <p class="subtitle"><b>Signals &amp; Attention</b> — every risk item that needs action, ranked by urgency across your projects.</p>
-    <div class="datectl">
-      <button type="button" class="chip" [class.chip--on]="isToday" (click)="setToday()">Today</button>
-      <button type="button" class="chip" [class.chip--on]="asOf && !isToday" (click)="setYesterday()">Yesterday</button>
-      <label class="datectl__pick">
-        <span>as of</span>
-        <input type="date" [(ngModel)]="asOf" [max]="todayStr" (ngModelChange)="onDateChange()" />
-      </label>
-    </div>
-  </div>
+  <p class="subtitle"><b>Signals &amp; Attention</b> — every risk item that needs action, ranked by urgency across your projects.</p>
 
   @if (error()) {
     <div class="alert alert--error"><span class="alert__icon">
@@ -17,47 +7,104 @@
     </span><span>{{ error() }}</span></div>
   }
 
+  <!-- Workbench controls -->
+  <div class="toolbar">
+    <div class="toolbar__group">
+      <div class="viewtoggle">
+        <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'" aria-label="Card view">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Cards
+        </button>
+        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'" aria-label="Table view">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          Table
+        </button>
+      </div>
+
+      <label class="ctl">
+        <span>Sort by</span>
+        <select [(ngModel)]="sortBy">
+          @for (s of sorts; track s.key) { <option [value]="s.key">{{ s.label }}</option> }
+        </select>
+      </label>
+
+      <label class="ctl">
+        <span>Show</span>
+        <select [(ngModel)]="topN">
+          @for (n of topOptions; track n) { <option [ngValue]="n">Top {{ n }}</option> }
+        </select>
+      </label>
+    </div>
+
+    <div class="toolbar__group">
+      <div class="datectl">
+        <button type="button" class="chip" [class.chip--on]="isToday" (click)="setToday()">Today</button>
+        <button type="button" class="chip" [class.chip--on]="asOf && !isToday" (click)="setYesterday()">Yesterday</button>
+        <label class="datectl__pick"><span>as of</span>
+          <input type="date" [(ngModel)]="asOf" [max]="todayStr" (ngModelChange)="onDateChange()" />
+        </label>
+      </div>
+    </div>
+  </div>
+
   <div class="watch__bar">
-    <span class="watch__count">{{ total() }} attention item(s){{ isToday ? '' : ' · historical view' }}</span>
+    <span class="watch__count">Showing {{ items().length }} of {{ total() }}{{ isToday ? '' : ' · historical view' }}</span>
   </div>
 
   @if (loading()) {
     <div class="skeleton"><span class="spinner spinner--brand"></span> Loading the attention feed…</div>
-  } @else {
-    <div class="feed">
-      @for (a of items(); track a.finding_id; let i = $index) {
-        <a class="row row--{{ severityClass(a.severity) }}" routerLink="/decide" [queryParams]="{ project: a.project_key }">
-          <span class="row__rank">{{ i + 1 }}</span>
-          <span class="badge badge--{{ severityClass(a.severity) }}">{{ a.severity }}</span>
-          <div class="row__id">
-            <span class="row__proj mono">{{ a.project_key }}</span>
-            <span class="row__cat">{{ a.risk_category }} risk</span>
+  } @else if (items().length === 0) {
+    <p class="empty">No attention items for this date.</p>
+  } @else if (view === 'cards') {
+    <!-- Card view -->
+    <div class="acards">
+      @for (a of items(); track a.finding_id) {
+        <a class="acard acard--{{ severityClass(a.severity) }}" routerLink="/decide" [queryParams]="{ project: a.project_key }">
+          <div class="acard__top">
+            <span class="acard__proj mono">{{ a.project_key }}</span>
+            <span class="badge badge--{{ severityClass(a.severity) }}">{{ a.severity }}</span>
           </div>
-          <div class="row__stats">
-            <span class="rstat"><b class="rstat--risk">{{ pctOf(a.probability) }}%</b> slip</span>
-            <span class="rstat"><b>{{ pctOf(a.confidence) }}%</b> conf</span>
-            <span class="rstat"><b>{{ a.attention_score | number:'1.0-0' }}</b> priority</span>
+          <div class="acard__cat">{{ a.risk_category }} risk <span class="acard__time">· {{ ago(a.analysis_timestamp) }}</span></div>
+          <div class="acard__stats">
+            <div class="astat"><span class="astat__num astat__num--risk">{{ pctOf(a.probability) }}%</span><span class="astat__lbl">slip likelihood</span></div>
+            <div class="astat"><span class="astat__num">{{ pctOf(a.confidence) }}%</span><span class="astat__lbl">AI confidence</span></div>
+            <div class="astat"><span class="astat__num">{{ a.attention_score | number:'1.0-0' }}</span><span class="astat__lbl">priority</span></div>
           </div>
-          <div class="row__action">
-            @if (primaryAction(a); as act) {
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          @if (primaryAction(a); as act) {
+            <div class="acard__action">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <span>{{ act }}</span>
-            }
-          </div>
-          <span class="row__time">{{ ago(a.analysis_timestamp) }}</span>
+            </div>
+          }
         </a>
-      } @empty {
-        <p class="empty">No attention items for this date.</p>
       }
     </div>
-
-    @if (items().length < total()) {
-      <div class="watch__more">
-        <button class="btn--ghost" (click)="loadMore()" [disabled]="loadingMore()">
-          @if (loadingMore()) { <span class="spinner"></span> Loading… }
-          @else { Load more ({{ items().length }} of {{ total() }}) }
-        </button>
-      </div>
-    }
+  } @else {
+    <!-- Table view -->
+    <div class="tablewrap">
+      <table class="atable">
+        <thead>
+          <tr>
+            <th>Severity</th><th>Project</th><th>Category</th>
+            <th class="num">Slip</th><th class="num">Conf.</th><th class="num">Priority</th>
+            <th>Next action</th><th class="num">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of items(); track a.finding_id) {
+            <tr class="atrow atrow--{{ severityClass(a.severity) }}" [routerLink]="['/decide']" [queryParams]="{ project: a.project_key }">
+              <td><span class="badge badge--{{ severityClass(a.severity) }}">{{ a.severity }}</span></td>
+              <td class="mono">{{ a.project_key }}</td>
+              <td class="cap">{{ a.risk_category }}</td>
+              <td class="num num--risk">{{ pctOf(a.probability) }}%</td>
+              <td class="num">{{ pctOf(a.confidence) }}%</td>
+              <td class="num"><b>{{ a.attention_score | number:'1.0-0' }}</b></td>
+              <td class="action">{{ primaryAction(a) || '—' }}</td>
+              <td class="num muted">{{ ago(a.analysis_timestamp) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>
