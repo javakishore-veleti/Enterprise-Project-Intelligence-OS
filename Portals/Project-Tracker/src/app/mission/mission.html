@@ -1,4 +1,6 @@
 <section class="mission">
+  <app-about title="Mission" text="Your command center — the few things that need your attention now, your portfolio's risk score, and where to act first. Scoped to the projects you're assigned (change identity in the top bar)." />
+
   <header class="hello">
     <div>
       <h1 class="hello__title">{{ greeting() }}</h1>
@@ -10,12 +12,6 @@
         }
       </p>
     </div>
-    <label class="viewas">
-      <span>Viewing as</span>
-      <select [(ngModel)]="currentUser" (ngModelChange)="onUserChange()">
-        @for (u of users; track u.key) { <option [value]="u.key">{{ u.label }}</option> }
-      </select>
-    </label>
   </header>
 
   @if (error()) {

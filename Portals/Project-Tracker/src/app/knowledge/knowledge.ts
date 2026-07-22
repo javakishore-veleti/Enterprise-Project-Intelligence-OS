@@ -1,10 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { About } from '../ui/about';
+
 @Component({
   selector: 'app-knowledge',
-  imports: [RouterLink],
+  imports: [RouterLink, About],
   template: `
+    <div class="stage-top"><app-about title="Knowledge" text="Enterprise memory — how teams, projects, systems, dependencies, and past incidents relate." /></div>
     <section class="stage">
       <div class="stage__icon">
         <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>

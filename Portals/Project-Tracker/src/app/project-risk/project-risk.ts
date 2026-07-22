@@ -8,6 +8,7 @@ import { AnalysisRun, AnalysisRunSummary, Report, RiskFinding } from '../models/
 import { ProjectMetrics } from '../models/project';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
+import { About } from '../ui/about';
 import { NotificationService } from '../ui/notification.service';
 
 interface AgentOption {
@@ -49,7 +50,7 @@ const SEVERITY_RANK: Record<string, number> = {
 
 @Component({
   selector: 'app-project-risk',
-  imports: [FormsModule, DecimalPipe],
+  imports: [FormsModule, DecimalPipe, About],
   templateUrl: './project-risk.html',
   styleUrl: './project-risk.css',
 })

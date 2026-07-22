@@ -6,10 +6,11 @@ import { debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/o
 
 import { Project } from '../models/project';
 import { ProjectsService } from '../services/projects.service';
+import { About } from '../ui/about';
 
 @Component({
   selector: 'app-projects-list',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, About],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
 })

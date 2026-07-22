@@ -1,10 +1,14 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AttentionItem } from '../models/analysis';
+import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
+import { About } from '../ui/about';
+import { UserScopeService } from '../ui/user-scope.service';
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
 const FETCH = 100; // server returns top-100 by attention; we sort/slice client-side
@@ -14,12 +18,14 @@ type SortKey = 'priority' | 'slip' | 'severity' | 'confidence' | 'recent' | 'pro
 /** Watch = the Signals & Attention workbench (cards/table, sortable, top-N, date history). */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, FormsModule, DecimalPipe],
+  imports: [RouterLink, FormsModule, DecimalPipe, About],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard implements OnInit {
+export class Dashboard {
   private readonly risk = inject(RiskAnalyticsService);
+  private readonly projects = inject(ProjectsService);
+  protected readonly scope = inject(UserScopeService);
 
   private readonly all = signal<AttentionItem[]>([]);
   protected readonly total = signal(0);
@@ -49,8 +55,9 @@ export class Dashboard implements OnInit {
     return sorted.slice(0, this.topN);
   });
 
-  ngOnInit(): void {
-    this.reload();
+  constructor() {
+    // Reload on global scope change (masthead switcher / SSO identity).
+    toObservable(this.scope.userKey).subscribe(() => this.reload());
   }
 
   /** Only date/scope change requires a refetch; sort + top-N + view are client-side. */
@@ -62,7 +69,20 @@ export class Dashboard implements OnInit {
   private reload(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.risk.getAttention(FETCH, { asOf: this.asOf || undefined }).subscribe({
+    const userKey = this.scope.userKey();
+    // Scope the attention feed to the user's projects (fetch their keys first).
+    if (userKey) {
+      this.projects.getPortfolioSummary(50, userKey).subscribe({
+        next: (s) => this.fetchAttention(s.top_projects.map((p) => p.project_key)),
+        error: () => this.fetchAttention(undefined),
+      });
+    } else {
+      this.fetchAttention(undefined);
+    }
+  }
+
+  private fetchAttention(projects: string[] | undefined): void {
+    this.risk.getAttention(FETCH, { asOf: this.asOf || undefined, projects }).subscribe({
       next: (r) => { this.all.set(r.items); this.total.set(r.total); this.loading.set(false); },
       error: () => {
         this.error.set('Unable to load the attention feed. Is the RiskAnalytics-API running on :8004?');
