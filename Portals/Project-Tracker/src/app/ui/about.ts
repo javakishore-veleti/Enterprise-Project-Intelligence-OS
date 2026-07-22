@@ -20,7 +20,7 @@ import { Component, Input } from '@angular/core';
     }
     .about__icon { color: #d97706; flex: none; margin-top: .15rem; }
     .about__icon svg { width: 20px; height: 20px; }
-    .about__text { margin: 0; font-size: 1rem; color: #78560f; line-height: 1.5; }
+    .about__text { margin: 0; font-size: 1rem; color: #111827; line-height: 1.5; }
     .about__text b { color: #92400e; font-weight: 800; }
   `],
 })
