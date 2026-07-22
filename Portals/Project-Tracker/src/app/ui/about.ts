@@ -14,13 +14,13 @@ import { Component, Input } from '@angular/core';
   styles: [`
     .about {
       display: flex; align-items: flex-start; gap: .7rem;
-      background: color-mix(in srgb, var(--brand-500) 6%, #fff);
-      border: 1px solid color-mix(in srgb, var(--brand-500) 18%, #fff);
+      background: #fffbeb;
+      border: 1px solid #fde68a;
       border-radius: 12px; padding: .75rem 1rem; margin-bottom: 1.4rem;
     }
-    .about__icon { color: var(--brand-500); flex: none; margin-top: .05rem; }
-    .about__text { margin: 0; font-size: .86rem; color: var(--ink-700); line-height: 1.45; }
-    .about__text b { color: var(--brand-600); font-weight: 800; }
+    .about__icon { color: #d97706; flex: none; margin-top: .05rem; }
+    .about__text { margin: 0; font-size: .86rem; color: #78560f; line-height: 1.45; }
+    .about__text b { color: #92400e; font-weight: 800; }
   `],
 })
 export class About {
