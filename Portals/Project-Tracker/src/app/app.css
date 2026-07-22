@@ -2,7 +2,7 @@
 
 .shell {
   --sidebar-w: 250px;
-  --masthead-h: 60px;
+  --masthead-h: 66px;
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   grid-template-rows: var(--masthead-h) 1fr;
@@ -33,14 +33,14 @@
   background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff;
   box-shadow: 0 4px 12px rgba(2,132,199,.4);
 }
-.masthead__name { font-size: 1.02rem; font-weight: 700; color: #fff; letter-spacing: -.01em; white-space: nowrap; }
+.masthead__name { font-size: 1.22rem; font-weight: 700; color: #fff; letter-spacing: -.01em; white-space: nowrap; }
 .masthead__name b { color: #7dd3fc; font-weight: 800; }
 .masthead__module {
-  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #7dd3fc;
+  font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #7dd3fc;
   background: rgba(125,211,252,.12); border: 1px solid rgba(125,211,252,.25);
-  padding: .22rem .55rem; border-radius: 6px; white-space: nowrap;
+  padding: .26rem .6rem; border-radius: 6px; white-space: nowrap;
 }
-.masthead__page { display: flex; align-items: center; gap: .35rem; font-size: .95rem; font-weight: 600; color: #cbd5e1; }
+.masthead__page { display: flex; align-items: center; gap: .4rem; font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
 .masthead__sep { color: #64748b; flex: none; }
 .masthead__actions { margin-left: auto; display: flex; align-items: center; gap: .8rem; }
 .masthead__date { font-size: .8rem; color: #94a3b8; font-weight: 600; white-space: nowrap; }
