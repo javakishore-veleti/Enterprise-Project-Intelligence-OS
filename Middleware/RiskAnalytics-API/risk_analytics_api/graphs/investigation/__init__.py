@@ -188,12 +188,18 @@ class InvestigationAgent:
         conclusion: _Conclusion = self._llm_struct.invoke(state["messages"] + [prompt])
         return {"conclusion": conclusion}
 
-    def run(self, project_key: str, question: str | None = None) -> InvestigationResult:
+    def run(
+        self, project_key: str, question: str | None = None, emphasis: str | None = None
+    ) -> InvestigationResult:
         user = f"Investigate project '{project_key}'."
         if question:
             user += f" Focus on this question: {question}"
+        system = SYSTEM_PROMPT
+        if emphasis:
+            # Light-touch template bias (not a hard tool restriction).
+            system += f"\n\nEmphasize these angles for this investigation: {emphasis}."
         initial = {
-            "messages": [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=user)],
+            "messages": [SystemMessage(content=system), HumanMessage(content=user)],
             "steps": [], "evidence": [], "iters": 0,
         }
         out = self._graph.invoke(initial, {"recursion_limit": 2 * self._max + 5})

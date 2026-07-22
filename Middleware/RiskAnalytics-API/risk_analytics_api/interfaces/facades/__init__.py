@@ -14,6 +14,8 @@ from risk_analytics_api.dtos.responses import (
     AttentionResponse,
     DashboardActivityResponse,
     InvestigationResponse,
+    InvestigationsPageResponse,
+    InvestigationTemplateResponse,
 )
 
 
@@ -49,3 +51,20 @@ class GetAttentionFeedUseCase(ABC):
 class InvestigateProjectUseCase(ABC):
     @abstractmethod
     def execute(self, request: InvestigateRequest) -> InvestigationResponse: ...
+
+
+class ListInvestigationsUseCase(ABC):
+    @abstractmethod
+    def execute(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> InvestigationsPageResponse: ...
+
+
+class GetInvestigationUseCase(ABC):
+    @abstractmethod
+    def execute(self, investigation_id: str) -> InvestigationResponse: ...
+
+
+class ListInvestigationTemplatesUseCase(ABC):
+    @abstractmethod
+    def execute(self) -> list[InvestigationTemplateResponse]: ...

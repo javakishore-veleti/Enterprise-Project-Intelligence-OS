@@ -13,6 +13,9 @@ from risk_analytics_api.dtos.responses import (
     AttentionFindingRow,
     DashboardFindingSummary,
     DashboardTotals,
+    InvestigationRecord,
+    InvestigationResponse,
+    InvestigationsPageResponse,
     ReportResponse,
 )
 
@@ -108,3 +111,23 @@ class ReportDao(ABC):
 
     @abstractmethod
     def list_for_run(self, run_id: str) -> list[ReportResponse]: ...
+
+
+class InvestigationDao(ABC):
+    """Persistence of Investigation Agent runs (PostgreSQL)."""
+
+    @abstractmethod
+    def insert_investigation(self, record: InvestigationRecord) -> None:
+        """Persist one full investigation row."""
+
+    @abstractmethod
+    def list_investigations(
+        self, scope: str | None, q: str | None, limit: int, offset: int
+    ) -> InvestigationsPageResponse:
+        """Newest-first history page. Filters by ``scope`` (requested_by) and a
+        case-insensitive ``q`` across project_key/question/root_cause. The list
+        and total are capped at the newest 100."""
+
+    @abstractmethod
+    def get_investigation(self, investigation_id: str) -> InvestigationResponse | None:
+        """Return one full investigation, or None if absent."""

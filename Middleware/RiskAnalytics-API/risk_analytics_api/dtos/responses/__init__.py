@@ -182,8 +182,11 @@ class EvidenceCitation(TypedModel):
 class InvestigationResponse(TypedModel):
     """The autonomous Investigation Agent's conclusion + evidence + confidence."""
 
+    investigation_id: str
     project_key: str
     question: str | None = None
+    template_key: str | None = None
+    status: str = "COMPLETED"
     hypotheses: list[str] = []
     steps: list[InvestigationStep] = []
     root_cause: str
@@ -193,6 +196,61 @@ class InvestigationResponse(TypedModel):
     recommended_action: str
     run_id: str
     generated_at: datetime
+
+
+class InvestigationSummary(TypedModel):
+    """Compact view of a past investigation (for the history list)."""
+
+    investigation_id: str
+    project_key: str
+    question: str | None = None
+    template_key: str | None = None
+    status: str
+    root_cause: str | None = None
+    confidence: float | None = None
+    #: ISO-8601 serialized by FastAPI/pydantic.
+    created_at: datetime
+
+
+class InvestigationsPageResponse(TypedModel):
+    """A capped, newest-first page of investigation history (max 100 rows)."""
+
+    total: int
+    returned: int
+    offset: int
+    limit: int
+    items: list[InvestigationSummary] = []
+
+
+class InvestigationTemplateResponse(TypedModel):
+    """A pre-configured investigation template that biases the agent's focus."""
+
+    template_key: str
+    name: str
+    description: str
+    #: The investigative angles / tool-emphasis this template steers toward.
+    steps: list[str] = []
+    editable: bool = True
+
+
+class InvestigationRecord(TypedModel):
+    """Cross-layer persistence object: a full investigation row for the DAO to insert."""
+
+    investigation_id: str
+    project_key: str
+    requested_by: str | None = None
+    question: str | None = None
+    template_key: str | None = None
+    status: str
+    root_cause: str | None = None
+    confidence: float | None = None
+    recommended_action: str | None = None
+    hypotheses: list[str] = []
+    causal_chain: list[str] = []
+    steps: list[InvestigationStep] = []
+    evidence: list[EvidenceCitation] = []
+    run_id: str | None = None
+    created_at: datetime
 
 
 class HealthResponse(TypedModel):

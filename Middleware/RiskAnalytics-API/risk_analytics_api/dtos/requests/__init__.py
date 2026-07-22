@@ -43,4 +43,8 @@ class InvestigateRequest(TypedModel):
         default=None,
         description="Optional free-text steer, e.g. 'why is APACHE slipping?'.",
     )
+    template_key: str | None = Field(
+        default=None,
+        description="Investigation template to bias the agent's focus. Unknown/absent -> 'full'.",
+    )
     requested_by: str | None = Field(default=None)

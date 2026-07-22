@@ -52,75 +52,155 @@
       </div>
     }
   </div>
-  } @else {
 
-  <!-- ============ THE INVESTIGATION AGENT — its own queue (hero) ============ -->
-  <div class="console">
-    <div class="console__head">
-      <div class="console__badge">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </div>
-      <div class="console__title">
-        <h2>The agent is investigating for you</h2>
-        <p>It chose these targets — highest-risk first — and the exact question to ask each, from their evidence. Nothing to type.</p>
-      </div>
-      <span class="console__live">LangGraph · tool-using · evidence-grounded</span>
+  } @else if (subview() === 'evidence') {
+  <!-- ============ EVIDENCE (browse the substrate the agent reasons over) ============ -->
+  <div class="evview">
+    <div class="evview__head">
+      <h2>Evidence</h2>
+      <span class="evview__sub">The raw register the agent reasons over — {{ totals().projects }} projects, {{ totals().issues.toLocaleString() }} issues. Click any project to investigate it.</span>
     </div>
-  </div>
 
-  <!-- Queue of agent-scoped investigations (light, readable, risk-colored) -->
-  <div class="queue">
-    @for (q of queue(); track q.project.project_key) {
-      <button type="button" class="qcard qcard--{{ q.signal }}"
-              [class.qcard--active]="target === q.project.project_key"
-              [disabled]="investigating()" (click)="runQueued(q)">
-        <div class="qcard__top">
-          <span class="qcard__key mono">{{ q.project.project_key }}</span>
-          @if (q.project.name && q.project.name !== q.project.project_key) {
-            <span class="qcard__name">{{ q.project.name }}</span>
+    @if (error()) {
+      <div class="alert alert--error"><span>{{ error() }}</span></div>
+    }
+
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__label">Projects</span><span class="kpi__value">{{ totals().projects }}</span></div>
+      <div class="kpi"><span class="kpi__label">Total Issues</span><span class="kpi__value">{{ totals().issues.toLocaleString() }}</span></div>
+      <div class="kpi"><span class="kpi__label">Open Issues</span><span class="kpi__value">{{ totals().open_issues.toLocaleString() }}</span></div>
+      <div class="kpi"><span class="kpi__label">At-Risk</span><span class="kpi__value stat--risk">{{ bands().high + bands().medium }}</span><span class="kpi__sub">{{ bands().high }} high · {{ bands().medium }} med</span></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="viewtoggle">
+        <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'">Cards</button>
+        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'">Table</button>
+      </div>
+      <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
+    </div>
+
+    @if (loading()) {
+      <p class="projects__status"><span class="run__spin run__spin--dark"></span> Loading…</p>
+    } @else if (projects().length === 0) {
+      <p class="empty">No projects{{ query ? ' match “' + query + '”' : '' }}.</p>
+    } @else if (view === 'table') {
+      <div class="panel"><div class="tbl-wrap"><table>
+        <thead><tr><th>Project</th><th class="num">Risk</th><th class="num">Blockers</th><th class="num">Reopen</th><th class="num">Aging</th><th class="num">Open</th><th></th></tr></thead>
+        <tbody>
+          @for (p of projects(); track p.project_key) {
+            <tr>
+              <td><span class="mono">{{ p.project_key }}</span> <span class="pname">{{ p.name }}</span></td>
+              <td class="num"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span></td>
+              <td class="num" [class.risk]="p.blocker_count > 50">{{ p.blocker_count.toLocaleString() }}</td>
+              <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
+              <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
+              <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
+              <td class="num"><button type="button" class="row-action" (click)="investigateProject(p)">Investigate →</button></td>
+            </tr>
           }
-        </div>
-        <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
-        <div class="qcard__angle">{{ q.angle }}</div>
-        <div class="qcard__q">“{{ q.question }}”</div>
-        <div class="qcard__cta qcard__cta--{{ q.signal }}">
-          @if (investigating() && target === q.project.project_key) { <span class="run__spin run__spin--dark"></span> investigating… }
-          @else if (investigation() && target === q.project.project_key) { ✓ investigated — see below }
-          @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Investigation }
-        </div>
-      </button>
+        </tbody>
+      </table></div></div>
+    } @else {
+      <div class="cards">
+        @for (p of projects(); track p.project_key) {
+          <button type="button" class="pcard pcard--{{ scoreClass(p.risk_score) }}" (click)="investigateProject(p)">
+            <div class="pcard__head">
+              <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
+              <span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
+            </div>
+            <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
+            <div class="pstats">
+              <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
+              <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
+              <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">age</span></div>
+            </div>
+            <span class="pcard__cta">Investigate this →</span>
+          </button>
+        }
+      </div>
     }
   </div>
 
-  <button type="button" class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())">
-    {{ showAdvanced() ? '– Hide' : '+ Investigate something specific' }} <span class="adv-hint">(advanced — pick a project &amp; ask your own question)</span>
-  </button>
-  @if (showAdvanced()) {
-    <div class="advform">
-      <label class="fld fld--target">
+  } @else {
+
+  @if (subview() === 'ask') {
+    <!-- ============ ASK INVESTIGATOR (you choose the project & question) ============ -->
+    <div class="console">
+      <div class="console__head">
+        <div class="console__badge">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.5-1.6 1.2-1.6 2.4"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="9.5"/></svg>
+        </div>
+        <div class="console__title">
+          <h2>Ask the Investigator</h2>
+          <p>Point it at any project and ask your own question — the agent investigates and answers with evidence.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="askform">
+      <label class="fld">
         <span class="fld__lbl">Project</span>
         <select [(ngModel)]="target">
+          <option value="" disabled>Select a project…</option>
           @for (p of allProjects(); track p.project_key) {
             <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
           }
         </select>
       </label>
-      <label class="fld fld--q">
+      <label class="fld fld--grow">
         <span class="fld__lbl">Your question</span>
-        <input type="text" placeholder="e.g. Is the vendor API the real blocker?" [(ngModel)]="question" (keyup.enter)="runManual()" />
+        <input type="text" placeholder="e.g. Is the vendor API the real blocker, or is it staffing?" [(ngModel)]="question" (keyup.enter)="runManual()" />
       </label>
       <button class="run" type="button" [disabled]="!target || investigating()" (click)="runManual()">
         @if (investigating()) { <span class="run__spin"></span> Investigating… }
-        @else { Investigate }
+        @else { <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Investigate }
       </button>
+    </div>
+  } @else {
+    <!-- ============ NEW INVESTIGATION — the agent's own queue (hero) ============ -->
+    <div class="console">
+      <div class="console__head">
+        <div class="console__badge">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="console__title">
+          <h2>The agent is investigating for you</h2>
+          <p>It chose these targets — highest-risk first — and the exact question to ask each, from their evidence. Nothing to type.</p>
+        </div>
+        <span class="console__live">LangGraph · tool-using · evidence-grounded</span>
+      </div>
+    </div>
+
+    <div class="queue">
+      @for (q of queue(); track q.project.project_key) {
+        <button type="button" class="qcard qcard--{{ q.signal }}"
+                [class.qcard--active]="target === q.project.project_key"
+                [disabled]="investigating()" (click)="runQueued(q)">
+          <div class="qcard__top">
+            <span class="qcard__key mono">{{ q.project.project_key }}</span>
+            @if (q.project.name && q.project.name !== q.project.project_key) {
+              <span class="qcard__name">{{ q.project.name }}</span>
+            }
+          </div>
+          <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
+          <div class="qcard__angle">{{ q.angle }}</div>
+          <div class="qcard__q">“{{ q.question }}”</div>
+          <div class="qcard__cta qcard__cta--{{ q.signal }}">
+            @if (investigating() && target === q.project.project_key) { <span class="run__spin run__spin--dark"></span> investigating… }
+            @else if (investigation() && target === q.project.project_key) { ✓ investigated — see below }
+            @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Investigation }
+          </div>
+        </button>
+      }
     </div>
   }
 
+  <!-- shared: error / working / briefing (New + Ask) -->
   @if (invError()) {
     <div class="alert alert--error"><span>{{ invError() }}</span></div>
   }
 
-  <!-- ============ WORKING STATE ============ -->
   @if (investigating()) {
     <div class="working">
       <div class="working__pulse"><span></span><span></span><span></span></div>
@@ -131,10 +211,8 @@
     </div>
   }
 
-  <!-- ============ THE BRIEFING (result) ============ -->
   @if (investigation(); as inv) {
     <div class="briefing">
-      <!-- Verdict + confidence -->
       <div class="verdict">
         <div class="verdict__main">
           <div class="verdict__eyebrow">
@@ -149,7 +227,6 @@
         </div>
       </div>
 
-      <!-- Causal chain -->
       @if (inv.causal_chain?.length) {
         <div class="chain">
           @for (link of inv.causal_chain; track $index; let last = $last) {
@@ -159,7 +236,6 @@
         </div>
       }
 
-      <!-- Hypotheses the agent tested -->
       @if (inv.hypotheses?.length) {
         <div class="block">
           <h3 class="block__h">Hypotheses tested</h3>
@@ -169,7 +245,6 @@
         </div>
       }
 
-      <!-- Reasoning trace: watch it think -->
       @if (inv.steps?.length) {
         <div class="block">
           <h3 class="block__h">How it reasoned <span class="block__sub">{{ inv.steps.length }} steps · each grounded in a tool call</span></h3>
@@ -189,7 +264,6 @@
         </div>
       }
 
-      <!-- Evidence cited -->
       @if (inv.evidence?.length) {
         <div class="block">
           <h3 class="block__h">Evidence cited <span class="block__sub">the agent only used data returned by these tool calls</span></h3>
@@ -205,7 +279,6 @@
         </div>
       }
 
-      <!-- Recommended action + handoff + steer -->
       <div class="action">
         <div class="action__body">
           <span class="action__lbl">Recommended next action</span>
@@ -225,77 +298,5 @@
       </div>
     </div>
   }
-
-  <!-- ============ EVIDENCE SUBSTRATE (demoted) ============ -->
-  <div class="substrate">
-    <button type="button" class="substrate__toggle" (click)="showEvidence.set(!showEvidence())">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [style.transform]="showEvidence() ? 'rotate(90deg)' : ''" style="transition:transform .15s"><polyline points="9 18 15 12 9 6"/></svg>
-      Browse the evidence
-      <span class="substrate__hint">the raw register the agent reasons over — {{ totals().projects }} projects, {{ totals().issues.toLocaleString() }} issues</span>
-    </button>
-
-    @if (showEvidence()) {
-      <div class="substrate__body">
-        @if (error()) {
-          <div class="alert alert--error"><span>{{ error() }}</span></div>
-        }
-        <div class="kpis">
-          <div class="kpi"><span class="kpi__label">Projects</span><span class="kpi__value">{{ totals().projects }}</span></div>
-          <div class="kpi"><span class="kpi__label">Total Issues</span><span class="kpi__value">{{ totals().issues.toLocaleString() }}</span></div>
-          <div class="kpi"><span class="kpi__label">Open Issues</span><span class="kpi__value">{{ totals().open_issues.toLocaleString() }}</span></div>
-          <div class="kpi"><span class="kpi__label">At-Risk</span><span class="kpi__value stat--risk">{{ bands().high + bands().medium }}</span><span class="kpi__sub">{{ bands().high }} high · {{ bands().medium }} med</span></div>
-        </div>
-
-        <div class="toolbar">
-          <div class="viewtoggle">
-            <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'">Cards</button>
-            <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'">Table</button>
-          </div>
-          <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
-        </div>
-
-        @if (loading()) {
-          <p class="projects__status"><span class="run__spin run__spin--dark"></span> Loading…</p>
-        } @else if (projects().length === 0) {
-          <p class="empty">No projects{{ query ? ' match “' + query + '”' : '' }}.</p>
-        } @else if (view === 'table') {
-          <div class="panel"><div class="tbl-wrap"><table>
-            <thead><tr><th>Project</th><th class="num">Risk</th><th class="num">Blockers</th><th class="num">Reopen</th><th class="num">Aging</th><th class="num">Open</th><th></th></tr></thead>
-            <tbody>
-              @for (p of projects(); track p.project_key) {
-                <tr>
-                  <td><span class="mono">{{ p.project_key }}</span> <span class="pname">{{ p.name }}</span></td>
-                  <td class="num"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span></td>
-                  <td class="num" [class.risk]="p.blocker_count > 50">{{ p.blocker_count.toLocaleString() }}</td>
-                  <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
-                  <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
-                  <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
-                  <td class="num"><button type="button" class="row-action" (click)="investigateProject(p)">Investigate →</button></td>
-                </tr>
-              }
-            </tbody>
-          </table></div></div>
-        } @else {
-          <div class="cards">
-            @for (p of projects(); track p.project_key) {
-              <button type="button" class="pcard pcard--{{ scoreClass(p.risk_score) }}" (click)="investigateProject(p)">
-                <div class="pcard__head">
-                  <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
-                  <span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
-                </div>
-                <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
-                <div class="pstats">
-                  <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
-                  <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
-                  <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">age</span></div>
-                </div>
-                <span class="pcard__cta">Investigate this →</span>
-              </button>
-            }
-          </div>
-        }
-      </div>
-    }
-  </div>
   }
 </section>

@@ -11,8 +11,11 @@ from risk_analytics_api.api.dependencies import (
     provide_get_analysis_run_facade,
     provide_get_attention_feed_facade,
     provide_get_dashboard_activity_facade,
+    provide_get_investigation_facade,
     provide_investigate_project_facade,
     provide_list_analysis_runs_facade,
+    provide_list_investigation_templates_facade,
+    provide_list_investigations_facade,
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
@@ -27,12 +30,19 @@ from risk_analytics_api.dtos.responses import (
     AttentionResponse,
     DashboardActivityResponse,
     InvestigationResponse,
+    InvestigationsPageResponse,
+    InvestigationTemplateResponse,
 )
 from risk_analytics_api.facades.get_analysis_run import GetAnalysisRunFacade
 from risk_analytics_api.facades.get_attention_feed import GetAttentionFeedFacade
 from risk_analytics_api.facades.get_dashboard_activity import GetDashboardActivityFacade
+from risk_analytics_api.facades.get_investigation import GetInvestigationFacade
 from risk_analytics_api.facades.investigate_project import InvestigateProjectFacade
 from risk_analytics_api.facades.list_analysis_runs import ListAnalysisRunsFacade
+from risk_analytics_api.facades.list_investigation_templates import (
+    ListInvestigationTemplatesFacade,
+)
+from risk_analytics_api.facades.list_investigations import ListInvestigationsFacade
 from risk_analytics_api.facades.start_portfolio_analysis import StartPortfolioAnalysisFacade
 from risk_analytics_api.facades.start_project_analysis import StartProjectAnalysisFacade
 
@@ -114,6 +124,49 @@ def investigate_project(
     facade: InvestigateProjectFacade = Depends(provide_investigate_project_facade),
 ) -> InvestigationResponse:
     return facade.execute(request)
+
+
+@router.get(
+    "/investigations",
+    response_model=InvestigationsPageResponse,
+    operation_id="listInvestigations",
+)
+def list_investigations(
+    scope: str | None = Query(
+        default=None, description="Filter to investigations requested_by this subject."),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive search across project_key, question, and root_cause.",
+    ),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    facade: ListInvestigationsFacade = Depends(provide_list_investigations_facade),
+) -> InvestigationsPageResponse:
+    return facade.execute(scope, q, limit, offset)
+
+
+@router.get(
+    "/investigation-templates",
+    response_model=list[InvestigationTemplateResponse],
+    operation_id="listInvestigationTemplates",
+)
+def list_investigation_templates(
+    facade: ListInvestigationTemplatesFacade = Depends(
+        provide_list_investigation_templates_facade),
+) -> list[InvestigationTemplateResponse]:
+    return facade.execute()
+
+
+@router.get(
+    "/investigations/{investigation_id}",
+    response_model=InvestigationResponse,
+    operation_id="getInvestigation",
+)
+def get_investigation(
+    investigation_id: str,
+    facade: GetInvestigationFacade = Depends(provide_get_investigation_facade),
+) -> InvestigationResponse:
+    return facade.execute(investigation_id)
 
 
 @router.post(

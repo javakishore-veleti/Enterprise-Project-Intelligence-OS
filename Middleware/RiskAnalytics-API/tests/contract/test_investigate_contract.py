@@ -22,7 +22,8 @@ _NOW = datetime(2026, 7, 1, tzinfo=timezone.utc)
 
 def _response() -> InvestigationResponse:
     return InvestigationResponse(
-        project_key="APACHE", question="why slipping?",
+        investigation_id="inv-1", project_key="APACHE", question="why slipping?",
+        template_key="full", status="COMPLETED",
         hypotheses=["reopen churn"],
         steps=[InvestigationStep(action="reopened_issues(limit=5)",
                                  observation='{"count": 3}', hypothesis="reopen churn")],

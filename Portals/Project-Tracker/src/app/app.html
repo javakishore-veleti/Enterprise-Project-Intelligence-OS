@@ -51,7 +51,9 @@
       @if (onInvestigate()) {
         <div class="sidebar__sub">
           <a routerLink="/investigate" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">New Investigation</a>
+          <a routerLink="/investigate" [queryParams]="{ v: 'ask' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Ask Investigator</a>
           <a routerLink="/investigate" [queryParams]="{ v: 'history' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Investigations</a>
+          <a routerLink="/investigate" [queryParams]="{ v: 'evidence' }" routerLinkActive="is-subactive" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }">Evidence</a>
         </div>
       }
       <a routerLink="/predict" routerLinkActive="is-active">

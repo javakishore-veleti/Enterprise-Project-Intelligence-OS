@@ -41,10 +41,15 @@ export class ProjectsList {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  /** Sub-view driven by the sidebar sub-nav (?v=history). */
+  /** Sub-view driven by the sidebar sub-nav (?v=ask|history|evidence). */
   protected readonly subview = toSignal(
-    this.route.queryParamMap.pipe(map((p) => (p.get('v') === 'history' ? 'history' : 'new'))),
-    { initialValue: 'new' as 'new' | 'history' },
+    this.route.queryParamMap.pipe(
+      map((p) => {
+        const v = p.get('v');
+        return v === 'ask' || v === 'history' || v === 'evidence' ? v : 'new';
+      }),
+    ),
+    { initialValue: 'new' as 'new' | 'ask' | 'history' | 'evidence' },
   );
 
   // --- Investigations history (persisted) ---
@@ -63,7 +68,6 @@ export class ProjectsList {
   protected readonly error = signal<string | null>(null);
   protected view: 'cards' | 'table' = 'cards';
   protected query = '';
-  protected showEvidence = signal(false);
 
   // --- the Investigation Agent ---
   /** The active investigation target (set by the agent's queue, not typed by the user). */
@@ -74,7 +78,6 @@ export class ProjectsList {
   protected readonly investigation = signal<Investigation | null>(null);
   protected readonly invError = signal<string | null>(null);
   protected readonly activeQuestion = signal<string>('');
-  protected showAdvanced = signal(false);
 
   protected readonly allProjects = computed<PortfolioProject[]>(() => this.summary()?.top_projects ?? []);
 
