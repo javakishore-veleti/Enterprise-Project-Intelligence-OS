@@ -31,6 +31,13 @@ export interface ProjectMetrics {
   dependency_depth: number;
   issue_aging_days: number;
   resolution_velocity: number;
+  resolution_velocity_trend?: number;
   contributor_concentration: number;
   critical_defect_ratio: number;
+}
+
+/** Time-series of metric snapshots for the progress graph. */
+export interface MetricsHistory {
+  project_key: string;
+  history: ProjectMetrics[];
 }

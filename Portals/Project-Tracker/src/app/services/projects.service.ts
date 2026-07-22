@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { Project, ProjectMetrics, ProjectSearchResponse } from '../models/project';
+import { MetricsHistory, Project, ProjectMetrics, ProjectSearchResponse } from '../models/project';
 import { PortfolioSummary } from '../models/portfolio';
 
 export interface SearchProjectsParams {
@@ -44,6 +44,15 @@ export class ProjectsService {
   getProjectMetrics(projectKey: string): Observable<ProjectMetrics> {
     return this.http.get<ProjectMetrics>(
       `${this.baseUrl}/projects/${encodeURIComponent(projectKey)}/metrics`,
+    );
+  }
+
+  /** Time-series of metric snapshots (newest first) for the progress graph. */
+  getMetricsHistory(projectKey: string, limit = 200): Observable<MetricsHistory> {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<MetricsHistory>(
+      `${this.baseUrl}/projects/${encodeURIComponent(projectKey)}/metrics/history`,
+      { params },
     );
   }
 
