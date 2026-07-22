@@ -1,14 +1,14 @@
-import { DecimalPipe, TitleCasePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { AnalysisRun, RiskFinding } from '../models/analysis';
-import { PortfolioProject, PortfolioSummary } from '../models/portfolio';
+import { RecentFinding } from '../models/analysis';
+import { PortfolioSummary } from '../models/portfolio';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
 
-const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+const SEVERITY_WEIGHT: Record<string, number> = { CRITICAL: 1.0, HIGH: 0.8, MEDIUM: 0.5, LOW: 0.25 };
 
 /** Demo identities (seam for real SSO). Keys match the seeded project_assignments. */
 const USERS: ReadonlyArray<{ key: string; label: string }> = [
@@ -17,9 +17,14 @@ const USERS: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'mgr-data', label: 'Data Platform Manager' },
 ];
 
+/** An attention item ranked for the feed (interim source: recent findings). */
+interface AttentionItem extends RecentFinding {
+  attention_score: number;
+}
+
 @Component({
   selector: 'app-mission',
-  imports: [RouterLink, FormsModule, TitleCasePipe, DecimalPipe],
+  imports: [RouterLink, FormsModule, DecimalPipe],
   templateUrl: './mission.html',
   styleUrl: './mission.css',
 })
@@ -34,10 +39,9 @@ export class Mission implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly summary = signal<PortfolioSummary | null>(null);
 
-  // Today's Attention — detail for the single riskiest project (scoped, 1 project).
-  protected readonly attention = signal<{ finding: RiskFinding; run: AnalysisRun } | null>(null);
-  protected readonly aiConfidence = signal(0);
-  protected readonly execReportSummary = signal<string | null>(null);
+  // Today's Attention — ranked top-N feed (scoped to the current user).
+  protected readonly attention = signal<AttentionItem[]>([]);
+  protected readonly attentionTotal = signal(0);
 
   protected readonly topProjects = computed(() => this.summary()?.top_projects ?? []);
   protected readonly greeting = computed(() => {
@@ -56,16 +60,14 @@ export class Mission implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.attention.set(null);
-    this.execReportSummary.set(null);
-    this.aiConfidence.set(0);
+    this.attention.set([]);
+    this.attentionTotal.set(0);
 
     this.projectsService.getPortfolioSummary(15, this.currentUser || null).subscribe({
       next: (s) => {
         this.summary.set(s);
-        const top = s.top_projects[0];
-        if (!top) { this.loading.set(false); return; }
-        this.loadAttention(top.project_key);
+        this.loadAttention(s);
+        this.loading.set(false);
       },
       error: () => {
         this.error.set('Unable to load your portfolio. Is the Projects-API running on :8003?');
@@ -74,27 +76,31 @@ export class Mission implements OnInit {
     });
   }
 
-  /** Rich Today's Attention detail for one project (its latest run) — scoped, cheap. */
-  private loadAttention(projectKey: string): void {
-    this.riskService.listRuns(projectKey, 1).subscribe({
-      next: (r) => {
-        const runId = r.runs[0]?.run_id;
-        if (!runId) { this.loading.set(false); return; }
-        this.riskService.getRun(runId).subscribe({
-          next: (run) => {
-            const top = [...run.findings].sort((a, b) => b.score - a.score)[0] ?? null;
-            if (top) this.attention.set({ finding: top, run });
-            const exec = run.reports?.find((rp) => (rp.kind || '').toLowerCase() === 'executive');
-            this.execReportSummary.set(exec?.summary ?? null);
-            const confs = run.findings.map((f) => f.confidence).filter((c) => typeof c === 'number');
-            this.aiConfidence.set(confs.length ? Math.round((confs.reduce((s, c) => s + c, 0) / confs.length) * 100) : 0);
-            this.loading.set(false);
-          },
-          error: () => this.loading.set(false),
-        });
+  /**
+   * Build the ranked Top-10 attention feed. Interim source = recent findings,
+   * scoped to the current user's projects and ranked by attention score.
+   * (Swaps to the server-side /analysis/attention endpoint when live.)
+   */
+  private loadAttention(s: PortfolioSummary): void {
+    const scopeKeys = s.scope?.scoped ? new Set(s.top_projects.map((p) => p.project_key)) : null;
+    this.riskService.getActivity(50).subscribe({
+      next: (act) => {
+        let findings = act.recent_findings ?? [];
+        if (scopeKeys) findings = findings.filter((f) => scopeKeys.has(f.project_key));
+        const ranked = findings
+          .map((f) => ({ ...f, attention_score: this.score(f) }))
+          .sort((a, b) => b.attention_score - a.attention_score);
+        this.attentionTotal.set(ranked.length);
+        this.attention.set(ranked.slice(0, 10));
       },
-      error: () => this.loading.set(false),
+      error: () => {},
     });
+  }
+
+  private score(f: RecentFinding): number {
+    const sev = SEVERITY_WEIGHT[(f.severity || '').toUpperCase()] ?? 0.4;
+    const norm = Math.min(1, (f.score ?? 0) / 100);
+    return Math.round(sev * (0.5 + 0.5 * norm) * 100);
   }
 
   protected bandClass(band: string): string {
@@ -105,17 +111,5 @@ export class Mission implements OnInit {
   }
   protected scoreClass(score: number): string {
     return score >= 66 ? 'high' : score >= 33 ? 'medium' : 'low';
-  }
-  protected slipPct(f: RiskFinding): number {
-    return Math.round((f.probability ?? 0) * 100);
-  }
-  protected confPct(f: RiskFinding): number {
-    return Math.round((f.confidence ?? 0) * 100);
-  }
-  protected pct(v: number): string {
-    return `${Math.round(v * 100)}%`;
-  }
-  protected roundedDays(v: number): number {
-    return Math.round(v);
   }
 }

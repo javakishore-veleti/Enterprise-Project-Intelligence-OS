@@ -1,5 +1,4 @@
 <section class="mission">
-  <!-- Greeting + identity scope -->
   <header class="hello">
     <div>
       <h1 class="hello__title">{{ greeting() }}</h1>
@@ -26,7 +25,7 @@
   }
 
   @if (summary(); as s) {
-    <!-- Hero: portfolio score + stats -->
+    <!-- Hero -->
     <div class="hero">
       <div class="score-card score-card--{{ bandClass(s.overall_risk) }}">
         <span class="score-card__label">Portfolio Risk Score</span>
@@ -50,51 +49,46 @@
         <div class="stat"><span class="stat__value">{{ s.totals.projects }}</span><span class="stat__label">Projects monitored</span></div>
         <div class="stat"><span class="stat__value">{{ s.totals.issues.toLocaleString() }}</span><span class="stat__label">Issues analyzed</span></div>
         <div class="stat"><span class="stat__value stat__value--risk">{{ s.risk_bands.high + s.risk_bands.medium }}</span><span class="stat__label">Projects at risk</span></div>
-        <div class="stat stat--conf">
-          <div class="conf">
-            <svg viewBox="0 0 44 44" class="conf__ring"><circle cx="22" cy="22" r="19" class="conf__track"/><circle cx="22" cy="22" r="19" class="conf__val" [style.stroke-dashoffset]="119.4 - 119.4 * aiConfidence() / 100"/></svg>
-            <span class="conf__num">{{ aiConfidence() }}%</span>
-          </div>
-          <span class="stat__label">AI confidence</span>
-        </div>
+        <div class="stat"><span class="stat__value stat__value--risk">{{ attentionTotal() }}</span><span class="stat__label">Attention items</span></div>
       </div>
     </div>
 
-    @if (loading()) { <div class="skeleton"><span class="spinner spinner--brand"></span> Assembling your briefing…</div> }
+    <!-- Today's Attention — ranked top-10 cards -->
+    <div class="section-head">
+      <div class="section-head__title">
+        <span class="pulse"></span>
+        <h2>Today's Attention</h2>
+        <span class="section-head__count">{{ attentionTotal() }} item(s)</span>
+      </div>
+      <a class="viewmore" routerLink="/watch">View all attention
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </a>
+    </div>
 
-    <!-- Today's Attention -->
-    @if (attention(); as a) {
-      <div class="attention">
-        <div class="attention__eyebrow"><span class="pulse"></span> Today's Attention</div>
-        <div class="attention__grid">
-          <div>
-            <h2 class="attention__project">{{ a.finding.risk_category | titlecase }} risk · <span class="mono">{{ a.run.project_key }}</span></h2>
-            <div class="attention__row">
-              <span class="badge badge--{{ severityClass(a.finding.severity) }}">{{ a.finding.severity }}</span>
-              <div class="prob"><span class="prob__num">{{ slipPct(a.finding) }}%</span><span class="prob__label">probability of slip</span></div>
-              <div class="prob prob--muted"><span class="prob__num">{{ confPct(a.finding) }}%</span><span class="prob__label">AI confidence</span></div>
+    @if (loading()) {
+      <div class="skeleton"><span class="spinner spinner--brand"></span> Ranking what needs your attention…</div>
+    } @else {
+      <div class="acards">
+        @for (a of attention(); track a.finding_id) {
+          <a class="acard acard--{{ severityClass(a.severity) }}" routerLink="/decide" [queryParams]="{ project: a.project_key }">
+            <div class="acard__top">
+              <span class="badge badge--{{ severityClass(a.severity) }}">{{ a.severity }}</span>
+              <span class="acard__score">{{ a.attention_score }}</span>
             </div>
-            <p class="attention__why">{{ a.finding.explanation }}</p>
-            <a class="attention__cta" routerLink="/decide" [queryParams]="{ project: a.run.project_key }">Investigate &amp; decide
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-            </a>
-          </div>
-          @if (a.finding.recommended_actions?.length) {
-            <div class="actions">
-              <span class="actions__title">Recommended actions</span>
-              <ul>
-                @for (act of a.finding.recommended_actions.slice(0, 4); track $index) {
-                  <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>{{ act }}</span></li>
-                }
-              </ul>
+            <div class="acard__proj"><span class="mono">{{ a.project_key }}</span> · {{ a.risk_category }}</div>
+            <p class="acard__why">{{ a.explanation }}</p>
+            <div class="acard__foot"><span class="acard__agent">{{ a.agent_key }}</span>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
             </div>
-          }
-        </div>
+          </a>
+        } @empty {
+          <p class="empty">No attention items in this scope. Run an analysis from Decide.</p>
+        }
       </div>
     }
 
-    <!-- Top-15 project risk cards -->
-    <div class="section-head">
+    <!-- Top projects by risk -->
+    <div class="section-head section-head--mt">
       <h2>Top projects by risk</h2>
       <a class="viewmore" routerLink="/investigate">View all {{ s.totals.projects }} projects
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
@@ -115,8 +109,6 @@
             <span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} open</span>
           </div>
         </a>
-      } @empty {
-        @if (!loading()) { <p class="empty">No scored projects in this scope yet.</p> }
       }
     </div>
   }
