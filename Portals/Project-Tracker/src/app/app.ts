@@ -3,8 +3,10 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs/operators';
 import { NotificationService } from './ui/notification.service';
 
+// Page title MUST match the sidebar menu label so the breadcrumb and the active
+// nav item always read the same word (Project Tracker > Projects / Project Risk).
 const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
-  '/': { title: 'Portfolio Overview', crumb: 'Projects' },
+  '/': { title: 'Projects', crumb: 'Projects' },
   '/risk': { title: 'Project Risk', crumb: 'Risk Analysis' },
 };
 
