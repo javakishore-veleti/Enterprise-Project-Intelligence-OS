@@ -108,3 +108,29 @@ export interface StartPortfolioRequest {
   project_keys: string[];
   requested_by: string;
 }
+
+/** One ranked attention item from GET /api/v1/analysis/attention. */
+export interface AttentionItem {
+  finding_id: string;
+  run_id: string;
+  project_key: string;
+  agent_key: string;
+  risk_category: string;
+  severity: string;
+  score: number;
+  probability: number;
+  confidence: number;
+  attention_score: number;
+  explanation: string;
+  recommended_actions: string[];
+  analysis_timestamp: string;
+}
+
+/** Response for GET /api/v1/analysis/attention (ranked feed + paging totals). */
+export interface AttentionResponse {
+  as_of: string | null;
+  scope_projects: number;
+  total: number;
+  returned: number;
+  items: AttentionItem[];
+}

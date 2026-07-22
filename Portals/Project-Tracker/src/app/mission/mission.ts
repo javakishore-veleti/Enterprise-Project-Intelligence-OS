@@ -3,12 +3,10 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { RecentFinding } from '../models/analysis';
+import { AttentionItem } from '../models/analysis';
 import { PortfolioSummary } from '../models/portfolio';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
-
-const SEVERITY_WEIGHT: Record<string, number> = { CRITICAL: 1.0, HIGH: 0.8, MEDIUM: 0.5, LOW: 0.25 };
 
 /** Demo identities (seam for real SSO). Keys match the seeded project_assignments. */
 const USERS: ReadonlyArray<{ key: string; label: string }> = [
@@ -16,11 +14,6 @@ const USERS: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'mgr-apac', label: 'APAC Delivery Manager' },
   { key: 'mgr-data', label: 'Data Platform Manager' },
 ];
-
-/** An attention item ranked for the feed (interim source: recent findings). */
-interface AttentionItem extends RecentFinding {
-  attention_score: number;
-}
 
 @Component({
   selector: 'app-mission',
@@ -78,31 +71,26 @@ export class Mission implements OnInit {
   }
 
   /**
-   * Build the ranked Top-10 attention feed. Interim source = recent findings,
-   * scoped to the current user's projects and ranked by attention score.
-   * (Swaps to the server-side /analysis/attention endpoint when live.)
+   * Ranked attention feed from the server (/analysis/attention), scoped to the
+   * user's projects. The product's value is FOCUS — surface only the top 5.
    */
   private loadAttention(s: PortfolioSummary): void {
-    const scopeKeys = s.scope?.scoped ? new Set(s.top_projects.map((p) => p.project_key)) : null;
-    this.riskService.getActivity(50).subscribe({
-      next: (act) => {
-        let findings = act.recent_findings ?? [];
-        if (scopeKeys) findings = findings.filter((f) => scopeKeys.has(f.project_key));
-        const ranked = findings
-          .map((f) => ({ ...f, attention_score: this.score(f) }))
-          .sort((a, b) => b.attention_score - a.attention_score);
-        this.attentionTotal.set(ranked.length);
-        // The product's value is FOCUS — surface only the vital few (top 5).
-        this.attention.set(ranked.slice(0, 5));
+    const projects = s.scope?.scoped ? s.top_projects.map((p) => p.project_key) : undefined;
+    this.riskService.getAttention(5, { projects }).subscribe({
+      next: (r) => {
+        this.attentionTotal.set(r.total);
+        this.attention.set(r.items);
       },
       error: () => {},
     });
   }
 
-  private score(f: RecentFinding): number {
-    const sev = SEVERITY_WEIGHT[(f.severity || '').toUpperCase()] ?? 0.4;
-    const norm = Math.min(1, (f.score ?? 0) / 100);
-    return Math.round(sev * (0.5 + 0.5 * norm) * 100);
+  /** First recommended action — the single "what to do now". */
+  protected primaryAction(a: AttentionItem): string | null {
+    return a.recommended_actions?.[0] ?? null;
+  }
+  protected pctOf(v: number): number {
+    return Math.round((v ?? 0) * 100);
   }
 
   protected bandClass(band: string): string {

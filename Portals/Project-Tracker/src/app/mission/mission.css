@@ -68,12 +68,19 @@
 .acard--medium { border-left-color: var(--warning); }
 .acard--low { border-left-color: var(--success); }
 .acard__top { display: flex; align-items: center; justify-content: space-between; }
-.acard__score { font-size: 1.25rem; font-weight: 800; color: var(--ink-900); letter-spacing: -.02em; }
-.acard__proj { font-size: .84rem; font-weight: 700; color: var(--ink-700); }
-.acard__proj .mono { color: var(--brand-500); font-family: 'SF Mono', ui-monospace, Menlo, monospace; }
-.acard__why { margin: 0; font-size: .82rem; color: var(--ink-500); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.acard__foot { display: flex; align-items: center; justify-content: space-between; color: var(--brand-500); margin-top: auto; }
-.acard__agent { font-size: .74rem; font-weight: 700; color: var(--ink-400); font-family: 'SF Mono', ui-monospace, Menlo, monospace; }
+.acard__proj { font-size: .95rem; font-weight: 800; color: var(--ink-900); font-family: 'SF Mono', ui-monospace, Menlo, monospace; }
+.acard__cat { font-size: .8rem; font-weight: 600; color: var(--ink-500); text-transform: capitalize; margin-top: -.15rem; }
+
+/* Stats row — the scannable numbers a manager acts on */
+.acard__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .3rem; background: var(--bg-2); border-radius: 10px; padding: .6rem .3rem; }
+.astat { display: flex; flex-direction: column; align-items: center; gap: .1rem; text-align: center; }
+.astat__num { font-size: 1.15rem; font-weight: 800; color: var(--ink-900); letter-spacing: -.02em; line-height: 1; }
+.astat__num--risk { color: var(--danger); }
+.astat__lbl { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-400); }
+
+/* Primary next-action */
+.acard__action { display: flex; align-items: flex-start; gap: .45rem; margin-top: auto; padding-top: .2rem; font-size: .82rem; font-weight: 600; color: var(--ink-700); line-height: 1.35; }
+.acard__action svg { color: var(--success); flex: none; margin-top: .15rem; }
 .viewmore { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--brand-500); }
 .viewmore:hover { color: var(--brand-400); gap: .5rem; }
 

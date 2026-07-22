@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 import {
   AnalysisRun,
   AnalysisRunsResponse,
+  AttentionResponse,
   DashboardActivity,
   StartAnalysisRequest,
   StartPortfolioRequest,
@@ -56,6 +57,21 @@ export class RiskAnalyticsService {
   getActivity(limit = 15): Observable<DashboardActivity> {
     const params = new HttpParams().set('limit', limit);
     return this.http.get<DashboardActivity>(`${this.baseUrl}/analysis/activity`, { params });
+  }
+
+  /**
+   * Ranked attention feed. Server ranks by attention score; `projects` scopes it
+   * (user's or a group's project keys), `asOf` gives the feed as of a past date.
+   */
+  getAttention(
+    top = 10,
+    opts: { projects?: string[]; asOf?: string; offset?: number } = {},
+  ): Observable<AttentionResponse> {
+    let params = new HttpParams().set('top', top);
+    if (opts.offset != null) params = params.set('offset', opts.offset);
+    if (opts.asOf) params = params.set('as_of', opts.asOf);
+    if (opts.projects?.length) params = params.set('projects', opts.projects.join(','));
+    return this.http.get<AttentionResponse>(`${this.baseUrl}/analysis/attention`, { params });
   }
 
   /** Run a combined portfolio-risk analysis over a group's member projects. */

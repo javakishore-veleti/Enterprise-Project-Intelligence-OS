@@ -72,14 +72,21 @@
         @for (a of attention(); track a.finding_id) {
           <a class="acard acard--{{ severityClass(a.severity) }}" routerLink="/decide" [queryParams]="{ project: a.project_key }">
             <div class="acard__top">
+              <span class="acard__proj mono">{{ a.project_key }}</span>
               <span class="badge badge--{{ severityClass(a.severity) }}">{{ a.severity }}</span>
-              <span class="acard__score">{{ a.attention_score }}</span>
             </div>
-            <div class="acard__proj"><span class="mono">{{ a.project_key }}</span> · {{ a.risk_category }}</div>
-            <p class="acard__why">{{ a.explanation }}</p>
-            <div class="acard__foot"><span class="acard__agent">{{ a.agent_key }}</span>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            <div class="acard__cat">{{ a.risk_category }} risk</div>
+            <div class="acard__stats">
+              <div class="astat"><span class="astat__num astat__num--risk">{{ pctOf(a.probability) }}%</span><span class="astat__lbl">slip likelihood</span></div>
+              <div class="astat"><span class="astat__num">{{ pctOf(a.confidence) }}%</span><span class="astat__lbl">AI confidence</span></div>
+              <div class="astat"><span class="astat__num">{{ a.attention_score | number:'1.0-0' }}</span><span class="astat__lbl">priority</span></div>
             </div>
+            @if (primaryAction(a); as act) {
+              <div class="acard__action">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ act }}</span>
+              </div>
+            }
           </a>
         } @empty {
           <p class="empty">No attention items in this scope. Run an analysis from Decide.</p>
