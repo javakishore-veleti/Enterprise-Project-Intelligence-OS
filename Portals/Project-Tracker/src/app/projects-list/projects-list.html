@@ -1,87 +1,227 @@
-<section class="projects">
-  <app-about title="Investigate" text="The evidence layer — browse every project and its computed metrics. This is the standing risk register the intelligence is built on; the numbers below reflect the selected date." />
+<section class="investigate">
+  <app-about title="Investigate"
+    text="Deploy an autonomous Investigation Agent at any project. It forms hypotheses, calls tools against the evidence store, reasons step by step, and concludes with a root cause, a confidence score, and the exact evidence it used — which you can inspect and argue with. This is the agent doing the analysis, not a report you dig through." />
 
-  @if (error()) {
-    <div class="alert alert--error"><span class="alert__icon">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    </span><span>{{ error() }}</span></div>
-  }
-
-  <p class="projects__subtitle">Delivery-health across every project in the evidence store<span class="asofnote">{{ isToday ? ' · as of today' : ' · as of ' + asOf }}</span>.</p>
-
-  <!-- Date-aware KPI boxes -->
-  <div class="kpis">
-    <div class="kpi"><div class="kpi__icon kpi__icon--brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
-      <div class="kpi__body"><span class="kpi__label">Projects</span><span class="kpi__value">{{ totals().projects }}</span></div></div>
-    <div class="kpi"><div class="kpi__icon kpi__icon--info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></div>
-      <div class="kpi__body"><span class="kpi__label">Total Issues</span><span class="kpi__value">{{ totals().issues.toLocaleString() }}</span></div></div>
-    <div class="kpi"><div class="kpi__icon kpi__icon--warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
-      <div class="kpi__body"><span class="kpi__label">Open Issues</span><span class="kpi__value">{{ totals().open_issues.toLocaleString() }}</span></div></div>
-    <div class="kpi"><div class="kpi__icon kpi__icon--danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-      <div class="kpi__body"><span class="kpi__label">At-Risk Projects</span><span class="kpi__value stat--risk">{{ bands().high + bands().medium }}</span><span class="kpi__sub">{{ bands().high }} high · {{ bands().medium }} medium</span></div></div>
-  </div>
-
-  <!-- Controls -->
-  <div class="toolbar">
-    <div class="toolbar__group">
-      <div class="viewtoggle">
-        <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Cards</button>
-        <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Table</button>
+  <!-- ============ THE INVESTIGATION AGENT (hero) ============ -->
+  <div class="console">
+    <div class="console__head">
+      <div class="console__badge">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
-      <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
-    </div>
-    <div class="datectl">
-      <button type="button" class="chip" [class.chip--on]="isToday" (click)="setToday()">Today</button>
-      <button type="button" class="chip" [class.chip--on]="asOf && !isToday" (click)="setYesterday()">Yesterday</button>
-      <label class="datectl__pick"><span>as of</span><input type="date" [(ngModel)]="asOf" [max]="todayStr" (ngModelChange)="onDateChange()" /></label>
-    </div>
-  </div>
-
-  @if (loading()) {
-    <p class="projects__status"><span class="spinner spinner--brand"></span> Loading…</p>
-  } @else if (projects().length === 0) {
-    <p class="empty">No projects{{ query ? ' match “' + query + '”' : ' for this date' }}.</p>
-  } @else if (view === 'table') {
-    <!-- Table view -->
-    <div class="panel">
-      <div class="projects__table-wrap">
-        <table>
-          <thead><tr><th>Project</th><th>Category</th><th class="num">Risk</th><th class="num">Blockers</th><th class="num">Reopen</th><th class="num">Aging</th><th class="num">Open</th><th></th></tr></thead>
-          <tbody>
-            @for (p of projects(); track p.project_key) {
-              <tr>
-                <td><span class="mono">{{ p.project_key }}</span> <span class="pname">{{ p.name }}</span></td>
-                <td>@if (p.category) { <span class="badge">{{ p.category }}</span> } @else { <span class="muted">—</span> }</td>
-                <td class="num"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span> <span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span></td>
-                <td class="num" [class.risk]="p.blocker_count > 50">{{ p.blocker_count.toLocaleString() }}</td>
-                <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
-                <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
-                <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
-                <td class="num"><a class="row-action" routerLink="/decide" [queryParams]="{ project: p.project_key }">Analyze →</a></td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      <div class="console__title">
+        <h2>Investigation Agent</h2>
+        <p>Point it at a project and it investigates root cause end-to-end — hypotheses, evidence, conclusion.</p>
       </div>
+      <span class="console__live">LangGraph · tool-using · evidence-grounded</span>
     </div>
-  } @else {
-    <!-- Cards view -->
-    <div class="cards">
-      @for (p of projects(); track p.project_key) {
-        <a class="pcard pcard--{{ scoreClass(p.risk_score) }}" routerLink="/decide" [queryParams]="{ project: p.project_key }">
-          <div class="pcard__head">
-            <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
-            <div class="pcard__scorebox"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span><span class="badge badge--{{ bandClass(p.risk_band) }}">{{ p.risk_band }}</span></div>
-          </div>
-          <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
-          <div class="pstats">
-            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
-            <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
-            <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">avg age</span></div>
-          </div>
-          <div class="pcard__foot"><span class="pcard__meta">{{ p.open_issue_count.toLocaleString() }} of {{ p.issue_count.toLocaleString() }} open</span></div>
-        </a>
+
+    <div class="console__form">
+      <label class="fld fld--target">
+        <span class="fld__lbl">Investigate</span>
+        <select [(ngModel)]="target">
+          @for (p of allProjects(); track p.project_key) {
+            <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="fld fld--q">
+        <span class="fld__lbl">Ask the agent (optional)</span>
+        <input type="text" placeholder="e.g. Why is this project slipping?" [(ngModel)]="question"
+               (keyup.enter)="investigate()" />
+      </label>
+      <button class="run" type="button" [disabled]="!target || investigating()" (click)="investigate()">
+        @if (investigating()) { <span class="run__spin"></span> Investigating… }
+        @else { <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Investigate }
+      </button>
+    </div>
+
+    <div class="probes">
+      <span class="probes__lbl">Or ask:</span>
+      @for (p of probes; track p.label) {
+        <button type="button" class="probe" [disabled]="investigating()" (click)="runProbe(p)">{{ p.label }}</button>
       }
     </div>
+  </div>
+
+  @if (invError()) {
+    <div class="alert alert--error"><span>{{ invError() }}</span></div>
   }
+
+  <!-- ============ WORKING STATE ============ -->
+  @if (investigating()) {
+    <div class="working">
+      <div class="working__pulse"><span></span><span></span><span></span></div>
+      <div class="working__text">
+        <strong>The agent is investigating {{ projectName(target) }}.</strong>
+        <p>Forming hypotheses → calling evidence-store tools (reopened issues, blockers, dependencies, contributors, aging, timeline) → reasoning to a root cause. This runs the LangGraph tool loop against the LLM — typically 30–60&nbsp;seconds.</p>
+      </div>
+    </div>
+  }
+
+  <!-- ============ THE BRIEFING (result) ============ -->
+  @if (investigation(); as inv) {
+    <div class="briefing">
+      <!-- Verdict + confidence -->
+      <div class="verdict">
+        <div class="verdict__main">
+          <div class="verdict__eyebrow">
+            <span class="verdict__proj">{{ inv.project_key }}</span> · root-cause conclusion
+            @if (inv.question) { <span class="verdict__q">“{{ inv.question }}”</span> }
+          </div>
+          <p class="verdict__cause">{{ inv.root_cause }}</p>
+        </div>
+        <div class="gauge gauge--{{ confClass(confidencePct()) }}">
+          <span class="gauge__num">{{ confidencePct() }}<small>%</small></span>
+          <span class="gauge__lbl">confidence</span>
+        </div>
+      </div>
+
+      <!-- Causal chain -->
+      @if (inv.causal_chain?.length) {
+        <div class="chain">
+          @for (link of inv.causal_chain; track $index; let last = $last) {
+            <span class="chain__node">{{ link }}</span>
+            @if (!last) { <span class="chain__arrow">→</span> }
+          }
+        </div>
+      }
+
+      <!-- Hypotheses the agent tested -->
+      @if (inv.hypotheses?.length) {
+        <div class="block">
+          <h3 class="block__h">Hypotheses tested</h3>
+          <div class="hyps">
+            @for (h of inv.hypotheses; track $index) { <span class="hyp">{{ h }}</span> }
+          </div>
+        </div>
+      }
+
+      <!-- Reasoning trace: watch it think -->
+      @if (inv.steps?.length) {
+        <div class="block">
+          <h3 class="block__h">How it reasoned <span class="block__sub">{{ inv.steps.length }} steps · each grounded in a tool call</span></h3>
+          <ol class="trace">
+            @for (s of inv.steps; track $index) {
+              <li class="step">
+                <span class="step__dot">{{ $index + 1 }}</span>
+                <div class="step__body">
+                  <div class="step__action"><span class="step__verb">{{ s.action }}</span>
+                    @if (s.hypothesis) { <span class="step__hyp">tests: {{ s.hypothesis }}</span> }
+                  </div>
+                  <p class="step__obs">{{ s.observation }}</p>
+                </div>
+              </li>
+            }
+          </ol>
+        </div>
+      }
+
+      <!-- Evidence cited -->
+      @if (inv.evidence?.length) {
+        <div class="block">
+          <h3 class="block__h">Evidence cited <span class="block__sub">the agent only used data returned by these tool calls</span></h3>
+          <div class="evd">
+            @for (e of inv.evidence; track $index) {
+              <div class="evd__item">
+                <span class="evd__kind">{{ e.kind }}</span>
+                <span class="evd__detail">{{ e.detail }}</span>
+                @if (e.count != null) { <span class="evd__count">{{ e.count.toLocaleString() }}</span> }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Recommended action + handoff + steer -->
+      <div class="action">
+        <div class="action__body">
+          <span class="action__lbl">Recommended next action</span>
+          <p class="action__text">{{ inv.recommended_action }}</p>
+        </div>
+        <a class="action__go" routerLink="/decide" [queryParams]="{ project: inv.project_key }">
+          Take to Decide
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+
+      <div class="steer">
+        <span class="steer__lbl">Argue with the agent</span>
+        <input type="text" placeholder="Push back or ask a follow-up… e.g. What about the vendor API?" [(ngModel)]="question" (keyup.enter)="steer()" />
+        <button type="button" [disabled]="investigating()" (click)="steer()">Re-investigate</button>
+        <button type="button" class="steer__clear" (click)="reset()">Clear</button>
+      </div>
+    </div>
+  }
+
+  <!-- ============ EVIDENCE SUBSTRATE (demoted) ============ -->
+  <div class="substrate">
+    <button type="button" class="substrate__toggle" (click)="showEvidence.set(!showEvidence())">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [style.transform]="showEvidence() ? 'rotate(90deg)' : ''" style="transition:transform .15s"><polyline points="9 18 15 12 9 6"/></svg>
+      Browse the evidence
+      <span class="substrate__hint">the raw register the agent reasons over — {{ totals().projects }} projects, {{ totals().issues.toLocaleString() }} issues</span>
+    </button>
+
+    @if (showEvidence()) {
+      <div class="substrate__body">
+        @if (error()) {
+          <div class="alert alert--error"><span>{{ error() }}</span></div>
+        }
+        <div class="kpis">
+          <div class="kpi"><span class="kpi__label">Projects</span><span class="kpi__value">{{ totals().projects }}</span></div>
+          <div class="kpi"><span class="kpi__label">Total Issues</span><span class="kpi__value">{{ totals().issues.toLocaleString() }}</span></div>
+          <div class="kpi"><span class="kpi__label">Open Issues</span><span class="kpi__value">{{ totals().open_issues.toLocaleString() }}</span></div>
+          <div class="kpi"><span class="kpi__label">At-Risk</span><span class="kpi__value stat--risk">{{ bands().high + bands().medium }}</span><span class="kpi__sub">{{ bands().high }} high · {{ bands().medium }} med</span></div>
+        </div>
+
+        <div class="toolbar">
+          <div class="viewtoggle">
+            <button type="button" [class.is-on]="view === 'cards'" (click)="view = 'cards'">Cards</button>
+            <button type="button" [class.is-on]="view === 'table'" (click)="view = 'table'">Table</button>
+          </div>
+          <input type="search" class="search" placeholder="Search projects…" [(ngModel)]="query" />
+        </div>
+
+        @if (loading()) {
+          <p class="projects__status"><span class="run__spin run__spin--dark"></span> Loading…</p>
+        } @else if (projects().length === 0) {
+          <p class="empty">No projects{{ query ? ' match “' + query + '”' : '' }}.</p>
+        } @else if (view === 'table') {
+          <div class="panel"><div class="tbl-wrap"><table>
+            <thead><tr><th>Project</th><th class="num">Risk</th><th class="num">Blockers</th><th class="num">Reopen</th><th class="num">Aging</th><th class="num">Open</th><th></th></tr></thead>
+            <tbody>
+              @for (p of projects(); track p.project_key) {
+                <tr>
+                  <td><span class="mono">{{ p.project_key }}</span> <span class="pname">{{ p.name }}</span></td>
+                  <td class="num"><span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span></td>
+                  <td class="num" [class.risk]="p.blocker_count > 50">{{ p.blocker_count.toLocaleString() }}</td>
+                  <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
+                  <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
+                  <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
+                  <td class="num"><button type="button" class="row-action" (click)="target = p.project_key; question=''; investigate()">Investigate →</button></td>
+                </tr>
+              }
+            </tbody>
+          </table></div></div>
+        } @else {
+          <div class="cards">
+            @for (p of projects(); track p.project_key) {
+              <button type="button" class="pcard pcard--{{ scoreClass(p.risk_score) }}" (click)="target = p.project_key; question=''; investigate()">
+                <div class="pcard__head">
+                  <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
+                  <span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
+                </div>
+                <div class="pcard__bar"><span class="pcard__fill pcard__fill--{{ scoreClass(p.risk_score) }}" [style.width.%]="p.risk_score"></span></div>
+                <div class="pstats">
+                  <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.blocker_count > 50">{{ p.blocker_count }}</span><span class="pstat__lbl">blockers</span></div>
+                  <div class="pstat"><span class="pstat__num" [class.pstat__num--risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</span><span class="pstat__lbl">reopen</span></div>
+                  <div class="pstat"><span class="pstat__num">{{ p.issue_aging_days | number:'1.0-0' }}d</span><span class="pstat__lbl">age</span></div>
+                </div>
+                <span class="pcard__cta">Investigate this →</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
 </section>

@@ -50,7 +50,9 @@ Not a "pick agents and run" form. A **planning + decision-support** agent:
 
 ## Coverage vs. the 15 classic PM strategies
 
-That canonical "15 project management strategies" list is a spec for our agents — inverted from *"a tool helps a human do X"* to *"an agent does X and briefs the human."* ~9 of 15 are already covered by the 16-agent roster (risk management, resource allocation, quality, reporting, cross-team correlation, live briefing…). Net-new agents implied: **goal-clarity, change-impact, time-box/overrun, knowledge-graph, retrospective** — none need new data, only new agents over the evidence we already have.
+That canonical "15 project management strategies" list is a spec for our agents — inverted from *"a tool helps a human do X"* to *"an agent does X and briefs the human."* ~9 of 15 are already covered by the 16-agent roster (risk management, resource allocation, quality, reporting, cross-team correlation, live briefing…). Net-new agents implied: **goal-clarity, change-impact/scope-creep, time-box/overrun, knowledge-graph, retrospective** — none need new data, only new agents over the evidence we already have.
+
+**Methodology-inference agent (net-new, from the "advanced strategies" input).** An agent infers *how a team actually works* (Agile / Scrum / Kanban / Waterfall / Lean / PRINCE2) from its evidence cadence — iteration rhythm, WIP limits, batch vs. continuous flow, change frequency — and then judges risk **in that context**. The same signal means different things per methodology (scope-creep is normal-and-managed in Kanban, a red flag against a fixed-scope waterfall release; a stalled iteration is critical in Scrum, noise in continuous flow). No human tells us the methodology — the agent reads it from the data. Pure agentic value: turns "here are your metrics" into "here is what your metrics mean given how you actually deliver."
 
 ## Build order
 1. **Investigation Agent** (Investigate) — the flagship; its tool-loop + evidence-streaming becomes the pattern the others inherit.

@@ -109,6 +109,42 @@ export interface StartPortfolioRequest {
   requested_by: string;
 }
 
+/** One step in the Investigation Agent's reasoning trace (an action + what it observed). */
+export interface InvestigationStep {
+  action: string;
+  observation: string;
+  hypothesis: string | null;
+}
+
+/** One piece of evidence the Investigation Agent cited. */
+export interface InvestigationEvidence {
+  kind: string;
+  detail: string;
+  count: number | null;
+}
+
+/** Result of the autonomous Investigation Agent — POST /api/v1/analysis/investigate. */
+export interface Investigation {
+  project_key: string;
+  question: string | null;
+  hypotheses: string[];
+  steps: InvestigationStep[];
+  root_cause: string;
+  causal_chain: string[];
+  confidence: number;
+  evidence: InvestigationEvidence[];
+  recommended_action: string;
+  run_id: string;
+  generated_at: string;
+}
+
+/** Request body for POST /api/v1/analysis/investigate. */
+export interface InvestigateRequest {
+  project_key: string;
+  question: string | null;
+  requested_by: string | null;
+}
+
 /** One ranked attention item from GET /api/v1/analysis/attention. */
 export interface AttentionItem {
   finding_id: string;

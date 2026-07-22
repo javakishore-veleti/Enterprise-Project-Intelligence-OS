@@ -8,6 +8,8 @@ import {
   AnalysisRunsResponse,
   AttentionResponse,
   DashboardActivity,
+  Investigation,
+  InvestigateRequest,
   StartAnalysisRequest,
   StartPortfolioRequest,
 } from '../models/analysis';
@@ -44,6 +46,20 @@ export class RiskAnalyticsService {
       `${this.baseUrl}/analysis/projects/${encodeURIComponent(projectKey)}`,
       body,
     );
+  }
+
+  /**
+   * Deploy the autonomous Investigation Agent at a project. It forms hypotheses,
+   * calls evidence-store tools (LangGraph ReAct loop), and returns a root-cause
+   * conclusion + reasoning trace + evidence + confidence. Runs the LLM (~30-60s).
+   */
+  investigate(projectKey: string, question: string | null, requestedBy: string): Observable<Investigation> {
+    const body: InvestigateRequest = {
+      project_key: projectKey,
+      question: question && question.trim() ? question.trim() : null,
+      requested_by: requestedBy,
+    };
+    return this.http.post<Investigation>(`${this.baseUrl}/analysis/investigate`, body);
   }
 
   /** Fetch a previously started run by id. */
