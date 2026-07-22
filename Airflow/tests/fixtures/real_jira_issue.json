@@ -13,6 +13,9 @@
     "created": "2019-01-09T19:24:36.000+0000",
     "updated": "2019-01-09T19:28:05.000+0000",
     "resolutiondate": "2019-01-09T19:28:05.000+0000",
+    "fixVersions": [{"id": "10400", "name": "19.x", "released": false, "archived": false}],
+    "components": [{"id": "10500", "name": "Kernel"}],
+    "labels": ["trinity"],
     "creator": {"name": "<<|author_name|e8d3bf89-ce26-4043-89d9-e0ae382e2fa3|>>", "displayName": "<<|author_displayName|8dec7f5e-1d95-425b-aaaa-870f8b14348c|>>", "active": true},
     "reporter": {"name": "<<|author_name|f8f8fa5e-d906-4bd3-b76d-9104539a9d0a|>>", "displayName": "<<|author_displayName|f8f8fa5e-d906-4bd3-b76d-9104539a9d0a|>>", "active": true},
     "issuelinks": [

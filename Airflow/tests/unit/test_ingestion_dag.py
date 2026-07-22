@@ -82,6 +82,9 @@ _JIRA_ISSUE = {
         "comment": {"comments": [{"author": {"name": "alice"}, "created": "2021-02-01T00:00:00.000+0000"},
                                  {"author": {"name": "bob"}, "created": "2021-02-02T00:00:00.000+0000"}]},
         "issuelinks": [{"type": {"name": "Blocks"}, "outwardIssue": {"key": "APACHE-2"}}],
+        "fixVersions": [{"name": "19.x"}, {"name": "20.x"}],
+        "components": [{"name": "Kernel"}],
+        "labels": ["trinity", "regression"],
     },
     "changelog": {"histories": [
         {"created": "2021-03-01T00:00:00.000+0000", "author": {"name": "carol"},
@@ -107,6 +110,10 @@ def test_transform_issue_maps_all_evidence():
     assert {c["author"] for c in out["comments"]} == {"alice", "bob"}
     assert out["issue_links"][0]["target_issue_key"] == "APACHE-2"
     assert out["issue_links"][0]["link_type"] == "Blocks"
+    # Release / component / tag scoping fields (capture-only groundwork).
+    assert issue["fix_versions"] == ["19.x", "20.x"]
+    assert issue["components"] == ["Kernel"]
+    assert issue["labels"] == ["trinity", "regression"]
 
 
 def test_transform_handles_missing_fields():
@@ -114,6 +121,34 @@ def test_transform_handles_missing_fields():
     assert out["issues"][0]["status"] == "Unknown"
     assert out["issues"][0]["priority"] is None
     assert out["issue_histories"] == [] and out["comments"] == [] and out["issue_links"] == []
+    # Absent release/component/tag fields default to empty lists.
+    assert out["issues"][0]["fix_versions"] == []
+    assert out["issues"][0]["components"] == []
+    assert out["issues"][0]["labels"] == []
+
+
+def test_transform_release_fields_defensive_extraction():
+    """fix_versions/components/labels: dict-with-name, bare strings, and junk."""
+    issue = {"key": "X-2", "fields": {
+        # Mixed: objects with name, a bare string, a dict without name, and None.
+        "fixVersions": [{"name": "19.x"}, "20.x", {"released": True}, None],
+        # None -> [] (field present but null).
+        "components": None,
+        # Bare strings, with an empty/whitespace entry that must be skipped.
+        "labels": ["trinity", "", "  ", "regression"],
+    }}
+    out = tasks.transform_issue(issue, "X")
+    row = out["issues"][0]
+    assert row["fix_versions"] == ["19.x", "20.x"]   # name from dict + bare string; junk skipped
+    assert row["components"] == []                    # None -> []
+    assert row["labels"] == ["trinity", "regression"]  # blank/whitespace-only dropped
+
+
+def test_names_helper_non_list_defaults_empty():
+    assert tasks._names(None) == []
+    assert tasks._names("not-a-list") == []
+    assert tasks._names({"name": "x"}) == []
+    assert tasks._names([]) == []
 
 
 def test_build_mongorestore_cmd():
@@ -248,3 +283,7 @@ def test_real_jira_issue_fixture_maps_cleanly():
     assert out["issue_links"] and out["issue_links"][0]["link_type"], "issuelinks mapping wrong"
     # The real dataset carries no fields.comment, so comments are expected to be empty.
     assert out["comments"] == [], "real dataset has no comments — mapping should yield none"
+    # Release / component / tag scoping fields captured from the real shape.
+    assert row["fix_versions"] == ["19.x"], "fixVersions names not captured"
+    assert row["components"] == ["Kernel"], "components names not captured"
+    assert row["labels"] == ["trinity"], "labels not captured"

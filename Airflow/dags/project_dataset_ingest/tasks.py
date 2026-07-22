@@ -136,6 +136,27 @@ def _get(d: dict, *path, default=None):
     return cur if cur is not None else default
 
 
+def _names(value: Any) -> List[str]:
+    """Extract a list of names from a raw Jira list field, defensively.
+
+    Handles the three shapes seen in the dataset: a list of objects each with a
+    ``name`` (fixVersions / components), a list of bare strings (labels, or an
+    occasional string entry), and absent/None/non-list values (-> ``[]``).
+    Entries with no usable, non-empty string name are skipped.
+    """
+    if not isinstance(value, list):
+        return []
+    names: List[str] = []
+    for entry in value:
+        if isinstance(entry, dict):
+            name = entry.get("name")
+        else:
+            name = entry
+        if isinstance(name, str) and name.strip():
+            names.append(name)
+    return names
+
+
 def transform_issue(issue: dict, project_key: str) -> Dict[str, List[dict]]:
     """Map one Jira issue document to our normalized evidence rows."""
     key = issue.get("key") or issue.get("id")
@@ -148,6 +169,10 @@ def transform_issue(issue: dict, project_key: str) -> Dict[str, List[dict]]:
         "priority": _get(fields, "priority", "name"),
         "created_at": _parse_dt(fields.get("created")),
         "resolved_at": _parse_dt(fields.get("resolutiondate")),
+        # Sub-project forecast subjects: release/component/tag scoping (capture-only).
+        "fix_versions": _names(fields.get("fixVersions")),
+        "components": _names(fields.get("components")),
+        "labels": _names(fields.get("labels")),
     })
 
     for hist in _get(issue, "changelog", "histories", default=[]) or []:
