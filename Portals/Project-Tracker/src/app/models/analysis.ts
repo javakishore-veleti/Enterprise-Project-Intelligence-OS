@@ -179,6 +179,98 @@ export interface InvestigationTemplate {
   editable: boolean;
 }
 
+// ============ Predict: forecasts, scenarios, early-warnings ============
+
+/** A factor moving a forecast (velocity, blockers, reopen…). */
+export interface ForecastDriver { factor: string; direction: string; detail: string; }
+
+/** Full delivery forecast — POST /api/v1/analysis/forecast. */
+export interface Forecast {
+  forecast_id: string;
+  project_key: string;
+  question: string | null;
+  on_time_probability: number;
+  probability_low: number;
+  probability_high: number;
+  projected_slip_days_low: number;
+  projected_slip_days_high: number;
+  outlook: string;                 // on_track | at_risk | off_track
+  drivers: ForecastDriver[];
+  bull_case: string;
+  bear_case: string;
+  would_change_mind: string;
+  narrative: string;
+  confidence: number;
+  status: string;
+  run_id: string;
+  created_at: string;
+}
+
+/** Lightweight forecast row for the history list. */
+export interface ForecastSummary {
+  forecast_id: string;
+  project_key: string;
+  on_time_probability: number | null;
+  outlook: string | null;
+  projected_slip_days_low: number | null;
+  projected_slip_days_high: number | null;
+  confidence: number | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ForecastsPage { total: number; returned: number; offset: number; limit: number; items: ForecastSummary[]; }
+
+/** One downstream project affected by a scenario. */
+export interface ScenarioCascade { project_key: string; effect: string; reason: string; magnitude: string; }
+
+/** Full what-if scenario — POST /api/v1/analysis/scenarios. */
+export interface Scenario {
+  scenario_id: string;
+  project_key: string;
+  scenario: string;
+  base_on_time_probability: number;
+  projected_on_time_probability: number;
+  probability_delta: number;
+  base_slip_days: number;
+  projected_slip_days: number;
+  portfolio_risk_delta: number;
+  cascades: ScenarioCascade[];
+  narrative: string;
+  confidence: number;
+  status: string;
+  run_id: string;
+  created_at: string;
+}
+
+/** Lightweight scenario row for the history list. */
+export interface ScenarioSummary {
+  scenario_id: string;
+  project_key: string;
+  scenario: string;
+  projected_on_time_probability: number | null;
+  probability_delta: number | null;
+  confidence: number | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ScenariosPage { total: number; returned: number; offset: number; limit: number; items: ScenarioSummary[]; }
+
+/** One proactive early-warning — GET /api/v1/analysis/early-warnings. */
+export interface EarlyWarning {
+  project_key: string;
+  metric: string;
+  from_value: number;
+  to_value: number;
+  window: string;
+  direction: string;
+  severity: string;                // high | medium | low
+  cause: string;
+  confidence: number;
+  detected_at: string;
+}
+
 /** One ranked attention item from GET /api/v1/analysis/attention. */
 export interface AttentionItem {
   finding_id: string;
