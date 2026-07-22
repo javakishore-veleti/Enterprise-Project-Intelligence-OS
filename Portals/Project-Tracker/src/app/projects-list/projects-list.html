@@ -1,46 +1,63 @@
 <section class="investigate">
   <app-about title="Investigate"
-    text="Deploy an autonomous Investigation Agent at any project. It forms hypotheses, calls tools against the evidence store, reasons step by step, and concludes with a root cause, a confidence score, and the exact evidence it used — which you can inspect and argue with. This is the agent doing the analysis, not a report you dig through." />
+    text="You don't tell the agent what to look at — it decides. The Investigation Agent ranks the projects that most need attention, picks the right question for each one from that project's own evidence, and investigates. It reasons over evidence-store tools, then concludes with a root cause, a confidence score, and the exact evidence it used — which you can inspect and argue with. No searching, no knowing the right question." />
 
-  <!-- ============ THE INVESTIGATION AGENT (hero) ============ -->
+  <!-- ============ THE INVESTIGATION AGENT — its own queue (hero) ============ -->
   <div class="console">
     <div class="console__head">
       <div class="console__badge">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
       <div class="console__title">
-        <h2>Investigation Agent</h2>
-        <p>Point it at a project and it investigates root cause end-to-end — hypotheses, evidence, conclusion.</p>
+        <h2>The agent is investigating for you</h2>
+        <p>It chose these targets — highest-risk first — and the exact question to ask each, from their evidence. Nothing to type.</p>
       </div>
       <span class="console__live">LangGraph · tool-using · evidence-grounded</span>
     </div>
 
-    <div class="console__form">
-      <label class="fld fld--target">
-        <span class="fld__lbl">Investigate</span>
-        <select [(ngModel)]="target">
-          @for (p of allProjects(); track p.project_key) {
-            <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
-          }
-        </select>
-      </label>
-      <label class="fld fld--q">
-        <span class="fld__lbl">Ask the agent (optional)</span>
-        <input type="text" placeholder="e.g. Why is this project slipping?" [(ngModel)]="question"
-               (keyup.enter)="investigate()" />
-      </label>
-      <button class="run" type="button" [disabled]="!target || investigating()" (click)="investigate()">
-        @if (investigating()) { <span class="run__spin"></span> Investigating… }
-        @else { <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Investigate }
-      </button>
-    </div>
-
-    <div class="probes">
-      <span class="probes__lbl">Or ask:</span>
-      @for (p of probes; track p.label) {
-        <button type="button" class="probe" [disabled]="investigating()" (click)="runProbe(p)">{{ p.label }}</button>
+    <div class="queue">
+      @for (q of queue(); track q.project.project_key; let first = $first) {
+        <button type="button" class="qcard qcard--{{ q.signal }}"
+                [class.qcard--active]="target === q.project.project_key"
+                [disabled]="investigating()" (click)="runQueued(q)">
+          <div class="qcard__top">
+            <span class="qcard__key mono">{{ q.project.project_key }}</span>
+            <span class="qcard__badge qcard__badge--{{ q.signal }}">{{ q.reason }}</span>
+          </div>
+          <div class="qcard__angle">{{ q.angle }}</div>
+          <div class="qcard__q">“{{ q.question }}”</div>
+          <div class="qcard__cta">
+            @if (investigating() && target === q.project.project_key) { <span class="run__spin run__spin--dark"></span> investigating… }
+            @else if (investigation() && target === q.project.project_key) { ✓ investigated — see below }
+            @else { <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Investigation }
+          </div>
+        </button>
       }
     </div>
+
+    <button type="button" class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())">
+      {{ showAdvanced() ? '– Hide' : '+ Investigate something specific' }} <span class="adv-hint">(advanced — pick a project & ask your own question)</span>
+    </button>
+    @if (showAdvanced()) {
+      <div class="console__form">
+        <label class="fld fld--target">
+          <span class="fld__lbl">Project</span>
+          <select [(ngModel)]="target">
+            @for (p of allProjects(); track p.project_key) {
+              <option [value]="p.project_key">{{ p.project_key }} — {{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="fld fld--q">
+          <span class="fld__lbl">Your question</span>
+          <input type="text" placeholder="e.g. Is the vendor API the real blocker?" [(ngModel)]="question" (keyup.enter)="runManual()" />
+        </label>
+        <button class="run" type="button" [disabled]="!target || investigating()" (click)="runManual()">
+          @if (investigating()) { <span class="run__spin"></span> Investigating… }
+          @else { Investigate }
+        </button>
+      </div>
+    }
   </div>
 
   @if (invError()) {
@@ -197,7 +214,7 @@
                   <td class="num" [class.risk]="p.reopen_rate >= 0.25">{{ pctOf(p.reopen_rate) }}%</td>
                   <td class="num">{{ p.issue_aging_days | number:'1.0-0' }}d</td>
                   <td class="num">{{ p.open_issue_count.toLocaleString() }}</td>
-                  <td class="num"><button type="button" class="row-action" (click)="target = p.project_key; question=''; investigate()">Investigate →</button></td>
+                  <td class="num"><button type="button" class="row-action" (click)="investigateProject(p)">Investigate →</button></td>
                 </tr>
               }
             </tbody>
@@ -205,7 +222,7 @@
         } @else {
           <div class="cards">
             @for (p of projects(); track p.project_key) {
-              <button type="button" class="pcard pcard--{{ scoreClass(p.risk_score) }}" (click)="target = p.project_key; question=''; investigate()">
+              <button type="button" class="pcard pcard--{{ scoreClass(p.risk_score) }}" (click)="investigateProject(p)">
                 <div class="pcard__head">
                   <div class="pcard__id"><span class="pcard__key mono">{{ p.project_key }}</span><span class="pcard__name">{{ p.name }}</span></div>
                   <span class="score score--{{ scoreClass(p.risk_score) }}">{{ p.risk_score | number:'1.0-0' }}</span>
