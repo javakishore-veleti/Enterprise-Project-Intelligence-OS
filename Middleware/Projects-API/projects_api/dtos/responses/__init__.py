@@ -47,6 +47,23 @@ class ProjectMetricsHistoryResponse(TypedModel):
     history: list[ProjectMetricsResponse]
 
 
+class ForecastSubjectFacet(TypedModel):
+    """One selectable forecast subject value with how many issues carry it."""
+
+    value: str
+    count: int
+
+
+class ForecastSubjectsResponse(TypedModel):
+    """The available forecast subjects for a project — the release / component /
+    tag values a forecast can be scoped to, each with its issue count (desc)."""
+
+    project_key: str
+    releases: list[ForecastSubjectFacet] = []
+    components: list[ForecastSubjectFacet] = []
+    tags: list[ForecastSubjectFacet] = []
+
+
 class PortfolioTotals(TypedModel):
     """Portfolio-wide roll-up counts."""
 

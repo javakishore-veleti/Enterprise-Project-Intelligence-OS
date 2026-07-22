@@ -169,7 +169,8 @@ def test_list_forecasts_page_shape() -> None:
     item = body["items"][0]
     assert set(item) == {"forecast_id", "project_key", "on_time_probability", "outlook",
                          "projected_slip_days_low", "projected_slip_days_high",
-                         "confidence", "status", "created_at"}
+                         "confidence", "status", "created_at",
+                         "subject_type", "subject_value"}
 
 
 def test_list_forecasts_passes_scope_and_query() -> None:

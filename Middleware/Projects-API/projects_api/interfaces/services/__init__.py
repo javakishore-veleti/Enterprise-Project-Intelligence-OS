@@ -10,6 +10,7 @@ from projects_api.dtos.requests import (
     UpdateProjectGroupRequest,
 )
 from projects_api.dtos.responses import (
+    ForecastSubjectsResponse,
     PortfolioSummaryResponse,
     ProjectGroupListResponse,
     ProjectGroupResponse,
@@ -72,3 +73,8 @@ class MetricsComputationService(ABC):
 
     @abstractmethod
     def compute_all(self, limit: int) -> list[str]: ...
+
+
+class ForecastSubjectsService(ABC):
+    @abstractmethod
+    def subjects(self, project_key: str) -> ForecastSubjectsResponse: ...

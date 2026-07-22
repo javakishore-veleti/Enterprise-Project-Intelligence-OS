@@ -6,6 +6,7 @@ from datetime import date
 
 from projects_api.dtos.common import PortfolioAggregate
 from projects_api.dtos.responses import (
+    ForecastSubjectsResponse,
     ProjectGroupResponse,
     ProjectMetricsResponse,
     ProjectResponse,
@@ -55,6 +56,15 @@ class ProjectMetricsDao(ABC):
     @abstractmethod
     def history(self, project_key: str, limit: int) -> list[ProjectMetricsResponse]:
         """Past metric snapshots for a project (newest first) — the time series."""
+
+
+class ForecastSubjectsDao(ABC):
+    """Faceted reads of the release/component/tag values on a project's issues (MongoDB)."""
+
+    @abstractmethod
+    def facets(self, project_key: str, cap: int) -> ForecastSubjectsResponse:
+        """Top-``cap`` distinct release/component/tag values (by issue count, desc)
+        over the project's ``issues``. Empty facet lists when the project has none."""
 
 
 class PortfolioSummaryDao(ABC):

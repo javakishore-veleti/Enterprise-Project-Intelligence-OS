@@ -27,12 +27,13 @@ _INSERT_COLUMNS = (
     "forecast_id, project_key, requested_by, status, on_time_probability, "
     "probability_low, probability_high, projected_slip_days_low, projected_slip_days_high, "
     "outlook, drivers, bull_case, bear_case, would_change_mind, narrative, confidence, "
-    "run_id, created_at"
+    "run_id, created_at, subject_type, subject_value"
 )
 _FULL_COLUMNS = _INSERT_COLUMNS
 _SUMMARY_COLUMNS = (
     "forecast_id, project_key, on_time_probability, outlook, "
-    "projected_slip_days_low, projected_slip_days_high, confidence, status, created_at"
+    "projected_slip_days_low, projected_slip_days_high, confidence, status, created_at, "
+    "subject_type, subject_value"
 )
 
 
@@ -66,7 +67,7 @@ class PostgresForecastDao(ForecastDao):
             cur = conn.cursor()
             cur.execute(
                 f"INSERT INTO risk.forecasts ({_INSERT_COLUMNS}) VALUES "
-                "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s,%s,%s)",
+                "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     record.forecast_id, record.project_key, record.requested_by,
                     record.status, record.on_time_probability,
@@ -77,6 +78,7 @@ class PostgresForecastDao(ForecastDao):
                     record.bull_case, record.bear_case, record.would_change_mind,
                     record.narrative, record.confidence,
                     record.run_id, record.created_at,
+                    record.subject_type, record.subject_value,
                 ),
             )
 
@@ -129,6 +131,7 @@ def _to_summary(r: tuple) -> ForecastSummary:
         projected_slip_days_high=int(r[5]) if r[5] is not None else None,
         confidence=float(r[6]) if r[6] is not None else None,
         status=r[7], created_at=r[8],
+        subject_type=r[9] or "project", subject_value=r[10],
     )
 
 
@@ -148,4 +151,5 @@ def _to_response(r: tuple) -> ForecastResponse:
         narrative=r[14] or "",
         confidence=float(r[15]) if r[15] is not None else 0.0,
         run_id=r[16], created_at=r[17],
+        subject_type=r[18] or "project", subject_value=r[19],
     )

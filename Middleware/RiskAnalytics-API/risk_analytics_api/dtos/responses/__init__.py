@@ -273,6 +273,10 @@ class ForecastResponse(TypedModel):
 
     forecast_id: str
     project_key: str
+    #: Forecast granularity: project | release | component | tag.
+    subject_type: str = "project"
+    #: The release/component/tag scoped to (null for a whole-project forecast).
+    subject_value: str | None = None
     #: Always null on a forecast (the field exists to mirror investigations).
     question: str | None = None
     on_time_probability: float
@@ -297,6 +301,8 @@ class ForecastSummary(TypedModel):
 
     forecast_id: str
     project_key: str
+    subject_type: str = "project"
+    subject_value: str | None = None
     on_time_probability: float | None = None
     outlook: str | None = None
     projected_slip_days_low: int | None = None
@@ -321,6 +327,8 @@ class ForecastRecord(TypedModel):
 
     forecast_id: str
     project_key: str
+    subject_type: str = "project"
+    subject_value: str | None = None
     requested_by: str | None = None
     status: str
     on_time_probability: float | None = None

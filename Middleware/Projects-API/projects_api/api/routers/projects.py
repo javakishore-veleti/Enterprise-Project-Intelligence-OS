@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Header, Query
 
 from projects_api.api.dependencies import (
     provide_compute_metrics_facade,
+    provide_forecast_subjects_facade,
     provide_get_project_facade,
     provide_get_project_metrics_facade,
     provide_portfolio_summary_facade,
@@ -14,6 +15,7 @@ from projects_api.api.dependencies import (
 )
 from projects_api.dtos.requests import SearchProjectsRequest
 from projects_api.dtos.responses import (
+    ForecastSubjectsResponse,
     PortfolioSummaryResponse,
     ProjectMetricsHistoryResponse,
     ProjectMetricsResponse,
@@ -21,6 +23,7 @@ from projects_api.dtos.responses import (
     ProjectSearchResponse,
 )
 from projects_api.facades.compute_metrics import ComputeMetricsFacade
+from projects_api.facades.forecast_subjects import ForecastSubjectsFacade
 from projects_api.facades.get_project import GetProjectFacade
 from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
 from projects_api.facades.portfolio_summary import PortfolioSummaryFacade
@@ -108,6 +111,19 @@ def get_project_metrics(
     project_key: str,
     facade: GetProjectMetricsFacade = Depends(provide_get_project_metrics_facade),
 ) -> ProjectMetricsResponse:
+    return facade.execute(project_key)
+
+
+@router.get(
+    "/{project_key}/forecast-subjects",
+    response_model=ForecastSubjectsResponse,
+    operation_id="getProjectForecastSubjects",
+)
+def get_forecast_subjects(
+    project_key: str,
+    facade: ForecastSubjectsFacade = Depends(provide_forecast_subjects_facade),
+) -> ForecastSubjectsResponse:
+    """Release / component / tag values available as forecast subjects for a project."""
     return facade.execute(project_key)
 
 

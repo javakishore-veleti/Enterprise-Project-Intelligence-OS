@@ -25,6 +25,10 @@ def _match(doc: dict, flt: dict) -> bool:
                     return False
                 if op == "$lte" and (value is None or value > operand):
                     return False
+        elif isinstance(value, list):
+            # Mongo array semantics: {field: scalar} matches array containment.
+            if cond not in value:
+                return False
         elif value != cond:
             return False
     return True

@@ -1,7 +1,9 @@
 """Inbound request DTOs (validated at the API boundary)."""
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Literal
+
+from pydantic import Field, model_validator
 
 from risk_analytics_api.common.models import TypedModel
 
@@ -56,10 +58,31 @@ class ForecastRequest(TypedModel):
     Deterministic code computes the on-time probability + credible interval +
     slip range + drivers from the project's metric-history trajectory; the LLM
     (delivery-forecasting persona) then narrates it (bull/bear/would-change-mind).
+
+    A forecast can be scoped to a sub-project subject: ``subject_type`` selects
+    the granularity (default ``"project"`` = current whole-project behavior), and
+    ``subject_value`` names the release / component / tag to filter the evidence
+    issue set to. ``subject_value`` is required whenever ``subject_type`` is not
+    ``"project"``.
     """
 
     project_key: str = Field(min_length=1)
+    subject_type: Literal["project", "release", "component", "tag"] = Field(
+        default="project",
+        description="Forecast granularity. 'project' (default) = whole project.",
+    )
+    subject_value: str | None = Field(
+        default=None,
+        description="The release/component/tag value to scope to (required when "
+        "subject_type != 'project').",
+    )
     requested_by: str | None = Field(default=None)
+
+    @model_validator(mode="after")
+    def _require_subject_value(self) -> "ForecastRequest":
+        if self.subject_type != "project" and not (self.subject_value or "").strip():
+            raise ValueError("subject_value is required when subject_type != 'project'")
+        return self
 
 
 class ScenarioRequest(TypedModel):

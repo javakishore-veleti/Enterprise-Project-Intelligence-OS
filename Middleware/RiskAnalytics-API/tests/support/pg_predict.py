@@ -120,11 +120,12 @@ _FORECAST_INSERT = [
     "probability_low", "probability_high", "projected_slip_days_low",
     "projected_slip_days_high", "outlook", "drivers", "bull_case", "bear_case",
     "would_change_mind", "narrative", "confidence", "run_id", "created_at",
+    "subject_type", "subject_value",
 ]
 _FORECAST_SUMMARY = [
     "forecast_id", "project_key", "on_time_probability", "outlook",
     "projected_slip_days_low", "projected_slip_days_high", "confidence",
-    "status", "created_at",
+    "status", "created_at", "subject_type", "subject_value",
 ]
 
 _SCENARIO_INSERT = [

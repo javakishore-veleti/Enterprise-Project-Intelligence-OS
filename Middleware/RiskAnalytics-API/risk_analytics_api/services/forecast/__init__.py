@@ -32,13 +32,37 @@ from risk_analytics_api.interfaces.daos import (
     ForecastDao,
 )
 from risk_analytics_api.interfaces.services import ForecastService
-from risk_analytics_api.services.forecast.forecasting import compute_forecast
+from risk_analytics_api.services.forecast.forecasting import ForecastFacts, compute_forecast
+from risk_analytics_api.services.forecast.subset import (
+    FIELD_BY_SUBJECT,
+    TINY_SUBSET,
+    compute_subset_signals,
+)
 
 #: Reuse the delivery-forecasting agent's Admin-API config (model is read from here).
 AGENT_KEY = "delivery_forecasting"
 
 #: Confidence ceiling when the trajectory is too short to trust.
 _LOW_DATA_CONFIDENCE = 0.35
+
+#: Confidence ceiling for a thin (tiny) subject subset — even less trustworthy.
+_TINY_SUBSET_CONFIDENCE = 0.2
+
+#: Extra interval half-width added when a subject subset is tiny.
+_TINY_SUBSET_WIDEN = 0.15
+_TINY_MAX_HALFWIDTH = 0.49
+
+
+def _widen_for_small_subset(facts: ForecastFacts, total: int) -> ForecastFacts:
+    """Broaden the probability band on a tiny subject subset (thin evidence)."""
+    if total >= TINY_SUBSET:
+        return facts
+    hw = min(_TINY_MAX_HALFWIDTH, facts.halfwidth + _TINY_SUBSET_WIDEN)
+    p = facts.on_time_probability
+    facts.probability_low = round(max(0.01, min(0.99, p - hw)), 3)
+    facts.probability_high = round(max(0.01, min(0.99, p + hw)), 3)
+    facts.halfwidth = round(hw, 3)
+    return facts
 
 ChatModelBuilder = Callable[[str], Any]
 
@@ -95,14 +119,50 @@ class DefaultForecastService(ForecastService):
         )
         return list(cursor)
 
+    def _subset_signals(
+        self, project_key: str, subject_type: str, subject_value: str
+    ) -> tuple[list[dict], dict, int]:
+        """Deterministic forecast inputs over the issue subset for a subject.
+
+        Filters the evidence ``issues`` to those whose subject array
+        (fix_versions / components / labels) contains ``subject_value``, pulls
+        their status ``issue_histories``, and folds both into a single synthetic
+        snapshot + project-counts dict that ``compute_forecast`` consumes like a
+        one-point trajectory. Returns ``(history, project, subset_size)``.
+        """
+        db = self._mongo.db()
+        field = FIELD_BY_SUBJECT[subject_type]
+        issues = list(db["issues"].find(
+            {"project_key": project_key, field: subject_value},
+            {"_id": 0, "issue_key": 1, "status": 1, "priority": 1,
+             "created_at": 1, "resolved_at": 1},
+        ))
+        keys = [i["issue_key"] for i in issues if i.get("issue_key")]
+        histories: list[dict] = []
+        if keys:
+            histories = list(db["issue_histories"].find(
+                {"project_key": project_key, "field": "status",
+                 "issue_key": {"$in": keys}},
+                {"_id": 0, "issue_key": 1, "to_value": 1, "author": 1},
+            ))
+        snapshot, project = compute_subset_signals(issues, histories)
+        return [snapshot], project, len(issues)
+
     def forecast(self, request: ForecastRequest) -> ForecastResponse:
         db = self._mongo.db()
         project = db["projects"].find_one({"project_key": request.project_key}, {"_id": 0})
         if project is None:
             raise NotFoundError(f"project '{request.project_key}' not found")
 
-        history = self._history(request.project_key)
-        facts = compute_forecast(history, project)
+        subset_size: int | None = None
+        if request.subject_type == "project":
+            history = self._history(request.project_key)
+            facts = compute_forecast(history, project)
+        else:
+            history, subset_project, subset_size = self._subset_signals(
+                request.project_key, request.subject_type, request.subject_value)
+            facts = compute_forecast(history, subset_project)
+            facts = _widen_for_small_subset(facts, subset_size)
         evidence = self._evidence.build_package(request.project_key)
 
         model = self._resolve_model()
@@ -118,6 +178,7 @@ class DefaultForecastService(ForecastService):
         except Exception:
             self._persist(ForecastRecord(
                 forecast_id=forecast_id, project_key=request.project_key,
+                subject_type=request.subject_type, subject_value=request.subject_value,
                 requested_by=request.requested_by, status=AnalysisStatus.FAILED.value,
                 on_time_probability=facts.on_time_probability,
                 probability_low=facts.probability_low, probability_high=facts.probability_high,
@@ -131,17 +192,22 @@ class DefaultForecastService(ForecastService):
         confidence = float(narration.confidence)
         if facts.trajectory_points < 2:
             confidence = min(confidence, _LOW_DATA_CONFIDENCE)
+        if subset_size is not None and subset_size < TINY_SUBSET:
+            confidence = min(confidence, _TINY_SUBSET_CONFIDENCE)
 
         _logger.info(
             "forecast completed",
             extra={"context": {"forecast_id": forecast_id, "run_id": run_id,
                                "project_key": request.project_key,
+                               "subject_type": request.subject_type,
+                               "subject_value": request.subject_value,
                                "on_time_probability": facts.on_time_probability,
                                "outlook": facts.outlook,
                                "trajectory_points": facts.trajectory_points}},
         )
         self._persist(ForecastRecord(
             forecast_id=forecast_id, project_key=request.project_key,
+            subject_type=request.subject_type, subject_value=request.subject_value,
             requested_by=request.requested_by, status=AnalysisStatus.COMPLETED.value,
             on_time_probability=facts.on_time_probability,
             probability_low=facts.probability_low, probability_high=facts.probability_high,
@@ -153,7 +219,9 @@ class DefaultForecastService(ForecastService):
             confidence=confidence, run_id=run_id, created_at=created_at,
         ))
         return ForecastResponse(
-            forecast_id=forecast_id, project_key=request.project_key, question=None,
+            forecast_id=forecast_id, project_key=request.project_key,
+            subject_type=request.subject_type, subject_value=request.subject_value,
+            question=None,
             on_time_probability=facts.on_time_probability,
             probability_low=facts.probability_low, probability_high=facts.probability_high,
             projected_slip_days_low=facts.projected_slip_days_low,
