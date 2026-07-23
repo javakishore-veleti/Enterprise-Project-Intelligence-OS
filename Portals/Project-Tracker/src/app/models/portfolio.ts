@@ -27,3 +27,20 @@ export interface PortfolioSummary {
   top_projects: PortfolioProject[];
   computed_at: string;
 }
+
+/** One selectable forecast sub-scope value (a release/component/tag) + its issue count. */
+export interface ForecastSubjectFacet {
+  value: string;
+  count: number;
+}
+
+/**
+ * Facets a project can be forecast against — GET /projects/{key}/forecast-subjects.
+ * Each list is top-50, descending by count; empty when none are recorded yet.
+ */
+export interface ForecastSubjectsResponse {
+  project_key: string;
+  releases: ForecastSubjectFacet[];
+  components: ForecastSubjectFacet[];
+  tags: ForecastSubjectFacet[];
+}

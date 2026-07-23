@@ -103,12 +103,25 @@ export class RiskAnalyticsService {
 
   // ---- Predict: forecasts ----
 
-  /** Run a delivery forecast for a project (LLM narration, ~30-60s). */
-  runForecast(projectKey: string, requestedBy: string): Observable<Forecast> {
-    return this.http.post<Forecast>(`${this.baseUrl}/analysis/forecast`, {
+  /**
+   * Run a delivery forecast for a project (LLM narration, ~30-60s). The forecast
+   * can be scoped to a release/component/tag via `subjectType`/`subjectValue`;
+   * they are only sent when the scope is a real sub-scope (not the whole project).
+   */
+  runForecast(
+    projectKey: string,
+    requestedBy: string,
+    subject: { subjectType?: string; subjectValue?: string } = {},
+  ): Observable<Forecast> {
+    const body: Record<string, unknown> = {
       project_key: projectKey,
       requested_by: requestedBy,
-    });
+    };
+    if (subject.subjectType && subject.subjectType !== 'project' && subject.subjectValue) {
+      body['subject_type'] = subject.subjectType;
+      body['subject_value'] = subject.subjectValue;
+    }
+    return this.http.post<Forecast>(`${this.baseUrl}/analysis/forecast`, body);
   }
 
   listForecasts(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<ForecastsPage> {

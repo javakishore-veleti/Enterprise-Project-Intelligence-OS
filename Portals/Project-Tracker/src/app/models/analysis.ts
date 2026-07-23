@@ -204,6 +204,10 @@ export interface Forecast {
   status: string;
   run_id: string;
   created_at: string;
+  /** Sub-scope the forecast was run against: project (whole) | release | component | tag. */
+  subject_type?: string;
+  /** The chosen facet value when subject_type !== 'project' (e.g. "21.0"). */
+  subject_value?: string | null;
 }
 
 /** Lightweight forecast row for the history list. */
@@ -217,6 +221,10 @@ export interface ForecastSummary {
   confidence: number | null;
   status: string;
   created_at: string;
+  /** Sub-scope the forecast was run against: project (whole) | release | component | tag. */
+  subject_type?: string;
+  /** The chosen facet value when subject_type !== 'project'. */
+  subject_value?: string | null;
 }
 
 export interface ForecastsPage { total: number; returned: number; offset: number; limit: number; items: ForecastSummary[]; }

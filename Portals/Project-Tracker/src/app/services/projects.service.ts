@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { MetricsHistory, Project, ProjectMetrics, ProjectSearchResponse } from '../models/project';
-import { PortfolioSummary } from '../models/portfolio';
+import { ForecastSubjectsResponse, PortfolioSummary } from '../models/portfolio';
 
 export interface SearchProjectsParams {
   query?: string;
@@ -53,6 +53,17 @@ export class ProjectsService {
     return this.http.get<MetricsHistory>(
       `${this.baseUrl}/projects/${encodeURIComponent(projectKey)}/metrics/history`,
       { params },
+    );
+  }
+
+  /**
+   * The sub-scope facets a project can be forecast against (releases / components /
+   * tags), each with an issue count — top-50 per facet, descending by count.
+   * Powers the Forecasts sub-scope picker; lists are empty when none are recorded.
+   */
+  getForecastSubjects(projectKey: string): Observable<ForecastSubjectsResponse> {
+    return this.http.get<ForecastSubjectsResponse>(
+      `${this.baseUrl}/projects/${encodeURIComponent(projectKey)}/forecast-subjects`,
     );
   }
 

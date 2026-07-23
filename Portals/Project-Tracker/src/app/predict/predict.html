@@ -88,12 +88,63 @@
             @if (fcSubject()!.type === 'group') { <span class="selchip__anchor">on {{ fcSubject()!.anchor }}</span> }
           </span>
           <button type="button" class="selchip__change" (click)="changeForecastSubject()">Change</button>
-          <button type="button" class="run" [disabled]="forecasting()" (click)="runForecastForSubject()">
+          <button type="button" class="run" [disabled]="forecasting() || fcNeedsScopeValue()" (click)="runForecastForSubject()">
             @if (forecasting()) { <span class="spin"></span> Running… } @else {
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run new forecast
             }
           </button>
         </div>
+
+        <!-- sub-scope picker (projects only; groups stay whole/project-anchored) -->
+        @if (fcSubject()!.type === 'project') {
+          <div class="scope">
+            <div class="scope__bar">
+              <span class="scope__lbl">Forecast scope</span>
+              <div class="segjoin">
+                <button type="button" [class.is-on]="fcScope() === 'project'" (click)="setForecastScope('project')">Whole project</button>
+                <button type="button" [class.is-on]="fcScope() === 'release'" (click)="setForecastScope('release')">Release</button>
+                <button type="button" [class.is-on]="fcScope() === 'component'" (click)="setForecastScope('component')">Component</button>
+                <button type="button" [class.is-on]="fcScope() === 'tag'" (click)="setForecastScope('tag')">Tag</button>
+              </div>
+              @if (fcScope() !== 'project' && fcScopeValue()) {
+                <span class="scope__active">
+                  {{ fcScope() }} <b>{{ fcScopeValue() }}</b>
+                  @if (fcScopeCount() !== null) { <span class="scope__count">({{ fcScopeCount()!.toLocaleString() }} issues)</span> }
+                  <button type="button" class="scope__clear" title="Back to whole project" (click)="clearForecastScope()">×</button>
+                </span>
+              } @else if (fcScope() === 'project') {
+                <span class="scope__hint">Forecasting the whole project — pick a release, component or tag to narrow it.</span>
+              }
+            </div>
+
+            @if (fcScope() !== 'project') {
+              @if (fcSubjectsError()) { <div class="alert alert--error"><span>{{ fcSubjectsError() }}</span></div> }
+              @else if (fcSubjectsLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading {{ fcScope() }}s…</p> }
+              @else if (facetTotal() === 0) {
+                <div class="scope__empty">No {{ fcScope() }}s recorded for this project yet — whole-project forecast stays available.</div>
+              } @else {
+                <div class="scope__filter">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                  <input type="search" placeholder="Filter {{ fcScope() }}s…" [ngModel]="fcFacetFilter()" (ngModelChange)="fcFacetFilter.set($event)" />
+                  <span class="scope__n">{{ facetTotal() }} {{ fcScope() }}{{ facetTotal() === 1 ? '' : 's' }}</span>
+                </div>
+                <div class="scope__list">
+                  @for (fct of filteredFacets(); track fct.value) {
+                    <button type="button" class="scopechip" [class.is-on]="fcScopeValue() === fct.value" (click)="selectScopeValue(fct.value)">
+                      <span class="scopechip__v">{{ fct.value }}</span>
+                      <span class="scopechip__c">{{ fct.count.toLocaleString() }}</span>
+                    </button>
+                  } @empty {
+                    <span class="scope__none">No {{ fcScope() }}s match “{{ fcFacetFilter() }}”.</span>
+                  }
+                </div>
+                @if (facetTotal() > filteredFacets().length) {
+                  <div class="scope__more">Showing {{ filteredFacets().length }} of {{ facetTotal() }} — refine the filter to narrow further.</div>
+                }
+              }
+            }
+          </div>
+        }
 
         @if (fcError()) { <div class="alert alert--error"><span>{{ fcError() }}</span></div> }
         @if (forecasting()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Forecasting {{ projectName(fcTarget) }}.</strong><p>Computing the trajectory, credible interval and drivers, then narrating the call — ~30–60&nbsp;seconds.</p></div></div> }
@@ -111,7 +162,7 @@
             <div class="empty">No forecasts yet for {{ fcSubject()!.name }} — run one with “Run new forecast” above.</div>
           } @else {
             <div class="panel"><div class="tbl-wrap"><table>
-              <thead><tr><th class="chkcol"></th><th>When</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th class="actcol"></th></tr></thead>
+              <thead><tr><th class="chkcol"></th><th>When</th><th>Subject</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th class="actcol"></th></tr></thead>
               <tbody>
                 @for (h of fcInstances(); track h.forecast_id) {
                   <tr [class.is-active]="activeForecastId() === h.forecast_id" (click)="viewInstance(h.forecast_id)">
@@ -119,6 +170,11 @@
                       <input type="checkbox" [checked]="isCompared(h.forecast_id)" [disabled]="!isCompared(h.forecast_id) && fcCompareCount >= 2" (change)="toggleCompare(h.forecast_id)" title="Select to compare" />
                     </td>
                     <td class="when">{{ h.created_at }}</td>
+                    <td class="subj">
+                      @if (isSubScoped(h.subject_type)) {
+                        <span class="subj__scope">{{ h.subject_type }} <b>{{ h.subject_value }}</b></span>
+                      } @else { <span class="subj__whole">whole project</span> }
+                    </td>
                     <td class="num"><span class="prob--{{ probClass(pct(h.on_time_probability)) }}">{{ pct(h.on_time_probability) }}%</span></td>
                     <td>@if (h.outlook) { <span class="badge badge--{{ outlookClass(h.outlook) }}">{{ h.outlook.replace('_',' ') }}</span> } @else { — }</td>
                     <td class="num">{{ h.projected_slip_days_low }}–{{ h.projected_slip_days_high }}</td>
@@ -164,6 +220,7 @@
           <div class="verdict">
             <div class="verdict__main">
               <div class="eyebrow"><span class="mono verdict__proj">{{ f.project_key }}</span> · delivery forecast <span class="badge badge--{{ outlookClass(f.outlook) }}">{{ f.outlook.replace('_',' ') }}</span>
+                @if (isSubScoped(f.subject_type)) { <span class="eyebrow__scope">{{ f.subject_type }} {{ f.subject_value }}</span> }
                 @if (fcSubject()?.type === 'group') { <span class="eyebrow__cascade">on {{ f.project_key }} — for group {{ fcSubject()!.name }}</span> }
               </div>
               <div class="prob">

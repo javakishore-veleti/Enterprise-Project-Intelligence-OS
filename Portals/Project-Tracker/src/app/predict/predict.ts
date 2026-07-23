@@ -7,7 +7,7 @@ import { map } from 'rxjs/operators';
 
 import { EarlyWarning, Forecast, ForecastSummary, Scenario, ScenarioSummary } from '../models/analysis';
 import { ProjectGroup } from '../models/group';
-import { PortfolioProject, PortfolioSummary } from '../models/portfolio';
+import { ForecastSubjectFacet, ForecastSubjectsResponse, PortfolioProject, PortfolioSummary } from '../models/portfolio';
 import { GroupsService } from '../services/groups.service';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
@@ -15,6 +15,9 @@ import { About } from '../ui/about';
 import { UserScopeService } from '../ui/user-scope.service';
 
 type Sub = 'forecasts' | 'scenarios' | 'warnings' | 'history';
+
+/** Forecast sub-scope: the whole project, or one release/component/tag within it. */
+type FcScope = 'project' | 'release' | 'component' | 'tag';
 
 /** A suggested what-if the agent can simulate in one click. */
 interface ScenarioProbe { label: string; text: string; }
@@ -133,6 +136,46 @@ export class Predict {
   protected readonly activeForecastId = signal<string | null>(null);
   /** forecast_ids selected for A/B compare (max 2). */
   protected readonly fcCompare = signal<ReadonlySet<string>>(new Set());
+
+  // --- forecast sub-scope (release / component / tag within a project) ---
+  /** Which sub-scope the next forecast runs against; 'project' = whole project (default). */
+  protected readonly fcScope = signal<FcScope>('project');
+  /** The chosen facet value (release/component/tag) when fcScope !== 'project'. */
+  protected readonly fcScopeValue = signal<string | null>(null);
+  /** Filter text over the (up-to-50) facet values, kept as a signal so the list reacts. */
+  protected readonly fcFacetFilter = signal('');
+  /** Facets for the current project (releases/components/tags + counts); null until loaded. */
+  protected readonly fcSubjects = signal<ForecastSubjectsResponse | null>(null);
+  protected readonly fcSubjectsLoading = signal(false);
+  protected readonly fcSubjectsError = signal<string | null>(null);
+  /** Per-project facet cache so re-picking a scope doesn't re-fetch. */
+  private readonly subjectsCache = new Map<string, ForecastSubjectsResponse>();
+  /** Cap on rendered facet rows so a 50-value project stays usable (filter to narrow). */
+  protected readonly maxFacetRows = 60;
+
+  /** The facet list for the active sub-scope (empty for 'project'). */
+  protected readonly activeFacets = computed<ForecastSubjectFacet[]>(() => {
+    const subj = this.fcSubjects();
+    const scope = this.fcScope();
+    if (!subj || scope === 'project') return [];
+    return scope === 'release' ? subj.releases : scope === 'component' ? subj.components : subj.tags;
+  });
+  /** Total facet values available for the active sub-scope. */
+  protected readonly facetTotal = computed<number>(() => this.activeFacets().length);
+  /** Filtered + capped facet rows actually rendered. */
+  protected readonly filteredFacets = computed<ForecastSubjectFacet[]>(() => {
+    const q = this.fcFacetFilter().trim().toLowerCase();
+    const list = q ? this.activeFacets().filter((f) => f.value.toLowerCase().includes(q)) : this.activeFacets();
+    return list.slice(0, this.maxFacetRows);
+  });
+  /** Issue count for the currently-chosen facet value (for the scope header). */
+  protected readonly fcScopeCount = computed<number | null>(() => {
+    const v = this.fcScopeValue();
+    if (!v) return null;
+    return this.activeFacets().find((f) => f.value === v)?.count ?? null;
+  });
+  /** True when a sub-scope is picked but no value chosen yet (blocks "Run new forecast"). */
+  protected readonly fcNeedsScopeValue = computed<boolean>(() => this.fcScope() !== 'project' && !this.fcScopeValue());
 
   /** Rolled-up risk score of the selected forecast subject (project score or group max). */
   protected readonly fcSubjectRisk = computed<number | null>(() => {
@@ -281,6 +324,7 @@ export class Predict {
     this.fcSubject.set(t);
     this.resetForecast();
     this.fcCompare.set(new Set());
+    this.resetForecastScope();
     this.loadForecastInstances();
   }
   /** Return to the subject selector. */
@@ -290,6 +334,47 @@ export class Predict {
     this.fcInstancesError.set(null);
     this.fcCompare.set(new Set());
     this.resetForecast();
+    this.resetForecastScope();
+  }
+
+  // --- forecast sub-scope (project | release | component | tag) ---
+  /** Reset the sub-scope back to whole-project (called on every subject change). */
+  private resetForecastScope(): void {
+    this.fcScope.set('project');
+    this.fcScopeValue.set(null);
+    this.fcFacetFilter.set('');
+    this.fcSubjects.set(null);
+    this.fcSubjectsError.set(null);
+  }
+  /** Switch the sub-scope; loads the project's facets lazily for release/component/tag. */
+  protected setForecastScope(scope: FcScope): void {
+    if (this.fcScope() === scope) return;
+    this.fcScope.set(scope);
+    this.fcScopeValue.set(null);
+    this.fcFacetFilter.set('');
+    if (scope !== 'project') this.loadForecastSubjects();
+  }
+  /** Choose a facet value (a specific release/component/tag) as the forecast scope. */
+  protected selectScopeValue(value: string): void { this.fcScopeValue.set(value); }
+  /** Clear back to whole-project without leaving the subject. */
+  protected clearForecastScope(): void {
+    this.fcScope.set('project');
+    this.fcScopeValue.set(null);
+    this.fcFacetFilter.set('');
+  }
+
+  private loadForecastSubjects(): void {
+    const t = this.fcSubject();
+    if (!t || t.type !== 'project') return;
+    const key = t.key;
+    const cached = this.subjectsCache.get(key);
+    if (cached) { this.fcSubjects.set(cached); return; }
+    this.fcSubjectsLoading.set(true);
+    this.fcSubjectsError.set(null);
+    this.projectsService.getForecastSubjects(key).subscribe({
+      next: (r) => { this.subjectsCache.set(key, r); this.fcSubjects.set(r); this.fcSubjectsLoading.set(false); },
+      error: () => { this.fcSubjectsError.set('Unable to load release/component/tag facets for this project.'); this.fcSubjectsLoading.set(false); },
+    });
   }
   /** Focus the Forecasts view on a specific project (e.g. handed off from history). */
   protected selectForecastProject(key: string): void {
@@ -317,17 +402,28 @@ export class Predict {
   /** Run a new forecast on the subject's anchor; prepend the row and show its briefing. */
   protected runForecastForSubject(): void {
     const t = this.fcSubject();
-    if (t) this.runForecast(t.anchor);
+    if (!t || this.fcNeedsScopeValue()) return;
+    const scope = this.fcScope();
+    const value = this.fcScopeValue();
+    // Sub-scope only applies to a whole-project subject; groups stay project-anchored.
+    if (t.type === 'project' && scope !== 'project' && value) {
+      this.runForecast(t.anchor, { subjectType: scope, subjectValue: value });
+    } else {
+      this.runForecast(t.anchor);
+    }
   }
 
-  protected runForecast(projectKey: string): void {
+  protected runForecast(
+    projectKey: string,
+    subject: { subjectType?: string; subjectValue?: string } = {},
+  ): void {
     if (!projectKey || this.forecasting()) return;
     this.fcTarget = projectKey;
     this.forecasting.set(true);
     this.fcError.set(null);
     this.forecast.set(null);
     this.activeForecastId.set(null);
-    this.risk.runForecast(projectKey, this.scope.userKey() || 'director').subscribe({
+    this.risk.runForecast(projectKey, this.scope.userKey() || 'director', subject).subscribe({
       next: (f) => {
         this.forecast.set(f);
         this.forecasting.set(false);
@@ -363,6 +459,8 @@ export class Predict {
       confidence: f.confidence,
       status: f.status,
       created_at: f.created_at,
+      subject_type: f.subject_type,
+      subject_value: f.subject_value,
     };
     this.fcInstances.update((rows) => [row, ...rows.filter((r) => r.forecast_id !== f.forecast_id)]);
   }
@@ -573,6 +671,8 @@ export class Predict {
   }
 
   // --- formatting ---
+  /** True when a forecast was scoped to a release/component/tag (not the whole project). */
+  protected isSubScoped(t: string | null | undefined): boolean { return !!t && t !== 'project'; }
   protected pct(v: number | null | undefined): number { return Math.round((v ?? 0) * 100); }
   protected signedPct(v: number | null | undefined): string { const n = Math.round((v ?? 0) * 100); return (n > 0 ? '+' : '') + n + '%'; }
   protected outlookClass(o: string | null | undefined): string {
