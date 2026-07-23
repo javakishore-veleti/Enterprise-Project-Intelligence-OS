@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
     mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
 
+    # Org-Management-API (Phase-2 multi-tenancy): resolves the project-key set a
+    # user/org may see. Absent org headers => this is never called (behavior
+    # unchanged); when it is unreachable the read path degrades to no org scope.
+    org_api_base_url: str = Field(
+        default="http://localhost:8005", alias="ORG_API_BASE_URL"
+    )
+
     default_page_size: int = Field(default=25, ge=1, le=200)
     max_page_size: int = Field(default=200, ge=1, le=1000)
 

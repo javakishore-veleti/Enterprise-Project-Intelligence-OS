@@ -27,8 +27,11 @@ SAMPLE = [
 
 
 class _FakeProjectsDao(ProjectsDao):
-    def search(self, query, limit, offset):
+    def search(self, query, limit, offset, project_keys=None):
         items = [p for p in SAMPLE if not query or query.lower() in p.project_key.lower()]
+        if project_keys is not None:
+            allowed = set(project_keys)
+            items = [p for p in items if p.project_key in allowed]
         return items[offset : offset + limit], len(items)
 
     def search_scored(self, query, project_keys):

@@ -10,10 +10,12 @@ from projects_api.api.dependencies import (
     provide_forecast_subjects_facade,
     provide_get_project_facade,
     provide_get_project_metrics_facade,
+    provide_org_scope,
     provide_portfolio_summary_facade,
     provide_search_projects_facade,
     provide_search_projects_scoped_facade,
 )
+from projects_api.dtos.common import OrgScope
 from projects_api.dtos.requests import ScopedProjectSearchRequest, SearchProjectsRequest
 from projects_api.dtos.responses import (
     ForecastSubjectsResponse,
@@ -60,9 +62,12 @@ def search_projects(
     query: str | None = Query(default=None),
     limit: int = Query(default=25, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: SearchProjectsFacade = Depends(provide_search_projects_facade),
 ) -> ProjectSearchResponse:
-    return facade.execute(SearchProjectsRequest(query=query, limit=limit, offset=offset))
+    return facade.execute(
+        SearchProjectsRequest(query=query, limit=limit, offset=offset), org_scope
+    )
 
 
 # NOTE: must be declared BEFORE "/{project_key}" so the literal path is not
@@ -84,12 +89,17 @@ def search_projects_scoped(
     ),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: SearchProjectsScopedFacade = Depends(provide_search_projects_scoped_facade),
 ) -> ScopedProjectSearchResponse:
     """Server-side, risk-ranked, paginated project search (scales to thousands
-    of projects per user). Ordered by risk_score desc (nulls last), then key."""
+    of projects per user). Ordered by risk_score desc (nulls last), then key.
+
+    Honors the Phase-2 org scope (``X-Org-Subject`` / ``X-Org-Key`` headers)
+    AND-composed with the legacy ``scope`` per-user narrowing."""
     return facade.execute(
-        ScopedProjectSearchRequest(scope=scope, query=q, limit=limit, offset=offset)
+        ScopedProjectSearchRequest(scope=scope, query=q, limit=limit, offset=offset),
+        org_scope,
     )
 
 
@@ -109,6 +119,7 @@ def portfolio_summary(
         "Omit for the live (newest) view.",
     ),
     x_user_key: str | None = Header(default=None, alias="X-User-Key"),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: PortfolioSummaryFacade = Depends(provide_portfolio_summary_facade),
 ) -> PortfolioSummaryResponse:
     """Server-side risk ranking of the portfolio; returns only the top N.
@@ -122,15 +133,16 @@ def portfolio_summary(
     as-of filter and the per-user scoping apply together). A malformed date is
     rejected with 422.
     """
-    return facade.execute(top, user_key=x_user_key, as_of=as_of)
+    return facade.execute(top, user_key=x_user_key, as_of=as_of, org_scope=org_scope)
 
 
 @router.get("/{project_key}", response_model=ProjectResponse, operation_id="getProject")
 def get_project(
     project_key: str,
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: GetProjectFacade = Depends(provide_get_project_facade),
 ) -> ProjectResponse:
-    return facade.execute(project_key)
+    return facade.execute(project_key, org_scope)
 
 
 @router.get(
@@ -140,9 +152,10 @@ def get_project(
 )
 def get_project_metrics(
     project_key: str,
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: GetProjectMetricsFacade = Depends(provide_get_project_metrics_facade),
 ) -> ProjectMetricsResponse:
-    return facade.execute(project_key)
+    return facade.execute(project_key, org_scope)
 
 
 @router.get(
@@ -166,7 +179,8 @@ def get_forecast_subjects(
 def get_project_metrics_history(
     project_key: str,
     limit: int = Query(default=50, ge=1, le=500),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
     facade: GetProjectMetricsFacade = Depends(provide_get_project_metrics_facade),
 ) -> ProjectMetricsHistoryResponse:
     return ProjectMetricsHistoryResponse(
-        project_key=project_key, history=facade.history(project_key, limit))
+        project_key=project_key, history=facade.history(project_key, limit, org_scope))

@@ -24,7 +24,13 @@ from projects_api.dtos.responses import (
 
 class ProjectQueryService(ABC):
     @abstractmethod
-    def search(self, request: SearchProjectsRequest) -> ProjectSearchResponse: ...
+    def search(
+        self,
+        request: SearchProjectsRequest,
+        project_keys: list[str] | None = None,
+    ) -> ProjectSearchResponse:
+        """Paginated project search; ``project_keys`` (Phase-2 org scope) narrows
+        the query in the DB when provided, else covers all projects."""
 
     @abstractmethod
     def search_scoped(

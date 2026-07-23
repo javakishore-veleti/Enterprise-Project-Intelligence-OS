@@ -10,6 +10,7 @@ from projects_api.dtos.requests import (
     SearchProjectsRequest,
     UpdateProjectGroupRequest,
 )
+from projects_api.dtos.common import OrgScope
 from projects_api.dtos.responses import (
     ForecastSubjectsResponse,
     PortfolioSummaryResponse,
@@ -24,22 +25,30 @@ from projects_api.dtos.responses import (
 
 class SearchProjectsUseCase(ABC):
     @abstractmethod
-    def execute(self, request: SearchProjectsRequest) -> ProjectSearchResponse: ...
+    def execute(
+        self, request: SearchProjectsRequest, org_scope: OrgScope | None = None
+    ) -> ProjectSearchResponse: ...
 
 
 class SearchProjectsScopedUseCase(ABC):
     @abstractmethod
-    def execute(self, request: ScopedProjectSearchRequest) -> ScopedProjectSearchResponse: ...
+    def execute(
+        self, request: ScopedProjectSearchRequest, org_scope: OrgScope | None = None
+    ) -> ScopedProjectSearchResponse: ...
 
 
 class GetProjectUseCase(ABC):
     @abstractmethod
-    def execute(self, project_key: str) -> ProjectResponse: ...
+    def execute(
+        self, project_key: str, org_scope: OrgScope | None = None
+    ) -> ProjectResponse: ...
 
 
 class GetProjectMetricsUseCase(ABC):
     @abstractmethod
-    def execute(self, project_key: str) -> ProjectMetricsResponse: ...
+    def execute(
+        self, project_key: str, org_scope: OrgScope | None = None
+    ) -> ProjectMetricsResponse: ...
 
 
 class ForecastSubjectsUseCase(ABC):
@@ -54,6 +63,7 @@ class PortfolioSummaryUseCase(ABC):
         top: int,
         user_key: str | None = None,
         as_of: date | None = None,
+        org_scope: OrgScope | None = None,
     ) -> PortfolioSummaryResponse: ...
 
 

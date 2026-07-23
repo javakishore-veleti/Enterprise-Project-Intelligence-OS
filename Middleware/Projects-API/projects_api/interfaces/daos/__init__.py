@@ -17,8 +17,16 @@ class ProjectsDao(ABC):
     """Read access to the project evidence collection (MongoDB)."""
 
     @abstractmethod
-    def search(self, query: str | None, limit: int, offset: int) -> tuple[list[ProjectResponse], int]:
-        """Return (page of projects, total match count)."""
+    def search(
+        self,
+        query: str | None,
+        limit: int,
+        offset: int,
+        project_keys: list[str] | None = None,
+    ) -> tuple[list[ProjectResponse], int]:
+        """Return (page of projects, total match count). When ``project_keys`` is
+        provided the query is narrowed to those keys **in the database**
+        (``$match project_key $in [...]``) — the Phase-2 org-scope filter."""
 
     @abstractmethod
     def search_scored(
@@ -108,6 +116,27 @@ class ProjectAssignmentsDao(ABC):
     @abstractmethod
     def project_keys_for(self, user_key: str) -> list[str]:
         """Project keys assigned to ``user_key`` (indexed lookup); [] if none."""
+
+
+class OrgAccessGateway(ABC):
+    """Read-only gateway to the Org-Management-API (:8005) effective-access
+    resolver — the Phase-2 tenancy seam. Resolves the project-key set a user or
+    org context may see (``external_key`` in that service == our ``project_key``).
+
+    Both methods return ``None`` to signal the org API was **unreachable** (so the
+    caller degrades to *no org scope*), which is deliberately distinct from an
+    empty list — an empty list is an authoritative "sees nothing" answer.
+    """
+
+    @abstractmethod
+    def visible_project_keys(self, subject: str) -> list[str] | None:
+        """Project keys visible to an org user ``subject`` across all their orgs;
+        ``None`` if the org API is unreachable."""
+
+    @abstractmethod
+    def effective_project_keys(self, org_id: str) -> list[str] | None:
+        """Project keys effective for a single ``org_id`` context; ``None`` if the
+        org API is unreachable."""
 
 
 class MetricsComputationDao(ABC):

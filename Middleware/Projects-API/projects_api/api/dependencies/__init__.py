@@ -3,15 +3,20 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from fastapi import Depends, Header
+
 from projects_api.common.configuration import get_settings
 from projects_api.daos.connection import Database
 from projects_api.daos.forecast_subjects import MongoForecastSubjectsDao
 from projects_api.daos.metrics_computation import MongoMetricsComputationDao
+from projects_api.daos.org_gateway import HttpOrgAccessGateway
 from projects_api.daos.project_assignments import MongoProjectAssignmentsDao
 from projects_api.daos.portfolio_summary import MongoPortfolioSummaryDao
 from projects_api.daos.project_groups import MongoProjectGroupsDao
 from projects_api.daos.project_metrics import MongoProjectMetricsDao
 from projects_api.daos.projects import MongoProjectsDao
+from projects_api.dtos.common import OrgScope
+from projects_api.interfaces.daos import OrgAccessGateway
 from projects_api.facades.compute_metrics import ComputeMetricsFacade
 from projects_api.facades.forecast_subjects import ForecastSubjectsFacade
 from projects_api.facades.get_project import GetProjectFacade
@@ -31,6 +36,38 @@ from projects_api.services.project_query import DefaultProjectQueryService
 @lru_cache
 def get_database() -> Database:
     return Database(get_settings())
+
+
+def provide_org_gateway() -> OrgAccessGateway:
+    """The Org-Management-API access gateway. Overridden with a fake in tests so
+    no network is touched."""
+    return HttpOrgAccessGateway(get_settings())
+
+
+def provide_org_scope(
+    x_org_subject: str | None = Header(default=None, alias="X-Org-Subject"),
+    x_org_key: str | None = Header(default=None, alias="X-Org-Key"),
+    gateway: OrgAccessGateway = Depends(provide_org_gateway),
+) -> OrgScope | None:
+    """Resolve the Phase-2 org scope from optional request headers.
+
+    - ``X-Org-Key`` (org context) wins if present -> effective projects for the org.
+    - else ``X-Org-Subject`` (org user) -> that user's visible projects.
+    - neither header -> ``None`` (no org scope; legacy behavior untouched).
+
+    A resolver returning ``None`` (org API unreachable) also yields ``None`` here
+    -> graceful degradation to no org scope. A resolver returning a list (even
+    empty) yields a concrete ``OrgScope`` -> authoritative isolation.
+    """
+    if x_org_key:
+        keys = gateway.effective_project_keys(x_org_key)
+    elif x_org_subject:
+        keys = gateway.visible_project_keys(x_org_subject)
+    else:
+        return None
+    if keys is None:
+        return None
+    return OrgScope(project_keys=tuple(keys))
 
 
 def _query_service() -> DefaultProjectQueryService:

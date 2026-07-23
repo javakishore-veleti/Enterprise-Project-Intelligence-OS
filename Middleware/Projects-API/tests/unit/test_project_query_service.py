@@ -21,11 +21,15 @@ class FakeProjectsDao(ProjectsDao):
         self._projects = projects
         self._scored_rows = scored_rows or []
 
-    def search(self, query, limit, offset):
+    def search(self, query, limit, offset, project_keys=None):
         matched = [
             p for p in self._projects
             if not query or query.lower() in p.project_key.lower() or query.lower() in p.name.lower()
         ]
+        if project_keys is not None:
+            # Mirror the real DAO's DB-side org-scope $in narrowing.
+            allowed = set(project_keys)
+            matched = [p for p in matched if p.project_key in allowed]
         return matched[offset : offset + limit], len(matched)
 
     def search_scored(self, query, project_keys):

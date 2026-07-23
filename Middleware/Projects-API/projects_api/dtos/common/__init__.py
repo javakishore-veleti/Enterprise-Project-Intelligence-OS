@@ -37,6 +37,28 @@ class PortfolioAggregate(TypedModel):
     scored: list[PortfolioScoredRow]
 
 
+class OrgScope(TypedModel):
+    """The authoritative project-key set a caller may see, resolved from the
+    Org-Management-API (Phase-2 multi-tenancy).
+
+    Semantics (deliberate): an ``OrgScope`` object being *present* means org
+    scoping applies — the allowed keys become an authoritative ``$in`` on every
+    project-scoped read, AND-composed with any existing (``X-User-Key`` /
+    ``scope``) narrowing. An *empty* ``project_keys`` therefore means the caller
+    sees nothing (correct isolation), NOT everything. The absence of an
+    ``OrgScope`` (``None``) means no org headers were supplied (or the org API
+    was unreachable) — the legacy scope path is left 100% unchanged.
+    """
+
+    project_keys: tuple[str, ...] = ()
+
+    def as_list(self) -> list[str]:
+        return list(self.project_keys)
+
+    def allows(self, project_key: str) -> bool:
+        return project_key in self.project_keys
+
+
 class ProjectSearchScoredRow(TypedModel):
     """DAO->service carrier for the scoped project search: one matched project
     joined with its latest metrics snapshot. ``has_metrics`` is False when the

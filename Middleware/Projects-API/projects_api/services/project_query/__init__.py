@@ -54,11 +54,15 @@ class DefaultProjectQueryService(ProjectQueryService):
         self._dao = projects_dao
         self._settings = settings
 
-    def search(self, request: SearchProjectsRequest) -> ProjectSearchResponse:
+    def search(
+        self,
+        request: SearchProjectsRequest,
+        project_keys: list[str] | None = None,
+    ) -> ProjectSearchResponse:
         limit = clamp_page_size(
             request.limit, self._settings.default_page_size, self._settings.max_page_size
         )
-        items, total = self._dao.search(request.query, limit, request.offset)
+        items, total = self._dao.search(request.query, limit, request.offset, project_keys)
         return ProjectSearchResponse(
             items=items,
             page=PageMeta(total=total, limit=limit, offset=request.offset),

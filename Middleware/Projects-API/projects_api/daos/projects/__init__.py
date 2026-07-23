@@ -63,9 +63,12 @@ class MongoProjectsDao(ProjectsDao):
         rx = {"$regex": re.escape(query), "$options": "i"}
         return {"$or": [{"project_key": rx}, {"name": rx}]}
 
-    def search(self, query, limit, offset):
+    def search(self, query, limit, offset, project_keys=None):
         coll = self._collection()
         flt = self._filter(query)
+        if project_keys is not None:
+            # Phase-2 org scope: authoritative $in AND-composed with the query.
+            flt = {**flt, "project_key": {"$in": project_keys}}
         total = coll.count_documents(flt)
         cursor = (
             coll.find(flt, _PROJECTION)
