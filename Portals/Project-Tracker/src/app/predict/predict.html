@@ -9,28 +9,68 @@
       <div class="targets">
         <div class="tgroup">
           <div class="tgroup__lbl">Projects</div>
-          <div class="tgrid">
-            @if (showAll) {
-              <button type="button" class="qcard qcard--all" [class.qcard--active]="isActiveTarget('group', '__all__')" (click)="watchAll()">
-                <div class="qcard__top"><span class="qcard__key">Watch all my projects</span></div>
-                <span class="qcard__badge qcard__badge--all">full scope</span>
-                <div class="qcard__meta">{{ kpiProjects() }} projects · {{ kpiAtRisk() }} at risk</div>
-                <div class="qcard__cta qcard__cta--all">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg> Watch all
-                </div>
-              </button>
-            }
-            @for (p of allProjects(); track p.project_key) {
-              <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
-                      [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
-                <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
-                  @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
-                </div>
-                <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
-                <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
-              </button>
-            }
+
+          <!-- server-backed search over all in-scope projects (scales past the top-N default) -->
+          <div class="psearch">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+            <input type="search" placeholder="Search all projects by key or name…" [ngModel]="projQuery()" (ngModelChange)="projQuery.set($event)" />
+            @if (searchActive() && searchTotal() > 0) { <span class="psearch__n">{{ searchResults().length }} of {{ searchTotal() }}</span> }
+            @if (projQuery()) { <button type="button" class="psearch__clear" title="Clear search" (click)="clearProjectSearch()">×</button> }
           </div>
+
+          @if (searchActive()) {
+            @if (searchError()) { <div class="alert alert--error"><span>{{ searchError() }}</span></div> }
+            @else if (searchLoading()) { <p class="status"><span class="spin spin--dark"></span> Searching projects…</p> }
+            @else if (searchResults().length === 0) {
+              <div class="empty">No projects match “{{ projQuery() }}”.</div>
+            } @else {
+              <div class="tgrid">
+                @for (it of searchResults(); track it.project_key) {
+                  <button type="button" class="qcard qcard--{{ searchRiskClass(it.risk_score) }}"
+                          [class.qcard--active]="isActiveTarget('project', it.project_key)" (click)="pickSearchItem(it)">
+                    <div class="qcard__top"><span class="qcard__key mono">{{ it.project_key }}</span>
+                      @if (it.name && it.name !== it.project_key) { <span class="qcard__name">{{ it.name }}</span> }
+                    </div>
+                    @if (it.risk_score !== null) {
+                      <span class="qcard__badge qcard__badge--{{ searchRiskClass(it.risk_score) }}">risk {{ it.risk_score | number:'1.0-0' }}</span>
+                    } @else { <span class="qcard__badge qcard__badge--none">unscored</span> }
+                    <div class="qcard__meta">{{ it.open_issue_count.toLocaleString() }} open</div>
+                  </button>
+                }
+              </div>
+              @if (canLoadMoreProjects()) {
+                <div class="psearch__more">
+                  <button type="button" class="loadmore" [disabled]="searchLoadingMore()" (click)="loadMoreProjects()">
+                    @if (searchLoadingMore()) { <span class="spin spin--dark"></span> Loading… }
+                    @else { Load more ({{ searchTotal() - searchResults().length }} more) }
+                  </button>
+                </div>
+              }
+            }
+          } @else {
+            <div class="tgrid">
+              @if (showAll) {
+                <button type="button" class="qcard qcard--all" [class.qcard--active]="isActiveTarget('group', '__all__')" (click)="watchAll()">
+                  <div class="qcard__top"><span class="qcard__key">Watch all my projects</span></div>
+                  <span class="qcard__badge qcard__badge--all">full scope</span>
+                  <div class="qcard__meta">{{ kpiProjects() }} projects · {{ kpiAtRisk() }} at risk</div>
+                  <div class="qcard__cta qcard__cta--all">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg> Watch all
+                  </div>
+                </button>
+              }
+              @for (p of allProjects(); track p.project_key) {
+                <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
+                        [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
+                  <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
+                    @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
+                  </div>
+                  <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
+                  <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
+                </button>
+              }
+            </div>
+          }
         </div>
         @if (groupCards().length) {
           <div class="tgroup">
@@ -414,7 +454,7 @@
     <!-- ============================ HISTORY ============================ -->
     @case ('history') {
       <div class="hist__bar">
-        <div class="hist__title"><h2>Prediction history</h2><span class="hist__count">{{ histCriteriaCount > 0 ? (histKind === 'forecasts' ? filteredFc().length : filteredSc().length) + ' of ' + histTotal() + ' (filtered)' : histTotal() + ' recent · newest 100' }}</span></div>
+        <div class="hist__title"><h2>Prediction history</h2><span class="hist__count">{{ histTotal() }}{{ histCriteriaCount > 0 ? ' filtered' : ' recent' }} · newest 100</span></div>
         <div class="segjoin">
           <button type="button" [class.is-on]="histKind === 'forecasts'" (click)="setHistKind('forecasts')">Forecasts</button>
           <button type="button" [class.is-on]="histKind === 'scenarios'" (click)="setHistKind('scenarios')">Scenarios</button>
@@ -448,12 +488,12 @@
       @if (histError()) { <div class="alert alert--error"><span>{{ histError() }}</span></div> }
       @if (histLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading…</p> }
       @else if (histKind === 'forecasts') {
-        @if (filteredFc().length === 0) { <div class="empty">No forecasts{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict">Forecasts</a>.</div> }
+        @if (fcHistory().length === 0) { <div class="empty">No forecasts{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict">Forecasts</a>.</div> }
         @else {
           <div class="panel"><div class="tbl-wrap"><table>
             <thead><tr><th>Project</th><th class="num">On-time</th><th>Outlook</th><th class="num">Slip (d)</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
             <tbody>
-              @for (h of filteredFc(); track h.forecast_id) {
+              @for (h of fcHistory(); track h.forecast_id) {
                 <tr (click)="openForecast(h.forecast_id)">
                   <td><span class="mono">{{ h.project_key }}</span></td>
                   <td class="num"><span class="prob--{{ probClass(pct(h.on_time_probability)) }}">{{ pct(h.on_time_probability) }}%</span></td>
@@ -469,12 +509,12 @@
           <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
         }
       } @else {
-        @if (filteredSc().length === 0) { <div class="empty">No scenarios{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict/scenarios">Scenarios</a>.</div> }
+        @if (scHistory().length === 0) { <div class="empty">No scenarios{{ histCriteriaCount > 0 ? ' match the selected criteria' : histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Run one from <a routerLink="/predict/scenarios">Scenarios</a>.</div> }
         @else {
           <div class="panel"><div class="tbl-wrap"><table>
             <thead><tr><th>Project</th><th>What-if</th><th class="num">Projected</th><th class="num">Δ</th><th class="num">Conf.</th><th>Status</th><th>When</th></tr></thead>
             <tbody>
-              @for (h of filteredSc(); track h.scenario_id) {
+              @for (h of scHistory(); track h.scenario_id) {
                 <tr (click)="openScenario(h.scenario_id)">
                   <td><span class="mono">{{ h.project_key }}</span></td>
                   <td class="scen__cell">{{ h.scenario }}</td>

@@ -3,11 +3,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { map } from 'rxjs/operators';
+import { debounceTime, map } from 'rxjs/operators';
 
 import { Decision, DecisionOption, DecisionSummary } from '../models/analysis';
 import { ProjectGroup } from '../models/group';
-import { PortfolioProject, PortfolioSummary } from '../models/portfolio';
+import { PortfolioProject, PortfolioSummary, ProjectSearchItem } from '../models/portfolio';
 import { GroupsService } from '../services/groups.service';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
@@ -88,6 +88,19 @@ export class Decide {
     this.groups().map((g) => ({ group: g, ...this.groupRisk(g) })),
   );
 
+  // ---- server-backed project search (Options selector) ----
+  /** Search box text; empty → the selector shows the summary's top projects (default). */
+  protected readonly projQuery = signal('');
+  protected readonly searchResults = signal<ProjectSearchItem[]>([]);
+  protected readonly searchTotal = signal(0);
+  protected readonly searchLoading = signal(false);
+  protected readonly searchLoadingMore = signal(false);
+  protected readonly searchError = signal<string | null>(null);
+  private searchOffset = 0;
+  private readonly searchPageSize = 24;
+  protected readonly searchActive = computed(() => this.projQuery().trim().length > 0);
+  protected readonly canLoadMoreProjects = computed(() => this.searchResults().length < this.searchTotal());
+
   // ---- decision state (shared across Options + Plan) ----
   /** The project/group the current decision is scoped to (null → show selector). */
   protected readonly decTarget = signal<DecideTarget | null>(null);
@@ -132,11 +145,16 @@ export class Decide {
     this.load();
     toObservable(this.scope.userKey).subscribe(() => {
       this.load();
+      if (this.searchActive()) this.runProjectSearch(this.projQuery().trim());
       if (this.subview() === 'decisions') this.reloadHistory();
     });
     toObservable(this.subview).subscribe((v) => {
       if (v === 'decisions') this.reloadHistory();
     });
+    // Debounced server-backed project search for the Options card selector.
+    toObservable(this.projQuery)
+      .pipe(debounceTime(300))
+      .subscribe((q) => this.runProjectSearch(q.trim()));
     this.route.queryParamMap.subscribe((qp) => {
       const proj = qp.get('project');
       if (proj) { this.pendingPreselect = proj; this.applyPreselect(); }
@@ -198,6 +216,54 @@ export class Decide {
   private targetFromProjectKey(key: string): DecideTarget {
     const p = this.projectByKey(key);
     return p ? this.targetFromProject(p) : { type: 'project', key, name: key, projectKeys: [key], anchor: key };
+  }
+
+  // ---- server-backed project search ----
+  /** Run a fresh scoped search (offset 0). Empty query clears back to the default. */
+  private runProjectSearch(q: string): void {
+    if (!q) {
+      this.searchResults.set([]);
+      this.searchTotal.set(0);
+      this.searchOffset = 0;
+      this.searchError.set(null);
+      this.searchLoading.set(false);
+      return;
+    }
+    this.searchOffset = 0;
+    this.searchLoading.set(true);
+    this.searchError.set(null);
+    this.projectsService
+      .searchScopedProjects({ scope: this.scope.userKey() || null, q, limit: this.searchPageSize, offset: 0 })
+      .subscribe({
+        next: (r) => { this.searchResults.set(r.items); this.searchTotal.set(r.total); this.searchOffset = r.items.length; this.searchLoading.set(false); },
+        error: () => { this.searchError.set('Unable to search projects. Is the Projects-API running on :8003?'); this.searchLoading.set(false); },
+      });
+  }
+
+  /** Fetch the next page of search results and append (Load more). */
+  protected loadMoreProjects(): void {
+    const q = this.projQuery().trim();
+    if (!q || this.searchLoadingMore()) return;
+    this.searchLoadingMore.set(true);
+    this.searchError.set(null);
+    this.projectsService
+      .searchScopedProjects({ scope: this.scope.userKey() || null, q, limit: this.searchPageSize, offset: this.searchOffset })
+      .subscribe({
+        next: (r) => { this.searchResults.update((rows) => [...rows, ...r.items]); this.searchTotal.set(r.total); this.searchOffset += r.items.length; this.searchLoadingMore.set(false); },
+        error: () => { this.searchError.set('Unable to load more projects.'); this.searchLoadingMore.set(false); },
+      });
+  }
+
+  protected clearProjectSearch(): void { this.projQuery.set(''); }
+
+  private targetFromSearchItem(it: ProjectSearchItem): DecideTarget {
+    return { type: 'project', key: it.project_key, name: it.name || it.project_key, projectKeys: [it.project_key], anchor: it.project_key };
+  }
+  /** Pick a searched project card — scopes the decision exactly like a summary card. */
+  protected pickSearchItem(it: ProjectSearchItem): void { this.chooseTarget(this.targetFromSearchItem(it)); }
+  /** Risk band CSS class for a search item (null risk_score → 'none'). */
+  protected searchRiskClass(score: number | null): string {
+    return score == null ? 'none' : this.riskScoreClass(score);
   }
 
   /** Pick a project card in the selector — scopes the decision to it. */

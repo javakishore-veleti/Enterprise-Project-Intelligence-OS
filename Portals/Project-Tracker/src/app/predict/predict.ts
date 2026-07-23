@@ -3,11 +3,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { map } from 'rxjs/operators';
+import { debounceTime, map } from 'rxjs/operators';
 
 import { EarlyWarning, Forecast, ForecastSummary, Scenario, ScenarioSummary } from '../models/analysis';
 import { ProjectGroup } from '../models/group';
-import { ForecastSubjectFacet, ForecastSubjectsResponse, PortfolioProject, PortfolioSummary } from '../models/portfolio';
+import { ForecastSubjectFacet, ForecastSubjectsResponse, PortfolioProject, PortfolioSummary, ProjectSearchItem } from '../models/portfolio';
 import { GroupsService } from '../services/groups.service';
 import { ProjectsService } from '../services/projects.service';
 import { RiskAnalyticsService } from '../services/risk-analytics.service';
@@ -110,6 +110,23 @@ export class Predict {
   protected readonly scTargetSel = signal<PredictTarget | null>(null);
   /** The project/group Early-Warning is watching (null → show selector). */
   protected readonly warnTarget = signal<PredictTarget | null>(null);
+
+  // ---- server-backed project search (shared selector) ----
+  /** Search box text; empty → the selector shows the summary's top projects (default). */
+  protected readonly projQuery = signal('');
+  /** Accumulated search-result cards (grows via Load more). */
+  protected readonly searchResults = signal<ProjectSearchItem[]>([]);
+  protected readonly searchTotal = signal(0);
+  protected readonly searchLoading = signal(false);
+  protected readonly searchLoadingMore = signal(false);
+  protected readonly searchError = signal<string | null>(null);
+  /** Offset of the next page to fetch (= count already loaded). */
+  private searchOffset = 0;
+  private readonly searchPageSize = 24;
+  /** True while a non-empty query is driving the selector (server results shown). */
+  protected readonly searchActive = computed(() => this.projQuery().trim().length > 0);
+  /** More server rows exist beyond what's loaded. */
+  protected readonly canLoadMoreProjects = computed(() => this.searchResults().length < this.searchTotal());
 
   // ---- KPI tiles for the Early-Warning mini-dashboard ----
   protected readonly kpiProjects = computed(() => this.allProjects().length);
@@ -229,6 +246,7 @@ export class Predict {
     this.loadGroups();
     toObservable(this.scope.userKey).subscribe(() => {
       this.load();
+      if (this.searchActive()) this.runProjectSearch(this.projQuery().trim());
       if (this.subview() === 'warnings' && this.warnTarget()) this.loadWarnings();
       if (this.subview() === 'forecasts' && this.fcSubject()) this.loadForecastInstances();
       if (this.subview() === 'history') this.reloadHistory();
@@ -236,6 +254,10 @@ export class Predict {
     toObservable(this.subview).subscribe((v) => {
       if (v === 'history') this.reloadHistory();
     });
+    // Debounced server-backed project search for the shared card selector.
+    toObservable(this.projQuery)
+      .pipe(debounceTime(300))
+      .subscribe((q) => this.runProjectSearch(q.trim()));
   }
 
   private load(): void {
@@ -284,6 +306,54 @@ export class Predict {
   private targetFromProjectKey(key: string): PredictTarget {
     const p = this.projectByKey(key);
     return p ? this.targetFromProject(p) : { type: 'project', key, name: key, projectKeys: [key], anchor: key };
+  }
+
+  // ---- server-backed project search ----
+  /** Run a fresh scoped search (offset 0). Empty query clears back to the default. */
+  private runProjectSearch(q: string): void {
+    if (!q) {
+      this.searchResults.set([]);
+      this.searchTotal.set(0);
+      this.searchOffset = 0;
+      this.searchError.set(null);
+      this.searchLoading.set(false);
+      return;
+    }
+    this.searchOffset = 0;
+    this.searchLoading.set(true);
+    this.searchError.set(null);
+    this.projectsService
+      .searchScopedProjects({ scope: this.scope.userKey() || null, q, limit: this.searchPageSize, offset: 0 })
+      .subscribe({
+        next: (r) => { this.searchResults.set(r.items); this.searchTotal.set(r.total); this.searchOffset = r.items.length; this.searchLoading.set(false); },
+        error: () => { this.searchError.set('Unable to search projects. Is the Projects-API running on :8003?'); this.searchLoading.set(false); },
+      });
+  }
+
+  /** Fetch the next page of search results and append (Load more). */
+  protected loadMoreProjects(): void {
+    const q = this.projQuery().trim();
+    if (!q || this.searchLoadingMore()) return;
+    this.searchLoadingMore.set(true);
+    this.searchError.set(null);
+    this.projectsService
+      .searchScopedProjects({ scope: this.scope.userKey() || null, q, limit: this.searchPageSize, offset: this.searchOffset })
+      .subscribe({
+        next: (r) => { this.searchResults.update((rows) => [...rows, ...r.items]); this.searchTotal.set(r.total); this.searchOffset += r.items.length; this.searchLoadingMore.set(false); },
+        error: () => { this.searchError.set('Unable to load more projects.'); this.searchLoadingMore.set(false); },
+      });
+  }
+
+  protected clearProjectSearch(): void { this.projQuery.set(''); }
+
+  private targetFromSearchItem(it: ProjectSearchItem): PredictTarget {
+    return { type: 'project', key: it.project_key, name: it.name || it.project_key, projectKeys: [it.project_key], anchor: it.project_key };
+  }
+  /** Pick a searched project card — selects exactly like a summary card. */
+  protected pickSearchItem(it: ProjectSearchItem): void { this.chooseTarget(this.targetFromSearchItem(it)); }
+  /** Risk band CSS class for a search item (null risk_score → 'none'). */
+  protected searchRiskClass(score: number | null): string {
+    return score == null ? 'none' : this.riskScoreClass(score);
   }
 
   /** Pick a project card in the shared selector — routes to the active view's target. */
@@ -584,7 +654,9 @@ export class Predict {
   protected loadHistory(): void {
     this.histLoading.set(true);
     this.histError.set(null);
-    const opts = { scope: this.scope.userKey() || null, q: this.histQuery, limit: this.pageSize, offset: this.offset };
+    // Selected criteria filter SERVER-side via the `projects` param (groups expanded to members).
+    const projects = [...this.histFilterKeys()];
+    const opts = { scope: this.scope.userKey() || null, q: this.histQuery, limit: this.pageSize, offset: this.offset, projects };
     if (this.histKind === 'forecasts') {
       this.risk.listForecasts(opts).subscribe({
         next: (page) => { this.fcHistory.set(page.items); this.histTotal.set(Math.min(page.total, this.maxRows)); this.histLoading.set(false); },
@@ -599,16 +671,17 @@ export class Predict {
   }
   protected searchHistory(): void { this.reloadHistory(); }
 
-  // --- history criteria filter (client-side, over the loaded page) ---
+  // --- history criteria filter (server-side, via the `projects` param) ---
   protected toggleHistCriterion(id: string): void {
     this.histSel.update((s) => {
       const n = new Set(s);
       if (n.has(id)) n.delete(id); else n.add(id);
       return n;
     });
+    this.reloadHistory();
   }
   protected isHistSelected(id: string): boolean { return this.histSel().has(id); }
-  protected clearHistCriteria(): void { this.histSel.set(new Set()); }
+  protected clearHistCriteria(): void { this.histSel.set(new Set()); this.reloadHistory(); }
   protected get histCriteriaCount(): number { return this.histSel().size; }
 
   /** Union of project keys implied by the selected criteria (projects + groups' members). */
@@ -623,14 +696,6 @@ export class Predict {
       }
     }
     return keys;
-  });
-  protected readonly filteredFc = computed<ForecastSummary[]>(() => {
-    const keys = this.histFilterKeys();
-    return keys.size ? this.fcHistory().filter((r) => keys.has(r.project_key)) : this.fcHistory();
-  });
-  protected readonly filteredSc = computed<ScenarioSummary[]>(() => {
-    const keys = this.histFilterKeys();
-    return keys.size ? this.scHistory().filter((r) => keys.has(r.project_key)) : this.scHistory();
   });
   protected nextPage(): void { if (this.offset + this.pageSize < this.histTotal()) { this.offset += this.pageSize; this.loadHistory(); } }
   protected prevPage(): void { if (this.offset > 0) { this.offset = Math.max(0, this.offset - this.pageSize); this.loadHistory(); } }

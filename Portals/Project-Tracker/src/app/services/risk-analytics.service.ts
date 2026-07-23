@@ -30,6 +30,19 @@ export interface StartAnalysisOptions {
 }
 
 /**
+ * Shared options for the paginated history endpoints (forecasts / scenarios /
+ * investigations / decisions). `projects`, when non-empty, filters SERVER-side
+ * to those project keys (comma-joined) so large histories scale.
+ */
+export interface HistoryListOpts {
+  scope?: string | null;
+  q?: string;
+  limit?: number;
+  offset?: number;
+  projects?: string[];
+}
+
+/**
  * Client for the RiskAnalytics-API (source of truth: OpenAPI/risk-analytics-api.yaml).
  * The middleware is the single governed boundary; this portal never touches
  * MongoDB/PostgreSQL/LangGraph directly.
@@ -39,6 +52,15 @@ export class RiskAnalyticsService {
   private readonly baseUrl = `${environment.riskApiBaseUrl}/api/v1`;
 
   constructor(private readonly http: HttpClient) {}
+
+  /** Build the shared query params for a paginated history request. */
+  private historyParams(opts: HistoryListOpts): HttpParams {
+    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
+    if (opts.scope) params = params.set('scope', opts.scope);
+    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
+    if (opts.projects?.length) params = params.set('projects', opts.projects.join(','));
+    return params;
+  }
 
   /**
    * Kick off a multi-agent risk analysis for a project. The request may take
@@ -79,14 +101,11 @@ export class RiskAnalyticsService {
 
   /** Paginated, searchable history of persisted investigations (newest first). */
   listInvestigations(
-    opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {},
+    opts: HistoryListOpts = {},
   ): Observable<InvestigationsPage> {
-    let params = new HttpParams()
-      .set('limit', opts.limit ?? 20)
-      .set('offset', opts.offset ?? 0);
-    if (opts.scope) params = params.set('scope', opts.scope);
-    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
-    return this.http.get<InvestigationsPage>(`${this.baseUrl}/analysis/investigations`, { params });
+    return this.http.get<InvestigationsPage>(`${this.baseUrl}/analysis/investigations`, {
+      params: this.historyParams(opts),
+    });
   }
 
   /** Fetch one persisted investigation by its id. */
@@ -124,11 +143,10 @@ export class RiskAnalyticsService {
     return this.http.post<Forecast>(`${this.baseUrl}/analysis/forecast`, body);
   }
 
-  listForecasts(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<ForecastsPage> {
-    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
-    if (opts.scope) params = params.set('scope', opts.scope);
-    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
-    return this.http.get<ForecastsPage>(`${this.baseUrl}/analysis/forecasts`, { params });
+  listForecasts(opts: HistoryListOpts = {}): Observable<ForecastsPage> {
+    return this.http.get<ForecastsPage>(`${this.baseUrl}/analysis/forecasts`, {
+      params: this.historyParams(opts),
+    });
   }
 
   getForecast(forecastId: string): Observable<Forecast> {
@@ -146,11 +164,10 @@ export class RiskAnalyticsService {
     });
   }
 
-  listScenarios(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<ScenariosPage> {
-    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
-    if (opts.scope) params = params.set('scope', opts.scope);
-    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
-    return this.http.get<ScenariosPage>(`${this.baseUrl}/analysis/scenarios`, { params });
+  listScenarios(opts: HistoryListOpts = {}): Observable<ScenariosPage> {
+    return this.http.get<ScenariosPage>(`${this.baseUrl}/analysis/scenarios`, {
+      params: this.historyParams(opts),
+    });
   }
 
   getScenario(scenarioId: string): Observable<Scenario> {
@@ -191,11 +208,10 @@ export class RiskAnalyticsService {
     );
   }
 
-  listDecisions(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<DecisionsPage> {
-    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
-    if (opts.scope) params = params.set('scope', opts.scope);
-    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
-    return this.http.get<DecisionsPage>(`${this.baseUrl}/analysis/decisions`, { params });
+  listDecisions(opts: HistoryListOpts = {}): Observable<DecisionsPage> {
+    return this.http.get<DecisionsPage>(`${this.baseUrl}/analysis/decisions`, {
+      params: this.historyParams(opts),
+    });
   }
 
   getDecision(decisionId: string): Observable<Decision> {

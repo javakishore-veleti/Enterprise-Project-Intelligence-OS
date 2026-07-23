@@ -28,6 +28,31 @@ export interface PortfolioSummary {
   computed_at: string;
 }
 
+/**
+ * One row of the server-side, risk-ranked scoped project search
+ * (GET /api/v1/projects/search). A lighter view than PortfolioProject —
+ * only what a project card needs. risk_score/risk_band are null when unscored.
+ */
+export interface ProjectSearchItem {
+  project_key: string;
+  name: string;
+  risk_score: number | null;
+  risk_band: RiskBand | null;
+  open_issue_count: number;
+}
+
+/**
+ * Paginated response of GET /api/v1/projects/search — scales to thousands of
+ * projects per user (the DB ranks + pages; the client only ever holds a window).
+ */
+export interface ScopedProjectSearchResponse {
+  total: number;
+  returned: number;
+  offset: number;
+  limit: number;
+  items: ProjectSearchItem[];
+}
+
 /** One selectable forecast sub-scope value (a release/component/tag) + its issue count. */
 export interface ForecastSubjectFacet {
   value: string;

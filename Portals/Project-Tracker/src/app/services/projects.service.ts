@@ -4,10 +4,19 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { MetricsHistory, Project, ProjectMetrics, ProjectSearchResponse } from '../models/project';
-import { ForecastSubjectsResponse, PortfolioSummary } from '../models/portfolio';
+import { ForecastSubjectsResponse, PortfolioSummary, ScopedProjectSearchResponse } from '../models/portfolio';
 
 export interface SearchProjectsParams {
   query?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ScopedSearchParams {
+  /** User key to scope to their assigned projects; null/empty → all projects. */
+  scope?: string | null;
+  /** Case-insensitive substring on project_key OR name. */
+  q?: string;
   limit?: number;
   offset?: number;
 }
@@ -35,6 +44,26 @@ export class ProjectsService {
       httpParams = httpParams.set('offset', params.offset);
     }
     return this.http.get<ProjectSearchResponse>(`${this.baseUrl}/projects`, { params: httpParams });
+  }
+
+  /**
+   * Server-side, risk-ranked, paginated project search scoped to the user
+   * (GET /projects/search). Scales to thousands of projects — the DB ranks and
+   * pages; the client only holds a window. Powers the card target-selectors.
+   */
+  searchScopedProjects(params: ScopedSearchParams = {}): Observable<ScopedProjectSearchResponse> {
+    let httpParams = new HttpParams()
+      .set('limit', params.limit ?? 25)
+      .set('offset', params.offset ?? 0);
+    if (params.scope) {
+      httpParams = httpParams.set('scope', params.scope);
+    }
+    if (params.q && params.q.trim()) {
+      httpParams = httpParams.set('q', params.q.trim());
+    }
+    return this.http.get<ScopedProjectSearchResponse>(`${this.baseUrl}/projects/search`, {
+      params: httpParams,
+    });
   }
 
   getProject(projectKey: string): Observable<Project> {

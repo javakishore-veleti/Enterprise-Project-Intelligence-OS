@@ -26,6 +26,21 @@
 .qcard__badge { align-self: flex-start; display: inline-flex; font-size: .66rem; font-weight: 800; padding: .22rem .6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; }
 .qcard__badge--high { background: #fee2e2; color: #b91c1c; } .qcard__badge--medium { background: #ffedd5; color: #c2410c; } .qcard__badge--low { background: #dcfce7; color: #15803d; }
 .qcard__meta { font-size: .8rem; color: var(--ink-500); font-weight: 600; }
+.qcard--none::before { background: var(--border-strong); }
+.qcard__badge--none { background: var(--bg-2); color: var(--ink-500); }
+
+/* ---- server-backed project search (Options selector) ---- */
+.psearch { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: .35rem .35rem .35rem .75rem; color: var(--ink-400); max-width: 560px; }
+.psearch:focus-within { border-color: var(--brand-400); box-shadow: var(--ring); }
+.psearch input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: .9rem; color: var(--ink-900); padding: .34rem 0; }
+.psearch input::placeholder { color: var(--ink-400); }
+.psearch__n { flex: none; font-size: .72rem; font-weight: 700; color: var(--ink-400); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.psearch__clear { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border: none; border-radius: 7px; background: var(--bg-2); color: var(--ink-500); font-size: 1rem; font-weight: 800; line-height: 1; }
+.psearch__clear:hover { background: #fee2e2; color: #b91c1c; }
+.psearch__more { display: flex; justify-content: center; margin-top: 1rem; }
+.loadmore { display: inline-flex; align-items: center; gap: .5rem; background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink-700); font-weight: 700; font-size: .85rem; padding: .55rem 1.2rem; border-radius: 10px; }
+.loadmore:hover:not(:disabled) { border-color: var(--brand-400); color: var(--brand-500); }
+.loadmore:disabled { opacity: .55; }
 .qcard__cta { display: inline-flex; align-items: center; gap: .4rem; margin-top: .3rem; padding-top: .55rem; border-top: 1px solid var(--border); font-size: .76rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--brand-500); }
 .qcard__cta--high { color: #dc2626; } .qcard__cta--medium { color: #ea580c; } .qcard__cta--low { color: #16a34a; }
 

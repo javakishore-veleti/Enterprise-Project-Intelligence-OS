@@ -9,18 +9,58 @@
       <div class="targets">
         <div class="tgroup">
           <div class="tgroup__lbl">Projects</div>
-          <div class="tgrid">
-            @for (p of allProjects(); track p.project_key) {
-              <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
-                      [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
-                <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
-                  @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
-                </div>
-                <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
-                <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
-              </button>
-            }
+
+          <!-- server-backed search over all in-scope projects (scales past the top-N default) -->
+          <div class="psearch">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+            <input type="search" placeholder="Search all projects by key or name…" [ngModel]="projQuery()" (ngModelChange)="projQuery.set($event)" />
+            @if (searchActive() && searchTotal() > 0) { <span class="psearch__n">{{ searchResults().length }} of {{ searchTotal() }}</span> }
+            @if (projQuery()) { <button type="button" class="psearch__clear" title="Clear search" (click)="clearProjectSearch()">×</button> }
           </div>
+
+          @if (searchActive()) {
+            @if (searchError()) { <div class="alert alert--error"><span>{{ searchError() }}</span></div> }
+            @else if (searchLoading()) { <p class="status"><span class="spin spin--dark"></span> Searching projects…</p> }
+            @else if (searchResults().length === 0) {
+              <div class="empty">No projects match “{{ projQuery() }}”.</div>
+            } @else {
+              <div class="tgrid">
+                @for (it of searchResults(); track it.project_key) {
+                  <button type="button" class="qcard qcard--{{ searchRiskClass(it.risk_score) }}"
+                          [class.qcard--active]="isActiveTarget('project', it.project_key)" (click)="pickSearchItem(it)">
+                    <div class="qcard__top"><span class="qcard__key mono">{{ it.project_key }}</span>
+                      @if (it.name && it.name !== it.project_key) { <span class="qcard__name">{{ it.name }}</span> }
+                    </div>
+                    @if (it.risk_score !== null) {
+                      <span class="qcard__badge qcard__badge--{{ searchRiskClass(it.risk_score) }}">risk {{ it.risk_score | number:'1.0-0' }}</span>
+                    } @else { <span class="qcard__badge qcard__badge--none">unscored</span> }
+                    <div class="qcard__meta">{{ it.open_issue_count.toLocaleString() }} open</div>
+                  </button>
+                }
+              </div>
+              @if (canLoadMoreProjects()) {
+                <div class="psearch__more">
+                  <button type="button" class="loadmore" [disabled]="searchLoadingMore()" (click)="loadMoreProjects()">
+                    @if (searchLoadingMore()) { <span class="spin spin--dark"></span> Loading… }
+                    @else { Load more ({{ searchTotal() - searchResults().length }} more) }
+                  </button>
+                </div>
+              }
+            }
+          } @else {
+            <div class="tgrid">
+              @for (p of allProjects(); track p.project_key) {
+                <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
+                        [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
+                  <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
+                    @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
+                  </div>
+                  <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
+                  <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
+                </button>
+              }
+            </div>
+          }
         </div>
         @if (groupCards().length) {
           <div class="tgroup">
