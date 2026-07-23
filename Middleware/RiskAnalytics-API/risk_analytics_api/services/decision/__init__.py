@@ -18,6 +18,7 @@ injected so tests run a fake (no model call).
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Callable
 
 from risk_analytics_api.common.configuration import Settings
@@ -63,11 +64,27 @@ def default_chat_model(model: str) -> Any:
     return ChatAnthropic(model=model, max_tokens=2000, timeout=90)
 
 
+#: The dataset anonymizes author names as "<<|author_displayName|<uuid>|>>" tokens.
+_ANON_RE = re.compile(r"<<\|[^|]*\|([^|]+)\|>>")
+
+
+def friendly_owner(author: str) -> str:
+    """Render an anonymized author token as a readable label.
+
+    The public dataset stores author display names as "<<|author_displayName|<uuid>|>>"
+    placeholders; surface them as "Contributor <short-id>" so owners read cleanly. Real
+    (non-anonymized) names pass through unchanged.
+    """
+    m = _ANON_RE.search(author or "")
+    return f"Contributor {m.group(1)[:8]}" if m else author
+
+
 def top_contributors(db: Any, project_key: str, limit: int = _TOP_CONTRIBUTORS) -> list[str]:
     """The project's most active contributors (history authorship, most active first).
 
     Deterministic + bounded: distinct authors, ranked by their history-event count.
-    These become the candidate ``suggested_owners`` the options agent draws from.
+    These become the candidate ``suggested_owners`` the options agent draws from —
+    rendered as readable labels (the raw dataset anonymizes author names).
     """
     authors = [
         a for a in db["issue_histories"].distinct("author", {"project_key": project_key}) if a
@@ -79,7 +96,7 @@ def top_contributors(db: Any, project_key: str, limit: int = _TOP_CONTRIBUTORS) 
             a,
         ),
     )
-    return ranked[:limit]
+    return [friendly_owner(a) for a in ranked[:limit]]
 
 
 class DefaultDecisionService(DecisionService):
@@ -183,7 +200,7 @@ class DefaultDecisionService(DecisionService):
         """Assign stable option ids + ground suggested_owners in the top contributors."""
         options: list[DecisionOption] = []
         for i, o in enumerate(raw[:MAX_OPTIONS], start=1):
-            suggested = list(getattr(o, "suggested_owners", []) or []) or owners[:2]
+            suggested = [friendly_owner(s) for s in (getattr(o, "suggested_owners", []) or [])] or owners[:2]
             options.append(DecisionOption(
                 option_id=f"opt-{i}",
                 title=o.title or f"Option {i}",
