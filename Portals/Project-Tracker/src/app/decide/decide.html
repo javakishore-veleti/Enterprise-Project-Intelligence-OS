@@ -1,0 +1,257 @@
+<section class="decide">
+  <app-about title="Decide"
+    text="Where you commit. The agent leads with 2–3 decision options — each with a prioritized plan, suggested owners and a predicted outcome. Pick one, review the expanded plan, then approve it as a dry-run preview (nothing external is created yet). Predict projects; Decide acts." />
+
+  <!-- ============ shared project + group card selector ============ -->
+  <ng-template #selector>
+    @if (loading()) { <p class="status"><span class="spin spin--dark"></span> Loading projects…</p> }
+    @else {
+      <div class="targets">
+        <div class="tgroup">
+          <div class="tgroup__lbl">Projects</div>
+          <div class="tgrid">
+            @for (p of allProjects(); track p.project_key) {
+              <button type="button" class="qcard qcard--{{ riskScoreClass(p.risk_score) }}"
+                      [class.qcard--active]="isActiveTarget('project', p.project_key)" (click)="pickProject(p)">
+                <div class="qcard__top"><span class="qcard__key mono">{{ p.project_key }}</span>
+                  @if (p.name && p.name !== p.project_key) { <span class="qcard__name">{{ p.name }}</span> }
+                </div>
+                <span class="qcard__badge qcard__badge--{{ riskScoreClass(p.risk_score) }}">risk {{ p.risk_score | number:'1.0-0' }}</span>
+                <div class="qcard__meta">{{ p.open_issue_count.toLocaleString() }} open · {{ p.blocker_count }} blockers</div>
+              </button>
+            }
+          </div>
+        </div>
+        @if (groupCards().length) {
+          <div class="tgroup">
+            <div class="tgroup__lbl">Project groups</div>
+            <div class="tgrid">
+              @for (gc of groupCards(); track gc.group.group_key) {
+                <button type="button" class="qcard qcard--{{ riskScoreClass(gc.max) }}"
+                        [class.qcard--active]="isActiveTarget('group', gc.group.group_key)" (click)="pickGroup(gc)">
+                  <div class="qcard__top"><span class="qcard__key">{{ gc.group.name }}</span></div>
+                  <span class="qcard__badge qcard__badge--{{ riskScoreClass(gc.max) }}">risk {{ gc.max }}</span>
+                  <div class="qcard__meta">{{ gc.members }} project{{ gc.members === 1 ? '' : 's' }} · avg {{ gc.avg }}</div>
+                  <div class="qcard__cta qcard__cta--{{ riskScoreClass(gc.max) }}">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> group
+                  </div>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </ng-template>
+
+  @switch (subview()) {
+
+    <!-- ============================ OPTIONS ============================ -->
+    @case ('options') {
+      <div class="banner">
+        <div class="banner__badge banner__badge--dec">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="banner__title"><h2>Decision options</h2><p>Pick a project or group, then generate options. The agent proposes 2–3 courses of action — each with a plan, owners and a predicted outcome — for you to compare and choose.</p></div>
+        <span class="banner__live">options · compare · choose</span>
+      </div>
+
+      @if (!decTarget()) {
+        <div class="pick"><h3 class="pick__h">Pick a subject to decide on</h3><p class="pick__sub">Choose the project or group you want options for. A group decides on its highest-risk member.</p></div>
+        @if (decideQueue().length) {
+          <div class="quickpick">
+            <span class="quickpick__lbl">Top at-risk:</span>
+            @for (p of decideQueue().slice(0, 5); track p.project_key) {
+              <button type="button" class="quickpick__chip quickpick__chip--{{ riskScoreClass(p.risk_score) }}" (click)="pickProject(p)">
+                <span class="mono">{{ p.project_key }}</span><span class="quickpick__risk">risk {{ p.risk_score | number:'1.0-0' }}</span>
+              </button>
+            }
+          </div>
+        }
+        <ng-container [ngTemplateOutlet]="selector"></ng-container>
+      } @else {
+        <div class="selbar">
+          <span class="selchip">
+            <span class="selchip__type selchip__type--{{ decTarget()!.type }}">{{ decTarget()!.type }}</span>
+            <span class="selchip__name">{{ decTarget()!.name }}</span>
+            @if (targetRisk() !== null) { <span class="badge badge--{{ riskScoreClass(targetRisk()!) }}">risk {{ targetRisk() }}</span> }
+            @if (decTarget()!.type === 'group') { <span class="selchip__anchor">on {{ decTarget()!.anchor }}</span> }
+          </span>
+          <button type="button" class="selchip__change" (click)="changeTarget()">Change</button>
+          <button type="button" class="run" [disabled]="generating()" (click)="generateOptions()">
+            @if (generating()) { <span class="spin"></span> Generating… } @else {
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg> Generate options
+            }
+          </button>
+        </div>
+
+        @if (decError()) { <div class="alert alert--error"><span>{{ decError() }}</span></div> }
+        @if (generating()) { <div class="working"><div class="pulse"><span></span><span></span><span></span></div><div class="working__t"><strong>Weighing options for {{ projectName(decTarget()!.anchor) }}.</strong><p>Assembling the evidence — forecast, blockers, contributors — then proposing 2–3 decision options with plans and owners. ~30–90&nbsp;seconds.</p></div></div> }
+
+        @if (decision(); as d) {
+          <div class="options-head">
+            <h3 class="block__h">{{ d.options.length }} option{{ d.options.length === 1 ? '' : 's' }} <span class="block__sub">for {{ decTarget()!.name }}</span></h3>
+            <span class="badge badge--{{ statusClass(d.status) }}">{{ d.status }}</span>
+          </div>
+          @if (d.question) { <p class="dec-q">{{ d.question }}</p> }
+
+          <div class="optgrid">
+            @for (o of d.options; track o.option_id) {
+              <div class="opt" [class.opt--chosen]="isSelected(o)">
+                @if (isSelected(o)) { <span class="opt__flag">Selected</span> }
+                <div class="opt__head">
+                  <h4 class="opt__title">{{ o.title }}</h4>
+                  <span class="chip chip--{{ confClass(o.confidence) }}">{{ pct(o.confidence) }}% conf.</span>
+                </div>
+                @if (o.summary) { <p class="opt__summary">{{ o.summary }}</p> }
+
+                @if (o.predicted_outcome) { <div class="opt__field"><span class="opt__lbl">Predicted outcome</span><p>{{ o.predicted_outcome }}</p></div> }
+                @if (o.tradeoffs) { <div class="opt__field"><span class="opt__lbl">Trade-offs</span><p>{{ o.tradeoffs }}</p></div> }
+                @if (o.recovery_estimate) { <div class="opt__field opt__field--inline"><span class="opt__lbl">Recovery estimate</span><b>{{ o.recovery_estimate }}</b></div> }
+
+                @if (o.actions.length) {
+                  <div class="opt__field"><span class="opt__lbl">Top actions</span>
+                    <ol class="opt__actions">
+                      @for (a of o.actions.slice(0, 3); track $index) { <li>{{ a }}</li> }
+                    </ol>
+                    @if (o.actions.length > 3) { <span class="opt__more">+{{ o.actions.length - 3 }} more in the plan</span> }
+                  </div>
+                }
+
+                @if (o.suggested_owners.length) {
+                  <div class="opt__owners"><span class="opt__lbl">Suggested owners</span>
+                    <div class="owners">@for (ow of o.suggested_owners; track $index) { <span class="owner">{{ ow }}</span> }</div>
+                  </div>
+                }
+
+                <button type="button" class="opt__choose" [disabled]="!!selecting()" (click)="chooseOption(o)">
+                  @if (selecting() === o.option_id) { <span class="spin"></span> Choosing… }
+                  @else if (isSelected(o)) { <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Chosen — view plan }
+                  @else { Choose this option }
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (d.narrative) { <div class="block"><h3 class="block__h">How they compare</h3><p class="narr">{{ d.narrative }}</p></div> }
+        }
+      }
+    }
+
+    <!-- ============================ PLAN ============================ -->
+    @case ('plan') {
+      <div class="banner">
+        <div class="banner__badge banner__badge--dec">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="banner__title"><h2>The plan</h2><p>Your chosen option, expanded into a prioritized plan with owners. Approve it as a dry-run preview — nothing external is created yet.</p></div>
+        <span class="banner__live">chosen · plan · approve</span>
+      </div>
+
+      @if (decError()) { <div class="alert alert--error"><span>{{ decError() }}</span></div> }
+
+      @if (decision(); as d) {
+        @if (selectedOption(); as o) {
+          <div class="selbar">
+            <span class="selchip">
+              <span class="selchip__type selchip__type--project">plan</span>
+              <span class="selchip__name mono">{{ d.project_key }}</span>
+              <span class="badge badge--{{ statusClass(d.status) }}">{{ d.status }}</span>
+            </span>
+            <a class="selchip__change" routerLink="/decide/options">← Back to options</a>
+          </div>
+
+          @if (d.status === 'APPROVED') {
+            <div class="approved">
+              <span class="approved__icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><polyline points="22 4 12 14.5 9 11.5"/></svg></span>
+              <div><strong>Approved as a dry-run preview.</strong><p>The plan is recorded for the team to act on. No external tickets, assignments or messages were created.@if (d.approved_at) { <span class="approved__when"> Approved {{ d.approved_at }}.</span> }</p></div>
+            </div>
+          }
+
+          <div class="briefing">
+            <div class="verdict">
+              <div class="verdict__main">
+                <div class="eyebrow"><span class="mono verdict__proj">{{ d.project_key }}</span> · chosen option</div>
+                <h3 class="plan__title">{{ o.title }}</h3>
+                @if (o.summary) { <p class="plan__summary">{{ o.summary }}</p> }
+                @if (o.recovery_estimate) { <div class="slip">Recovery estimate <b>{{ o.recovery_estimate }}</b></div> }
+              </div>
+              <div class="gauge gauge--{{ confClass(o.confidence) === 'high' ? 'low' : confClass(o.confidence) }}"><span class="gauge__num">{{ pct(o.confidence) }}<small>%</small></span><span class="gauge__lbl">confidence</span></div>
+            </div>
+
+            @if (o.actions.length) {
+              <div class="block"><h3 class="block__h">Prioritized plan <span class="block__sub">{{ o.actions.length }} step{{ o.actions.length === 1 ? '' : 's' }}, most important first</span></h3>
+                <ol class="plan-actions">
+                  @for (a of o.actions; track $index) {
+                    <li><span class="plan-actions__n">{{ $index + 1 }}</span><span class="plan-actions__t">{{ a }}</span></li>
+                  }
+                </ol>
+              </div>
+            }
+
+            <div class="plan-cols">
+              @if (o.predicted_outcome) { <div class="block block--half"><h3 class="block__h">Predicted outcome</h3><p class="narr">{{ o.predicted_outcome }}</p></div> }
+              @if (o.tradeoffs) { <div class="block block--half"><h3 class="block__h">Trade-offs</h3><p class="narr">{{ o.tradeoffs }}</p></div> }
+            </div>
+
+            @if (o.suggested_owners.length) {
+              <div class="block"><h3 class="block__h">Suggested owners</h3>
+                <div class="owners owners--lg">@for (ow of o.suggested_owners; track $index) { <span class="owner owner--lg">{{ ow }}</span> }</div>
+              </div>
+            }
+
+            <div class="handoff">
+              @if (d.status !== 'APPROVED') {
+                <button type="button" class="go" [disabled]="approving()" (click)="approve()">
+                  @if (approving()) { <span class="spin"></span> Approving… } @else {
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Approve &amp; act
+                  }
+                </button>
+              }
+              <a class="go go--ghost" routerLink="/decide/options">Back to options →</a>
+            </div>
+          </div>
+        } @else {
+          <div class="empty">This decision has no option selected yet. <a routerLink="/decide/options">Choose an option</a> first.</div>
+        }
+      } @else {
+        <div class="empty">No decision loaded. Start from <a routerLink="/decide/options">Options</a> or pick one from <a routerLink="/decide/decisions">Decisions</a>.</div>
+      }
+    }
+
+    <!-- ============================ DECISIONS (history) ============================ -->
+    @case ('decisions') {
+      <div class="hist__bar">
+        <div class="hist__title"><h2>Decisions</h2><span class="hist__count">{{ histTotal() }} recent · newest 100</span></div>
+        <div class="hist__search">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input type="search" placeholder="Search project or narrative…" [(ngModel)]="histQuery" (keyup.enter)="searchHistory()" />
+          <button type="button" (click)="searchHistory()">Search</button>
+        </div>
+      </div>
+
+      @if (histError()) { <div class="alert alert--error"><span>{{ histError() }}</span></div> }
+      @if (histLoading()) { <p class="status"><span class="spin spin--dark"></span> Loading…</p> }
+      @else if (history().length === 0) {
+        <div class="empty">No decisions{{ histQuery ? ' matching “' + histQuery + '”' : ' yet' }}. Generate one from <a routerLink="/decide/options">Options</a>.</div>
+      } @else {
+        <div class="panel"><div class="tbl-wrap"><table>
+          <thead><tr><th>Project</th><th>Status</th><th class="num">Options</th><th>Selected</th><th class="num">Conf.</th><th>When</th></tr></thead>
+          <tbody>
+            @for (h of history(); track h.decision_id) {
+              <tr (click)="openDecision(h.decision_id)">
+                <td><span class="mono">{{ h.project_key }}</span></td>
+                <td><span class="badge badge--{{ statusClass(h.status) }}">{{ h.status }}</span></td>
+                <td class="num">{{ h.option_count }}</td>
+                <td>@if (h.selected_option_id) { <span class="sel-yes">{{ h.selected_option_id }}</span> } @else { <span class="sel-no">—</span> }</td>
+                <td class="num">{{ h.confidence != null ? pct(h.confidence) + '%' : '—' }}</td>
+                <td class="when">{{ h.created_at }}</td>
+              </tr>
+            }
+          </tbody>
+        </table></div></div>
+        <div class="pager"><span class="pager__info">Showing {{ pageStart }}–{{ pageEnd }} of {{ histTotal() }}</span><div class="pager__btns"><button type="button" [disabled]="!canPrev" (click)="prevPage()">← Prev</button><button type="button" [disabled]="!canNext" (click)="nextPage()">Next →</button></div></div>
+      }
+    }
+  }
+</section>

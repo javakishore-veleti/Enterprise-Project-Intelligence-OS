@@ -8,6 +8,8 @@ import {
   AnalysisRunsResponse,
   AttentionResponse,
   DashboardActivity,
+  Decision,
+  DecisionsPage,
   EarlyWarning,
   Forecast,
   ForecastsPage,
@@ -148,6 +150,43 @@ export class RiskAnalyticsService {
     let params = new HttpParams().set('limit', limit);
     if (scope) params = params.set('scope', scope);
     return this.http.get<{ items: EarlyWarning[] }>(`${this.baseUrl}/analysis/early-warnings`, { params });
+  }
+
+  // ---- Decide: options-first decisions ----
+
+  /** Ask the Decide agent to generate 2-3 candidate options for a project (LLM, ~30-90s). */
+  runDecision(projectKey: string, requestedBy: string): Observable<Decision> {
+    return this.http.post<Decision>(`${this.baseUrl}/analysis/decide`, {
+      project_key: projectKey,
+      requested_by: requestedBy,
+    });
+  }
+
+  /** Mark one option as selected — moves the decision to SELECTED. */
+  selectOption(decisionId: string, optionId: string): Observable<Decision> {
+    return this.http.post<Decision>(
+      `${this.baseUrl}/analysis/decisions/${encodeURIComponent(decisionId)}/select`,
+      { option_id: optionId },
+    );
+  }
+
+  /** Approve the selected option (dry-run/preview) — moves the decision to APPROVED. */
+  approveDecision(decisionId: string): Observable<Decision> {
+    return this.http.post<Decision>(
+      `${this.baseUrl}/analysis/decisions/${encodeURIComponent(decisionId)}/approve`,
+      {},
+    );
+  }
+
+  listDecisions(opts: { scope?: string | null; q?: string; limit?: number; offset?: number } = {}): Observable<DecisionsPage> {
+    let params = new HttpParams().set('limit', opts.limit ?? 20).set('offset', opts.offset ?? 0);
+    if (opts.scope) params = params.set('scope', opts.scope);
+    if (opts.q && opts.q.trim()) params = params.set('q', opts.q.trim());
+    return this.http.get<DecisionsPage>(`${this.baseUrl}/analysis/decisions`, { params });
+  }
+
+  getDecision(decisionId: string): Observable<Decision> {
+    return this.http.get<Decision>(`${this.baseUrl}/analysis/decisions/${encodeURIComponent(decisionId)}`);
   }
 
   /** Fetch a previously started run by id. */

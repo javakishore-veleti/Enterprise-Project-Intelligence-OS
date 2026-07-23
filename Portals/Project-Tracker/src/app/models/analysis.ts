@@ -271,6 +271,51 @@ export interface EarlyWarning {
   detected_at: string;
 }
 
+// ============ Decide: options-first decisions ============
+
+export type DecisionStatus = 'DRAFTED' | 'SELECTED' | 'APPROVED' | 'FAILED';
+
+/** One candidate course of action the Decide agent proposes. */
+export interface DecisionOption {
+  option_id: string;
+  title: string;
+  summary: string;
+  actions: string[];
+  suggested_owners: string[];
+  predicted_outcome: string;
+  tradeoffs: string;
+  recovery_estimate: string;
+  confidence: number;
+}
+
+/** A full options-first decision — POST /api/v1/analysis/decide. */
+export interface Decision {
+  decision_id: string;
+  project_key: string;
+  question: string;
+  options: DecisionOption[];
+  selected_option_id: string | null;
+  status: DecisionStatus;
+  narrative: string;
+  confidence: number;
+  run_id: string;
+  created_at: string;
+  approved_at: string | null;
+}
+
+/** Lightweight decision row for the history list. */
+export interface DecisionSummary {
+  decision_id: string;
+  project_key: string;
+  status: DecisionStatus;
+  option_count: number;
+  selected_option_id: string | null;
+  confidence: number | null;
+  created_at: string;
+}
+
+export interface DecisionsPage { total: number; returned: number; offset: number; limit: number; items: DecisionSummary[]; }
+
 /** One ranked attention item from GET /api/v1/analysis/attention. */
 export interface AttentionItem {
   finding_id: string;

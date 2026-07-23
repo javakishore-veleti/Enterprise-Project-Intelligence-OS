@@ -35,6 +35,7 @@ export class App {
   protected readonly onWatch = signal(false);
   protected readonly onInvestigate = signal(false);
   protected readonly onPredict = signal(false);
+  protected readonly onDecide = signal(false);
   protected readonly onHelp = signal(false);
 
   protected readonly today = new Date().toLocaleDateString(undefined, {
@@ -50,6 +51,7 @@ export class App {
         this.onWatch.set(parent === '/watch');
         this.onInvestigate.set(parent === '/investigate');
         this.onPredict.set(parent === '/predict');
+        this.onDecide.set(parent === '/decide');
         this.onHelp.set(parent === '/help');
         const meta = PAGE_TITLES[parent] ?? PAGE_TITLES['/'];
         this.pageTitle.set(meta.title);
