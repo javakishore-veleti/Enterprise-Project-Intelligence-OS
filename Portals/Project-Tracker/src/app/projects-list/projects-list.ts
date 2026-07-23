@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -30,7 +29,7 @@ interface QueuedInvestigation {
  */
 @Component({
   selector: 'app-projects-list',
-  imports: [FormsModule, RouterLink, DecimalPipe, About],
+  imports: [FormsModule, RouterLink, About],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
 })

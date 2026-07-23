@@ -1242,6 +1242,13 @@ components:
           minimum: 1.0
           title: Parallelism
           default: 4
+        repos:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Repos
       additionalProperties: false
       type: object
       title: StartDatasetIngestionRequest

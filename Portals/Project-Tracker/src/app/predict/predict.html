@@ -274,7 +274,7 @@
             </div>
           </div>
 
-          @if (f.drivers?.length) {
+          @if (f.drivers.length) {
             <div class="block"><h3 class="block__h">What’s driving it</h3>
               <div class="drivers">
                 @for (d of f.drivers; track $index) {
@@ -374,7 +374,7 @@
             <div class="gauge gauge--{{ probClass(pct(s.confidence)) === 'high' ? 'low' : probClass(pct(s.confidence)) }}"><span class="gauge__num">{{ pct(s.confidence) }}<small>%</small></span><span class="gauge__lbl">confidence</span></div>
           </div>
 
-          @if (s.cascades?.length) {
+          @if (s.cascades.length) {
             <div class="block"><h3 class="block__h">Cascade impact <span class="block__sub">{{ s.cascades.length }} coupled project(s) affected</span></h3>
               <div class="cascades">
                 @for (c of s.cascades; track $index) {

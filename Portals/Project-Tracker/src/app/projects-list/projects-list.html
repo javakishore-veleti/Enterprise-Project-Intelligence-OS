@@ -158,7 +158,7 @@
         </div>
       </div>
 
-      @if (inv.causal_chain?.length) {
+      @if (inv.causal_chain.length) {
         <div class="chain">
           @for (link of inv.causal_chain; track $index; let last = $last) {
             <span class="chain__node">{{ link }}</span>
@@ -167,7 +167,7 @@
         </div>
       }
 
-      @if (inv.hypotheses?.length) {
+      @if (inv.hypotheses.length) {
         <div class="block">
           <h3 class="block__h">Hypotheses tested</h3>
           <div class="hyps">
@@ -176,7 +176,7 @@
         </div>
       }
 
-      @if (inv.steps?.length) {
+      @if (inv.steps.length) {
         <div class="block">
           <h3 class="block__h">How it reasoned <span class="block__sub">{{ inv.steps.length }} steps · each grounded in a tool call</span></h3>
           <ol class="trace">
@@ -195,7 +195,7 @@
         </div>
       }
 
-      @if (inv.evidence?.length) {
+      @if (inv.evidence.length) {
         <div class="block">
           <h3 class="block__h">Evidence cited <span class="block__sub">the agent only used data returned by these tool calls</span></h3>
           <div class="evd">

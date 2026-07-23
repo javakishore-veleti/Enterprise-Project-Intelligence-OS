@@ -159,6 +159,156 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/search:
+    get:
+      tags:
+      - projects
+      summary: Search Projects Scoped
+      description: 'Server-side, risk-ranked, paginated project search (scales to
+        thousands
+
+        of projects per user). Ordered by risk_score desc (nulls last), then key.'
+      operationId: searchProjectsScoped
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: User key to scope the search to their assigned projects. Absent
+            -> all projects.
+          title: Scope
+        description: User key to scope the search to their assigned projects. Absent
+          -> all projects.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive substring match on project_key OR name.
+          title: Q
+        description: Case-insensitive substring match on project_key OR name.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopedProjectSearchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/portfolio-summary:
+    get:
+      tags:
+      - projects
+      summary: Portfolio Summary
+      description: 'Server-side risk ranking of the portfolio; returns only the top
+        N.
+
+
+        When an ``X-User-Key`` header identifies a user with project assignments,
+        the
+
+        ranking + totals + bands are scoped to that user''s projects (the per-user
+
+        scoping seam); otherwise it covers the whole portfolio.
+
+
+        An optional ``as_of`` date yields a historical view: each project''s scored
+
+        row is drawn from its latest metrics snapshot on/before that date (both the
+
+        as-of filter and the per-user scoping apply together). A malformed date is
+
+        rejected with 422.'
+      operationId: getPortfolioSummary
+      parameters:
+      - name: top
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 15
+          title: Top
+      - name: as_of
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          description: 'Point-in-time view: ISO date YYYY-MM-DD. Totals/bands/scores
+            reflect each project''s latest metrics snapshot on/before this date. Omit
+            for the live (newest) view.'
+          title: As Of
+        description: 'Point-in-time view: ISO date YYYY-MM-DD. Totals/bands/scores
+          reflect each project''s latest metrics snapshot on/before this date. Omit
+          for the live (newest) view.'
+      - name: X-User-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-User-Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSummaryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/projects/{project_key}:
     get:
       tags:
@@ -227,6 +377,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_key}/forecast-subjects:
+    get:
+      tags:
+      - projects
+      summary: Get Forecast Subjects
+      description: Release / component / tag values available as forecast subjects
+        for a project.
+      operationId: getProjectForecastSubjects
+      parameters:
+      - name: project_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastSubjectsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/projects/{project_key}/metrics/history:
     get:
       tags:
@@ -270,8 +456,242 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/project-groups:
+    get:
+      tags:
+      - project-groups
+      summary: List Project Groups
+      operationId: listProjectGroups
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroupListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - project-groups
+      summary: Create Project Group
+      operationId: createProjectGroup
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectGroupRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroupResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/project-groups/{group_key}:
+    get:
+      tags:
+      - project-groups
+      summary: Get Project Group
+      operationId: getProjectGroup
+      parameters:
+      - name: group_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Group Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroupResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - project-groups
+      summary: Update Project Group
+      operationId: updateProjectGroup
+      parameters:
+      - name: group_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Group Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectGroupRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroupResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - project-groups
+      summary: Delete Project Group
+      operationId: deleteProjectGroup
+      parameters:
+      - name: group_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Group Key
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    CreateProjectGroupRequest:
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Name
+          description: Display name; the group_key slug is derived from this.
+        description:
+          type: string
+          title: Description
+          description: Optional free-text description.
+          default: ''
+        project_keys:
+          items:
+            type: string
+          type: array
+          title: Project Keys
+          description: Member project keys.
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      title: CreateProjectGroupRequest
+      description: Create a user-defined group of project keys.
+    ForecastSubjectFacet:
+      properties:
+        value:
+          type: string
+          title: Value
+        count:
+          type: integer
+          title: Count
+      additionalProperties: false
+      type: object
+      required:
+      - value
+      - count
+      title: ForecastSubjectFacet
+      description: One selectable forecast subject value with how many issues carry
+        it.
+    ForecastSubjectsResponse:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        releases:
+          items:
+            $ref: '#/components/schemas/ForecastSubjectFacet'
+          type: array
+          title: Releases
+          default: []
+        components:
+          items:
+            $ref: '#/components/schemas/ForecastSubjectFacet'
+          type: array
+          title: Components
+          default: []
+        tags:
+          items:
+            $ref: '#/components/schemas/ForecastSubjectFacet'
+          type: array
+          title: Tags
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      title: ForecastSubjectsResponse
+      description: "The available forecast subjects for a project \u2014 the release\
+        \ / component /\ntag values a forecast can be scoped to, each with its issue\
+        \ count (desc)."
     HTTPValidationError:
       properties:
         detail:
@@ -321,6 +741,223 @@ components:
       - offset
       title: PageMeta
       description: Standard pagination metadata returned with list responses.
+    PortfolioProjectSummary:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        name:
+          type: string
+          title: Name
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        risk_score:
+          type: number
+          title: Risk Score
+        risk_band:
+          type: string
+          title: Risk Band
+        issue_count:
+          type: integer
+          title: Issue Count
+          default: 0
+        open_issue_count:
+          type: integer
+          title: Open Issue Count
+          default: 0
+        blocker_count:
+          type: integer
+          title: Blocker Count
+          default: 0
+        reopen_rate:
+          type: number
+          title: Reopen Rate
+          default: 0.0
+        issue_aging_days:
+          type: number
+          title: Issue Aging Days
+          default: 0.0
+        critical_defect_ratio:
+          type: number
+          title: Critical Defect Ratio
+          default: 0.0
+        headline:
+          type: string
+          title: Headline
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - name
+      - risk_score
+      - risk_band
+      - headline
+      title: PortfolioProjectSummary
+      description: One ranked project in the portfolio summary's top-N list.
+    PortfolioRiskBands:
+      properties:
+        high:
+          type: integer
+          title: High
+        medium:
+          type: integer
+          title: Medium
+        low:
+          type: integer
+          title: Low
+        unscored:
+          type: integer
+          title: Unscored
+      additionalProperties: false
+      type: object
+      required:
+      - high
+      - medium
+      - low
+      - unscored
+      title: PortfolioRiskBands
+      description: How the portfolio's projects distribute across risk bands.
+    PortfolioScope:
+      properties:
+        user_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Key
+        project_count:
+          type: integer
+          title: Project Count
+          default: 0
+        scoped:
+          type: boolean
+          title: Scoped
+          default: false
+      additionalProperties: false
+      type: object
+      title: PortfolioScope
+      description: 'Who the portfolio summary was scoped to (per-user scoping seam).
+
+
+        ``scoped`` is True only when a known ``user_key`` with assignments narrowed
+
+        the ranking to that user''s projects; otherwise the summary covers ALL
+
+        projects and ``user_key`` reflects the (possibly absent) caller.'
+    PortfolioSummaryResponse:
+      properties:
+        scope:
+          $ref: '#/components/schemas/PortfolioScope'
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        portfolio_score:
+          type: number
+          title: Portfolio Score
+        overall_risk:
+          type: string
+          title: Overall Risk
+        totals:
+          $ref: '#/components/schemas/PortfolioTotals'
+        risk_bands:
+          $ref: '#/components/schemas/PortfolioRiskBands'
+        top_projects:
+          items:
+            $ref: '#/components/schemas/PortfolioProjectSummary'
+          type: array
+          title: Top Projects
+        computed_at:
+          type: string
+          title: Computed At
+      additionalProperties: false
+      type: object
+      required:
+      - scope
+      - portfolio_score
+      - overall_risk
+      - totals
+      - risk_bands
+      - top_projects
+      - computed_at
+      title: PortfolioSummaryResponse
+      description: "Server-side risk ranking of the portfolio; only the top-N are\
+        \ returned.\n\nOptionally scoped to a caller's assigned projects (``scope``).\
+        \ ``portfolio_score``\nis a severity-weighted 0..100 roll-up of the scoped\
+        \ projects.\n\n``as_of`` echoes the applied point-in-time date (ISO ``YYYY-MM-DD``)\
+        \ when the\ncaller asked for a historical view \u2014 totals/bands/scores\
+        \ then reflect each\nproject's latest metrics snapshot on/before that date;\
+        \ ``null`` means the\nnewest snapshot per project (live view)."
+    PortfolioTotals:
+      properties:
+        projects:
+          type: integer
+          title: Projects
+        issues:
+          type: integer
+          title: Issues
+        open_issues:
+          type: integer
+          title: Open Issues
+      additionalProperties: false
+      type: object
+      required:
+      - projects
+      - issues
+      - open_issues
+      title: PortfolioTotals
+      description: Portfolio-wide roll-up counts.
+    ProjectGroupListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectGroupResponse'
+          type: array
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      title: ProjectGroupListResponse
+      description: All project groups (newest first).
+    ProjectGroupResponse:
+      properties:
+        group_key:
+          type: string
+          title: Group Key
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+          default: ''
+        project_keys:
+          items:
+            type: string
+          type: array
+          title: Project Keys
+          default: []
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - group_key
+      - name
+      - created_at
+      - updated_at
+      title: ProjectGroupResponse
+      description: A user-defined named group of project keys.
     ProjectMetricsHistoryResponse:
       properties:
         project_key:
@@ -418,6 +1055,40 @@ components:
       - name
       title: ProjectResponse
       description: Public view of a project in the evidence store.
+    ProjectSearchItem:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        name:
+          type: string
+          title: Name
+        risk_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Risk Score
+        risk_band:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Risk Band
+        open_issue_count:
+          type: integer
+          title: Open Issue Count
+          default: 0
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - name
+      title: ProjectSearchItem
+      description: 'One project in the scale-hardened, risk-ranked search result.
+
+
+        ``risk_score``/``risk_band`` are null for projects that have no computed
+
+        metrics yet (ranked last).'
     ProjectSearchResponse:
       properties:
         items:
@@ -434,6 +1105,65 @@ components:
       - page
       title: ProjectSearchResponse
       description: Paginated project search result.
+    ScopedProjectSearchResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectSearchItem'
+          type: array
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - returned
+      - offset
+      - limit
+      - items
+      title: ScopedProjectSearchResponse
+      description: "Server-side, paginated, risk-ranked project search result.\n\n\
+        ``total`` is the full match count (for the pager); ``returned`` is how many\n\
+        items this page carries. Ordered by ``risk_score`` desc (nulls last), then\n\
+        ``project_key``. Optionally scoped to a user's assigned projects.\n\n(Distinct\
+        \ from ``ProjectSearchResponse`` \u2014 which backs the pre-existing bare\n\
+        ``GET /api/v1/projects`` list \u2014 because this endpoint carries risk fields\
+        \ and\na flat pager shape; kept separate so existing behavior is unchanged.)"
+    UpdateProjectGroupRequest:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        project_keys:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Project Keys
+      additionalProperties: false
+      type: object
+      title: UpdateProjectGroupRequest
+      description: Partial update of a project group. Only provided fields are changed.
     ValidationError:
       properties:
         loc:

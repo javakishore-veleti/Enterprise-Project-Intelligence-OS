@@ -31,6 +31,110 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /api/v1/analysis/activity:
+    get:
+      tags:
+      - analysis
+      summary: Get Dashboard Activity
+      operationId: getDashboardActivity
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 15
+          title: Limit
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardActivityResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/attention:
+    get:
+      tags:
+      - analysis
+      summary: Get Attention Feed
+      operationId: getAttentionFeed
+      parameters:
+      - name: top
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Top
+      - name: as_of
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: ISO date (YYYY-MM-DD). Include only findings on or before the
+            end of that day.
+          title: As Of
+        description: ISO date (YYYY-MM-DD). Include only findings on or before the
+          end of that day.
+      - name: projects
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to scope to. Absent -> all projects.
+          title: Projects
+        description: Comma-separated project_keys to scope to. Absent -> all projects.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttentionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/analysis/projects/{project_key}/runs:
     get:
       tags:
@@ -108,6 +212,737 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalysisRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/investigate:
+    post:
+      tags:
+      - analysis
+      summary: Investigate Project
+      operationId: investigateProject
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestigateRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestigationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/investigations:
+    get:
+      tags:
+      - analysis
+      summary: List Investigations
+      operationId: listInvestigations
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter to investigations requested_by this subject.
+          title: Scope
+        description: Filter to investigations requested_by this subject.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive search across project_key, question, and root_cause.
+          title: Q
+        description: Case-insensitive search across project_key, question, and root_cause.
+      - name: projects
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to filter investigations to. Absent
+            -> all.
+          title: Projects
+        description: Comma-separated project_keys to filter investigations to. Absent
+          -> all.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestigationsPageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/investigation-templates:
+    get:
+      tags:
+      - analysis
+      summary: List Investigation Templates
+      operationId: listInvestigationTemplates
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvestigationTemplateResponse'
+                title: Response Listinvestigationtemplates
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/investigations/{investigation_id}:
+    get:
+      tags:
+      - analysis
+      summary: Get Investigation
+      operationId: getInvestigation
+      parameters:
+      - name: investigation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Investigation Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestigationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/forecast:
+    post:
+      tags:
+      - analysis
+      summary: Run Forecast
+      operationId: runForecast
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForecastRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/forecasts:
+    get:
+      tags:
+      - analysis
+      summary: List Forecasts
+      operationId: listForecasts
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter to forecasts requested_by this subject.
+          title: Scope
+        description: Filter to forecasts requested_by this subject.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive search across project_key and narrative.
+          title: Q
+        description: Case-insensitive search across project_key and narrative.
+      - name: projects
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to filter forecasts to. Absent
+            -> all.
+          title: Projects
+        description: Comma-separated project_keys to filter forecasts to. Absent ->
+          all.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastsPageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/forecasts/{forecast_id}:
+    get:
+      tags:
+      - analysis
+      summary: Get Forecast
+      operationId: getForecast
+      parameters:
+      - name: forecast_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Forecast Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/scenarios:
+    post:
+      tags:
+      - analysis
+      summary: Run Scenario
+      operationId: runScenario
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - analysis
+      summary: List Scenarios
+      operationId: listScenarios
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter to scenarios requested_by this subject.
+          title: Scope
+        description: Filter to scenarios requested_by this subject.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive search across project_key, scenario, and narrative.
+          title: Q
+        description: Case-insensitive search across project_key, scenario, and narrative.
+      - name: projects
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to filter scenarios to. Absent
+            -> all.
+          title: Projects
+        description: Comma-separated project_keys to filter scenarios to. Absent ->
+          all.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenariosPageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/scenarios/{scenario_id}:
+    get:
+      tags:
+      - analysis
+      summary: Get Scenario
+      operationId: getScenario
+      parameters:
+      - name: scenario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Scenario Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/decide:
+    post:
+      tags:
+      - analysis
+      summary: Run Decision
+      operationId: runDecision
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/decisions:
+    get:
+      tags:
+      - analysis
+      summary: List Decisions
+      operationId: listDecisions
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter to decisions requested_by this subject.
+          title: Scope
+        description: Filter to decisions requested_by this subject.
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive search across project_key and narrative.
+          title: Q
+        description: Case-insensitive search across project_key and narrative.
+      - name: projects
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to filter decisions to. Absent
+            -> all.
+          title: Projects
+        description: Comma-separated project_keys to filter decisions to. Absent ->
+          all.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionsPageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/decisions/{decision_id}:
+    get:
+      tags:
+      - analysis
+      summary: Get Decision
+      operationId: getDecision
+      parameters:
+      - name: decision_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Decision Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/decisions/{decision_id}/select:
+    post:
+      tags:
+      - analysis
+      summary: Select Decision Option
+      operationId: selectDecisionOption
+      parameters:
+      - name: decision_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Decision Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectOptionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/decisions/{decision_id}/approve:
+    post:
+      tags:
+      - analysis
+      summary: Approve Decision
+      operationId: approveDecision
+      parameters:
+      - name: decision_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Decision Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/analysis/early-warnings:
+    get:
+      tags:
+      - analysis
+      summary: Get Early Warnings
+      operationId: getEarlyWarnings
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Comma-separated project_keys to scope to. Absent -> all projects.
+          title: Scope
+        description: Comma-separated project_keys to scope to. Absent -> all projects.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarlyWarningsResponse'
         '422':
           description: Validation Error
           content:
@@ -310,6 +1145,727 @@ components:
       - COMPLETED
       - FAILED
       title: AnalysisStatus
+    AttentionItem:
+      properties:
+        finding_id:
+          type: string
+          title: Finding Id
+        run_id:
+          type: string
+          title: Run Id
+        project_key:
+          type: string
+          title: Project Key
+        agent_key:
+          type: string
+          title: Agent Key
+        risk_category:
+          type: string
+          title: Risk Category
+        severity:
+          type: string
+          title: Severity
+        score:
+          type: number
+          title: Score
+        probability:
+          type: number
+          title: Probability
+        confidence:
+          type: number
+          title: Confidence
+        attention_score:
+          type: number
+          title: Attention Score
+        explanation:
+          type: string
+          title: Explanation
+        recommended_actions:
+          items:
+            type: string
+          type: array
+          title: Recommended Actions
+          default: []
+        analysis_timestamp:
+          type: string
+          format: date-time
+          title: Analysis Timestamp
+      additionalProperties: false
+      type: object
+      required:
+      - finding_id
+      - run_id
+      - project_key
+      - agent_key
+      - risk_category
+      - severity
+      - score
+      - probability
+      - confidence
+      - attention_score
+      - explanation
+      - analysis_timestamp
+      title: AttentionItem
+      description: 'A ranked attention item: a high-priority finding scored for a
+        manager''s feed.'
+    AttentionResponse:
+      properties:
+        as_of:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: As Of
+        scope_projects:
+          type: integer
+          title: Scope Projects
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        items:
+          items:
+            $ref: '#/components/schemas/AttentionItem'
+          type: array
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - as_of
+      - scope_projects
+      - total
+      - returned
+      - items
+      title: AttentionResponse
+      description: A ranked, scoped, time-aware feed of the highest-priority findings.
+    DashboardActivityResponse:
+      properties:
+        recent_runs:
+          items:
+            $ref: '#/components/schemas/AnalysisRunSummary'
+          type: array
+          title: Recent Runs
+        recent_findings:
+          items:
+            $ref: '#/components/schemas/DashboardFindingSummary'
+          type: array
+          title: Recent Findings
+        totals:
+          $ref: '#/components/schemas/DashboardTotals'
+      additionalProperties: false
+      type: object
+      required:
+      - recent_runs
+      - recent_findings
+      - totals
+      title: DashboardActivityResponse
+      description: Recent cross-project activity for the dashboard (runs + findings
+        + totals).
+    DashboardFindingSummary:
+      properties:
+        finding_id:
+          type: string
+          title: Finding Id
+        run_id:
+          type: string
+          title: Run Id
+        project_key:
+          type: string
+          title: Project Key
+        agent_key:
+          type: string
+          title: Agent Key
+        risk_category:
+          type: string
+          title: Risk Category
+        severity:
+          type: string
+          title: Severity
+        score:
+          type: number
+          title: Score
+        explanation:
+          type: string
+          title: Explanation
+      additionalProperties: false
+      type: object
+      required:
+      - finding_id
+      - run_id
+      - project_key
+      - agent_key
+      - risk_category
+      - severity
+      - score
+      - explanation
+      title: DashboardFindingSummary
+      description: Compact cross-project view of a recent risk finding (dashboard
+        activity).
+    DashboardTotals:
+      properties:
+        total_runs:
+          type: integer
+          title: Total Runs
+        total_findings:
+          type: integer
+          title: Total Findings
+        projects_analyzed:
+          type: integer
+          title: Projects Analyzed
+      additionalProperties: false
+      type: object
+      required:
+      - total_runs
+      - total_findings
+      - projects_analyzed
+      title: DashboardTotals
+      description: Cross-project counts for the dashboard header.
+    DecisionOption:
+      properties:
+        option_id:
+          type: string
+          title: Option Id
+        title:
+          type: string
+          title: Title
+        summary:
+          type: string
+          title: Summary
+          default: ''
+        actions:
+          items:
+            type: string
+          type: array
+          title: Actions
+          default: []
+        suggested_owners:
+          items:
+            type: string
+          type: array
+          title: Suggested Owners
+          default: []
+        predicted_outcome:
+          type: string
+          title: Predicted Outcome
+          default: ''
+        tradeoffs:
+          type: string
+          title: Tradeoffs
+          default: ''
+        recovery_estimate:
+          type: string
+          title: Recovery Estimate
+          default: ''
+        confidence:
+          type: number
+          title: Confidence
+          default: 0.5
+      additionalProperties: false
+      type: object
+      required:
+      - option_id
+      - title
+      title: DecisionOption
+      description: "One prescriptive decision option \u2014 Decide leads with these.\n\
+        \nThe chosen option's ``actions`` + ``suggested_owners`` ARE the plan (no\n\
+        separate plan-generation step)."
+    DecisionRequest:
+      properties:
+        project_key:
+          type: string
+          minLength: 1
+          title: Project Key
+        requested_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested By
+        context:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Context
+          description: Optional free-text steer, e.g. 'we must ship by Q3'.
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      title: DecisionRequest
+      description: "Ask the Decide engine for prescriptive decision support on one\
+        \ project.\n\nDecide leads with OPTIONS. Deterministic code assembles the\
+        \ evidence (the\ndelivery forecast, open blockers, top contributors); the\
+        \ LLM (mitigation-\nplanning persona) proposes 2-3 decision options \u2014\
+        \ each with prioritized\nactions + suggested owners \u2014 plus a comparison\
+        \ narrative."
+    DecisionResponse:
+      properties:
+        decision_id:
+          type: string
+          title: Decision Id
+        project_key:
+          type: string
+          title: Project Key
+        question:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+        options:
+          items:
+            $ref: '#/components/schemas/DecisionOption'
+          type: array
+          title: Options
+          default: []
+        selected_option_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Selected Option Id
+        status:
+          type: string
+          title: Status
+        narrative:
+          type: string
+          title: Narrative
+          default: ''
+        confidence:
+          type: number
+          title: Confidence
+        run_id:
+          type: string
+          title: Run Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        approved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Approved At
+      additionalProperties: false
+      type: object
+      required:
+      - decision_id
+      - project_key
+      - status
+      - confidence
+      - run_id
+      - created_at
+      title: DecisionResponse
+      description: 'A prescriptive decision: the generated options + the comparison
+        narrative,
+
+        plus which option was selected/approved. ``question`` always null (mirrors
+        the
+
+        forecast DTO shape).'
+    DecisionSummary:
+      properties:
+        decision_id:
+          type: string
+          title: Decision Id
+        project_key:
+          type: string
+          title: Project Key
+        status:
+          type: string
+          title: Status
+        option_count:
+          type: integer
+          title: Option Count
+        selected_option_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Selected Option Id
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - decision_id
+      - project_key
+      - status
+      - option_count
+      - created_at
+      title: DecisionSummary
+      description: Compact view of a past decision (for the history list).
+    DecisionsPageResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/DecisionSummary'
+          type: array
+          title: Items
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - returned
+      - offset
+      - limit
+      title: DecisionsPageResponse
+      description: A capped, newest-first page of decision history (max 100 rows).
+    EarlyWarning:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        metric:
+          type: string
+          title: Metric
+        from_value:
+          type: number
+          title: From Value
+        to_value:
+          type: number
+          title: To Value
+        window:
+          type: string
+          title: Window
+        direction:
+          type: string
+          title: Direction
+        severity:
+          type: string
+          title: Severity
+        cause:
+          type: string
+          title: Cause
+        confidence:
+          type: number
+          title: Confidence
+        detected_at:
+          type: string
+          format: date-time
+          title: Detected At
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - metric
+      - from_value
+      - to_value
+      - window
+      - direction
+      - severity
+      - cause
+      - confidence
+      - detected_at
+      title: EarlyWarning
+      description: A detected adverse inflection in a project's metric trajectory.
+    EarlyWarningsResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/EarlyWarning'
+          type: array
+          title: Items
+          default: []
+      additionalProperties: false
+      type: object
+      title: EarlyWarningsResponse
+      description: Ranked adverse inflections across the in-scope projects (most severe
+        first).
+    EvidenceCitation:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        detail:
+          type: string
+          title: Detail
+        count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Count
+      additionalProperties: false
+      type: object
+      required:
+      - kind
+      - detail
+      title: EvidenceCitation
+      description: A cited piece of evidence pulled from the evidence store during
+        the run.
+    ForecastDriver:
+      properties:
+        factor:
+          type: string
+          title: Factor
+        direction:
+          type: string
+          title: Direction
+        detail:
+          type: string
+          title: Detail
+      additionalProperties: false
+      type: object
+      required:
+      - factor
+      - direction
+      - detail
+      title: ForecastDriver
+      description: A factor moving the forecast, with the direction of its recent
+        movement.
+    ForecastRequest:
+      properties:
+        project_key:
+          type: string
+          minLength: 1
+          title: Project Key
+        subject_type:
+          type: string
+          enum:
+          - project
+          - release
+          - component
+          - tag
+          title: Subject Type
+          description: Forecast granularity. 'project' (default) = whole project.
+          default: project
+        subject_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Value
+          description: The release/component/tag value to scope to (required when
+            subject_type != 'project').
+        requested_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested By
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      title: ForecastRequest
+      description: 'Ask the Predict engine for a delivery forecast on one project.
+
+
+        Deterministic code computes the on-time probability + credible interval +
+
+        slip range + drivers from the project''s metric-history trajectory; the LLM
+
+        (delivery-forecasting persona) then narrates it (bull/bear/would-change-mind).
+
+
+        A forecast can be scoped to a sub-project subject: ``subject_type`` selects
+
+        the granularity (default ``"project"`` = current whole-project behavior),
+        and
+
+        ``subject_value`` names the release / component / tag to filter the evidence
+
+        issue set to. ``subject_value`` is required whenever ``subject_type`` is not
+
+        ``"project"``.'
+    ForecastResponse:
+      properties:
+        forecast_id:
+          type: string
+          title: Forecast Id
+        project_key:
+          type: string
+          title: Project Key
+        subject_type:
+          type: string
+          title: Subject Type
+          default: project
+        subject_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Value
+        question:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+        on_time_probability:
+          type: number
+          title: On Time Probability
+        probability_low:
+          type: number
+          title: Probability Low
+        probability_high:
+          type: number
+          title: Probability High
+        projected_slip_days_low:
+          type: integer
+          title: Projected Slip Days Low
+        projected_slip_days_high:
+          type: integer
+          title: Projected Slip Days High
+        outlook:
+          type: string
+          title: Outlook
+        drivers:
+          items:
+            $ref: '#/components/schemas/ForecastDriver'
+          type: array
+          title: Drivers
+          default: []
+        bull_case:
+          type: string
+          title: Bull Case
+          default: ''
+        bear_case:
+          type: string
+          title: Bear Case
+          default: ''
+        would_change_mind:
+          type: string
+          title: Would Change Mind
+          default: ''
+        narrative:
+          type: string
+          title: Narrative
+          default: ''
+        confidence:
+          type: number
+          title: Confidence
+        status:
+          type: string
+          title: Status
+          default: COMPLETED
+        run_id:
+          type: string
+          title: Run Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - forecast_id
+      - project_key
+      - on_time_probability
+      - probability_low
+      - probability_high
+      - projected_slip_days_low
+      - projected_slip_days_high
+      - outlook
+      - confidence
+      - run_id
+      - created_at
+      title: ForecastResponse
+      description: 'A delivery forecast: deterministic probability/interval/slip +
+        drivers,
+
+        plus the grounded LLM narrative (bull/bear/would-change-mind).'
+    ForecastSummary:
+      properties:
+        forecast_id:
+          type: string
+          title: Forecast Id
+        project_key:
+          type: string
+          title: Project Key
+        subject_type:
+          type: string
+          title: Subject Type
+          default: project
+        subject_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Value
+        on_time_probability:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: On Time Probability
+        outlook:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outlook
+        projected_slip_days_low:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Projected Slip Days Low
+        projected_slip_days_high:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Projected Slip Days High
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - forecast_id
+      - project_key
+      - status
+      - created_at
+      title: ForecastSummary
+      description: Compact view of a past forecast (for the history list).
+    ForecastsPageResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/ForecastSummary'
+          type: array
+          title: Items
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - returned
+      - offset
+      - limit
+      title: ForecastsPageResponse
+      description: A capped, newest-first page of forecast history (max 100 rows).
     HTTPValidationError:
       properties:
         detail:
@@ -339,6 +1895,237 @@ components:
       - status
       - service
       title: HealthResponse
+    InvestigateRequest:
+      properties:
+        project_key:
+          type: string
+          minLength: 1
+          title: Project Key
+        question:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+          description: Optional free-text steer, e.g. 'why is APACHE slipping?'.
+        template_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Key
+          description: Investigation template to bias the agent's focus. Unknown/absent
+            -> 'full'.
+        requested_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested By
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      title: InvestigateRequest
+      description: 'Point the autonomous Investigation Agent at a project.
+
+
+        The agent forms hypotheses, calls evidence-store tools to gather bounded
+
+        facts, reasons, and concludes with a root cause + causal chain.'
+    InvestigationResponse:
+      properties:
+        investigation_id:
+          type: string
+          title: Investigation Id
+        project_key:
+          type: string
+          title: Project Key
+        question:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+        template_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Key
+        status:
+          type: string
+          title: Status
+          default: COMPLETED
+        hypotheses:
+          items:
+            type: string
+          type: array
+          title: Hypotheses
+          default: []
+        steps:
+          items:
+            $ref: '#/components/schemas/InvestigationStep'
+          type: array
+          title: Steps
+          default: []
+        root_cause:
+          type: string
+          title: Root Cause
+        causal_chain:
+          items:
+            type: string
+          type: array
+          title: Causal Chain
+          default: []
+        confidence:
+          type: number
+          title: Confidence
+        evidence:
+          items:
+            $ref: '#/components/schemas/EvidenceCitation'
+          type: array
+          title: Evidence
+          default: []
+        recommended_action:
+          type: string
+          title: Recommended Action
+        run_id:
+          type: string
+          title: Run Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+      additionalProperties: false
+      type: object
+      required:
+      - investigation_id
+      - project_key
+      - root_cause
+      - confidence
+      - recommended_action
+      - run_id
+      - generated_at
+      title: InvestigationResponse
+      description: The autonomous Investigation Agent's conclusion + evidence + confidence.
+    InvestigationStep:
+      properties:
+        action:
+          type: string
+          title: Action
+        observation:
+          type: string
+          title: Observation
+        hypothesis:
+          type: string
+          title: Hypothesis
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      - observation
+      - hypothesis
+      title: InvestigationStep
+      description: One step in the investigator's visible reasoning trace.
+    InvestigationSummary:
+      properties:
+        investigation_id:
+          type: string
+          title: Investigation Id
+        project_key:
+          type: string
+          title: Project Key
+        question:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+        template_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Key
+        status:
+          type: string
+          title: Status
+        root_cause:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Root Cause
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - investigation_id
+      - project_key
+      - status
+      - created_at
+      title: InvestigationSummary
+      description: Compact view of a past investigation (for the history list).
+    InvestigationTemplateResponse:
+      properties:
+        template_key:
+          type: string
+          title: Template Key
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        steps:
+          items:
+            type: string
+          type: array
+          title: Steps
+          default: []
+        editable:
+          type: boolean
+          title: Editable
+          default: true
+      additionalProperties: false
+      type: object
+      required:
+      - template_key
+      - name
+      - description
+      title: InvestigationTemplateResponse
+      description: A pre-configured investigation template that biases the agent's
+        focus.
+    InvestigationsPageResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/InvestigationSummary'
+          type: array
+          title: Items
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - returned
+      - offset
+      - limit
+      title: InvestigationsPageResponse
+      description: A capped, newest-first page of investigation history (max 100 rows).
     ReportResponse:
       properties:
         report_id:
@@ -449,6 +2236,216 @@ components:
       - analysis_timestamp
       title: RiskFindingResponse
       description: A persisted risk finding surfaced to clients.
+    ScenarioCascade:
+      properties:
+        project_key:
+          type: string
+          title: Project Key
+        effect:
+          type: string
+          title: Effect
+        reason:
+          type: string
+          title: Reason
+        magnitude:
+          type: string
+          title: Magnitude
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - effect
+      - reason
+      - magnitude
+      title: ScenarioCascade
+      description: One project the scenario propagates to (via dependency links or
+        shared staff).
+    ScenarioRequest:
+      properties:
+        project_key:
+          type: string
+          minLength: 1
+          title: Project Key
+        scenario:
+          type: string
+          minLength: 1
+          title: Scenario
+          description: Free-text what-if to simulate.
+        requested_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested By
+      additionalProperties: false
+      type: object
+      required:
+      - project_key
+      - scenario
+      title: ScenarioRequest
+      description: 'Run a digital-twin what-if for one project.
+
+
+        ``scenario`` is a free-text what-if (e.g. "move 2 engineers to Payments").
+
+        Deterministic code re-forecasts under the scenario and propagates the impact
+
+        along dependency links + shared contributors; the LLM narrates the trade-off.'
+    ScenarioResponse:
+      properties:
+        scenario_id:
+          type: string
+          title: Scenario Id
+        project_key:
+          type: string
+          title: Project Key
+        scenario:
+          type: string
+          title: Scenario
+        base_on_time_probability:
+          type: number
+          title: Base On Time Probability
+        projected_on_time_probability:
+          type: number
+          title: Projected On Time Probability
+        probability_delta:
+          type: number
+          title: Probability Delta
+        base_slip_days:
+          type: integer
+          title: Base Slip Days
+        projected_slip_days:
+          type: integer
+          title: Projected Slip Days
+        portfolio_risk_delta:
+          type: number
+          title: Portfolio Risk Delta
+        cascades:
+          items:
+            $ref: '#/components/schemas/ScenarioCascade'
+          type: array
+          title: Cascades
+          default: []
+        narrative:
+          type: string
+          title: Narrative
+          default: ''
+        confidence:
+          type: number
+          title: Confidence
+        status:
+          type: string
+          title: Status
+          default: COMPLETED
+        run_id:
+          type: string
+          title: Run Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - scenario_id
+      - project_key
+      - scenario
+      - base_on_time_probability
+      - projected_on_time_probability
+      - probability_delta
+      - base_slip_days
+      - projected_slip_days
+      - portfolio_risk_delta
+      - confidence
+      - run_id
+      - created_at
+      title: ScenarioResponse
+      description: 'A digital-twin scenario result: re-forecast + portfolio cascade
+        + narrative.'
+    ScenarioSummary:
+      properties:
+        scenario_id:
+          type: string
+          title: Scenario Id
+        project_key:
+          type: string
+          title: Project Key
+        scenario:
+          type: string
+          title: Scenario
+        projected_on_time_probability:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Projected On Time Probability
+        probability_delta:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Probability Delta
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - scenario_id
+      - project_key
+      - scenario
+      - status
+      - created_at
+      title: ScenarioSummary
+      description: Compact view of a past scenario (for the history list).
+    ScenariosPageResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        returned:
+          type: integer
+          title: Returned
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/ScenarioSummary'
+          type: array
+          title: Items
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - total
+      - returned
+      - offset
+      - limit
+      title: ScenariosPageResponse
+      description: A capped, newest-first page of scenario history (max 100 rows).
+    SelectOptionRequest:
+      properties:
+        option_id:
+          type: string
+          minLength: 1
+          title: Option Id
+      additionalProperties: false
+      type: object
+      required:
+      - option_id
+      title: SelectOptionRequest
+      description: Choose one of a decision's generated options (its actions become
+        the plan).
     StartAnalysisRequest:
       properties:
         agents:
