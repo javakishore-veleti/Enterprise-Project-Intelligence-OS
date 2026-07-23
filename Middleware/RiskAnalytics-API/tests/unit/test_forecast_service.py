@@ -55,7 +55,7 @@ class FakeForecastDao(ForecastDao):
     def insert_forecast(self, record):
         self.inserted.append(record)
 
-    def list_forecasts(self, scope, q, limit, offset):  # pragma: no cover
+    def list_forecasts(self, scope, q, limit, offset, projects=None):  # pragma: no cover
         raise NotImplementedError
 
     def get_forecast(self, forecast_id):  # pragma: no cover

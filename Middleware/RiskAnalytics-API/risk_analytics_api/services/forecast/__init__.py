@@ -234,12 +234,13 @@ class DefaultForecastService(ForecastService):
         )
 
     def list_forecasts(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ForecastsPageResponse:
         if self._dao is None:
             return ForecastsPageResponse(
                 total=0, returned=0, offset=offset, limit=limit, items=[])
-        return self._dao.list_forecasts(scope, q, limit, offset)
+        return self._dao.list_forecasts(scope, q, limit, offset, projects)
 
     def get_forecast(self, forecast_id: str) -> ForecastResponse:
         found = self._dao.get_forecast(forecast_id) if self._dao else None

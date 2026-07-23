@@ -25,13 +25,17 @@ _SUMMARY_COLUMNS = [
 _SEARCH_COLUMNS = ["project_key", "narrative"]
 
 
-def _matches(row: dict, scope: str | None, term: str | None) -> bool:
+def _matches(
+    row: dict, scope: str | None, term: str | None, projects: list | None = None
+) -> bool:
     if scope is not None and row.get("requested_by") != scope:
         return False
     if term is not None:
         needle = term.strip("%").lower()
         if not any(needle in str(row.get(c) or "").lower() for c in _SEARCH_COLUMNS):
             return False
+    if projects is not None and row.get("project_key") not in set(projects):
+        return False
     return True
 
 
@@ -65,14 +69,18 @@ class _FakeCursor:
         idx = 0
         scope = None
         term = None
+        projects = None
         if "requested_by = %s" in low:
             scope = params[idx]
             idx += 1
         if "ilike" in low:
             term = params[idx]
             idx += len(_SEARCH_COLUMNS)  # N placeholders, same value
+        if "= any(%s)" in low:
+            projects = params[idx]
+            idx += 1
 
-        filtered = [r for r in db.rows if _matches(r, scope, term)]
+        filtered = [r for r in db.rows if _matches(r, scope, term, projects)]
 
         if "least(count(*)" in low:
             self._result = [(min(len(filtered), 100),)]

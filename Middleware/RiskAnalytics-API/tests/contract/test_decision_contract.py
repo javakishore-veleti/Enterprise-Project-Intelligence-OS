@@ -79,8 +79,8 @@ class _FakeList:
     def __init__(self):
         self.calls = []
 
-    def execute(self, scope, q, limit, offset):
-        self.calls.append((scope, q, limit, offset))
+    def execute(self, scope, q, limit, offset, projects=None):
+        self.calls.append((scope, q, limit, offset, projects))
         return DecisionsPageResponse(
             total=1, returned=1, offset=offset, limit=limit,
             items=[DecisionSummary(decision_id="dc-1", project_key="APACHE",
@@ -168,7 +168,13 @@ def test_list_decisions_passes_scope_and_query() -> None:
     facade = _FakeList()
     _client(list_facade=facade).get(
         "/api/v1/analysis/decisions?scope=alice&q=blocker&limit=5&offset=2")
-    assert facade.calls == [("alice", "blocker", 5, 2)]
+    assert facade.calls == [("alice", "blocker", 5, 2, None)]
+
+
+def test_list_decisions_passes_parsed_projects() -> None:
+    facade = _FakeList()
+    _client(list_facade=facade).get("/api/v1/analysis/decisions?projects=APACHE,BILLING")
+    assert facade.calls == [(None, None, 20, 0, ["APACHE", "BILLING"])]
 
 
 def test_list_decisions_limit_over_100_rejected() -> None:

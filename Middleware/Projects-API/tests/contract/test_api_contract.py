@@ -31,6 +31,9 @@ class _FakeProjectsDao(ProjectsDao):
         items = [p for p in SAMPLE if not query or query.lower() in p.project_key.lower()]
         return items[offset : offset + limit], len(items)
 
+    def search_scored(self, query, project_keys):
+        return []
+
     def get(self, project_key):
         return next((p for p in SAMPLE if p.project_key == project_key), None)
 

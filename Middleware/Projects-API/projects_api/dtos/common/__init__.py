@@ -35,3 +35,22 @@ class PortfolioAggregate(TypedModel):
     total_issues: int
     total_open_issues: int
     scored: list[PortfolioScoredRow]
+
+
+class ProjectSearchScoredRow(TypedModel):
+    """DAO->service carrier for the scoped project search: one matched project
+    joined with its latest metrics snapshot. ``has_metrics`` is False when the
+    project has no metrics doc yet — the service then ranks it unscored
+    (``risk_score``/``risk_band`` null, sorted last). The metric fields feed the
+    same composite ``risk_score`` the portfolio ranking uses (reused, not
+    recomputed differently)."""
+
+    project_key: str
+    name: str
+    open_issue_count: int = 0
+    issue_count: int = 0
+    has_metrics: bool = False
+    blocker_count: int = 0
+    reopen_rate: float = 0.0
+    issue_aging_days: float = 0.0
+    critical_defect_ratio: float = 0.0

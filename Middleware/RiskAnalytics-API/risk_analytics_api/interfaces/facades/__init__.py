@@ -67,7 +67,8 @@ class InvestigateProjectUseCase(ABC):
 class ListInvestigationsUseCase(ABC):
     @abstractmethod
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> InvestigationsPageResponse: ...
 
 
@@ -89,7 +90,8 @@ class RunForecastUseCase(ABC):
 class ListForecastsUseCase(ABC):
     @abstractmethod
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ForecastsPageResponse: ...
 
 
@@ -106,7 +108,8 @@ class RunScenarioUseCase(ABC):
 class ListScenariosUseCase(ABC):
     @abstractmethod
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ScenariosPageResponse: ...
 
 
@@ -133,7 +136,8 @@ class ApproveDecisionUseCase(ABC):
 class ListDecisionsUseCase(ABC):
     @abstractmethod
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> DecisionsPageResponse: ...
 
 

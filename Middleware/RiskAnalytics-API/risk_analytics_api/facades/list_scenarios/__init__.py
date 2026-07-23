@@ -11,6 +11,7 @@ class ListScenariosFacade(ListScenariosUseCase):
         self._service = service
 
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ScenariosPageResponse:
-        return self._service.list_scenarios(scope, q, limit, offset)
+        return self._service.list_scenarios(scope, q, limit, offset, projects)

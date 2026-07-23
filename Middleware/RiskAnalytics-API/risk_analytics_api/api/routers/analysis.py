@@ -84,6 +84,15 @@ from risk_analytics_api.facades.start_project_analysis import StartProjectAnalys
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
 
 
+def _parse_projects(projects: str | None) -> list[str] | None:
+    """Split a comma-separated ``projects`` query param into project keys.
+    Absent / blank -> None (no project filter; current behavior)."""
+    if not projects:
+        return None
+    parsed = [p.strip() for p in projects.split(",") if p.strip()]
+    return parsed or None
+
+
 @router.get("/activity", response_model=DashboardActivityResponse,
             operation_id="getDashboardActivity")
 def get_dashboard_activity(
@@ -173,11 +182,15 @@ def list_investigations(
         default=None,
         description="Case-insensitive search across project_key, question, and root_cause.",
     ),
+    projects: str | None = Query(
+        default=None,
+        description="Comma-separated project_keys to filter investigations to. Absent -> all.",
+    ),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListInvestigationsFacade = Depends(provide_list_investigations_facade),
 ) -> InvestigationsPageResponse:
-    return facade.execute(scope, q, limit, offset)
+    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
 
 
 @router.get(
@@ -232,11 +245,15 @@ def list_forecasts(
         default=None,
         description="Case-insensitive search across project_key and narrative.",
     ),
+    projects: str | None = Query(
+        default=None,
+        description="Comma-separated project_keys to filter forecasts to. Absent -> all.",
+    ),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListForecastsFacade = Depends(provide_list_forecasts_facade),
 ) -> ForecastsPageResponse:
-    return facade.execute(scope, q, limit, offset)
+    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
 
 
 @router.get(
@@ -279,11 +296,15 @@ def list_scenarios(
         default=None,
         description="Case-insensitive search across project_key, scenario, and narrative.",
     ),
+    projects: str | None = Query(
+        default=None,
+        description="Comma-separated project_keys to filter scenarios to. Absent -> all.",
+    ),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListScenariosFacade = Depends(provide_list_scenarios_facade),
 ) -> ScenariosPageResponse:
-    return facade.execute(scope, q, limit, offset)
+    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
 
 
 @router.get(
@@ -326,11 +347,15 @@ def list_decisions(
         default=None,
         description="Case-insensitive search across project_key and narrative.",
     ),
+    projects: str | None = Query(
+        default=None,
+        description="Comma-separated project_keys to filter decisions to. Absent -> all.",
+    ),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListDecisionsFacade = Depends(provide_list_decisions_facade),
 ) -> DecisionsPageResponse:
-    return facade.execute(scope, q, limit, offset)
+    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
 
 
 @router.get(

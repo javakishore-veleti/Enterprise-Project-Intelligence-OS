@@ -161,12 +161,13 @@ class DefaultInvestigationService(InvestigationService):
         )
 
     def list_investigations(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> InvestigationsPageResponse:
         if self._dao is None:
             return InvestigationsPageResponse(
                 total=0, returned=0, offset=offset, limit=limit, items=[])
-        return self._dao.list_investigations(scope, q, limit, offset)
+        return self._dao.list_investigations(scope, q, limit, offset, projects)
 
     def get_investigation(self, investigation_id: str) -> InvestigationResponse:
         found = self._dao.get_investigation(investigation_id) if self._dao else None

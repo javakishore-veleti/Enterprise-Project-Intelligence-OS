@@ -11,6 +11,7 @@ class ListForecastsFacade(ListForecastsUseCase):
         self._service = service
 
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ForecastsPageResponse:
-        return self._service.list_forecasts(scope, q, limit, offset)
+        return self._service.list_forecasts(scope, q, limit, offset, projects)

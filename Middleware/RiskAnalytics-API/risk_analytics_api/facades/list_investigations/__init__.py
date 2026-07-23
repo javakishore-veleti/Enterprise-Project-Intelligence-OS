@@ -11,6 +11,7 @@ class ListInvestigationsFacade(ListInvestigationsUseCase):
         self._service = service
 
     def execute(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> InvestigationsPageResponse:
-        return self._service.list_investigations(scope, q, limit, offset)
+        return self._service.list_investigations(scope, q, limit, offset, projects)

@@ -19,6 +19,7 @@ from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
 from projects_api.facades.portfolio_summary import PortfolioSummaryFacade
 from projects_api.facades.project_groups import ProjectGroupsFacade
 from projects_api.facades.search_projects import SearchProjectsFacade
+from projects_api.facades.search_projects_scoped import SearchProjectsScopedFacade
 from projects_api.services.forecast_subjects import DefaultForecastSubjectsService
 from projects_api.services.metrics_computation import DefaultMetricsComputationService
 from projects_api.services.portfolio_summary import DefaultPortfolioSummaryService
@@ -42,6 +43,12 @@ def _metrics_service() -> DefaultProjectMetricsService:
 
 def provide_search_projects_facade() -> SearchProjectsFacade:
     return SearchProjectsFacade(_query_service())
+
+
+def provide_search_projects_scoped_facade() -> SearchProjectsScopedFacade:
+    db = get_database()
+    service = DefaultProjectQueryService(MongoProjectsDao(db), get_settings())
+    return SearchProjectsScopedFacade(service, MongoProjectAssignmentsDao(db))
 
 
 def provide_get_project_facade() -> GetProjectFacade:

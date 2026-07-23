@@ -49,7 +49,7 @@ class FakeInvestigationDao(InvestigationDao):
     def insert_investigation(self, record: InvestigationRecord) -> None:
         self.inserted.append(record)
 
-    def list_investigations(self, scope, q, limit, offset):  # pragma: no cover - unused
+    def list_investigations(self, scope, q, limit, offset, projects=None):  # pragma: no cover - unused
         raise NotImplementedError
 
     def get_investigation(self, investigation_id):  # pragma: no cover - unused

@@ -134,3 +134,31 @@ def test_uuid_pk_cast_to_str_in_mappers() -> None:
     assert isinstance(got.decision_id, str) and got.decision_id == str(real)
     page = dao.list_decisions(scope=None, q=None, limit=20, offset=0)
     assert isinstance(page.items[0].decision_id, str)
+
+
+def _seed_multi_project(dao) -> None:
+    dao.insert_decision(_record("a", project_key="APACHE", minute=1))
+    dao.insert_decision(_record("b", project_key="BILLING", minute=2))
+    dao.insert_decision(_record("c", project_key="SPARK", minute=3))
+
+
+def test_projects_filter_restricts_to_set() -> None:
+    dao = PostgresDecisionDao(fake_decision_db())
+    _seed_multi_project(dao)
+    page = dao.list_decisions(None, None, 20, 0, projects=["APACHE", "SPARK"])
+    assert {it.decision_id for it in page.items} == {"a", "c"} and page.total == 2
+
+
+def test_projects_filter_combines_with_scope() -> None:
+    dao = PostgresDecisionDao(fake_decision_db())
+    dao.insert_decision(_record("a", project_key="APACHE", requested_by="alice", minute=1))
+    dao.insert_decision(_record("b", project_key="BILLING", requested_by="alice", minute=2))
+    dao.insert_decision(_record("c", project_key="APACHE", requested_by="bob", minute=3))
+    page = dao.list_decisions("alice", None, 20, 0, projects=["APACHE"])
+    assert [it.decision_id for it in page.items] == ["a"] and page.total == 1
+
+
+def test_projects_absent_returns_all() -> None:
+    dao = PostgresDecisionDao(fake_decision_db())
+    _seed_multi_project(dao)
+    assert dao.list_decisions(None, None, 20, 0, projects=None).total == 3

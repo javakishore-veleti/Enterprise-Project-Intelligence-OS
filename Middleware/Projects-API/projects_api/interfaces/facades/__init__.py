@@ -6,6 +6,7 @@ from datetime import date
 
 from projects_api.dtos.requests import (
     CreateProjectGroupRequest,
+    ScopedProjectSearchRequest,
     SearchProjectsRequest,
     UpdateProjectGroupRequest,
 )
@@ -17,12 +18,18 @@ from projects_api.dtos.responses import (
     ProjectMetricsResponse,
     ProjectResponse,
     ProjectSearchResponse,
+    ScopedProjectSearchResponse,
 )
 
 
 class SearchProjectsUseCase(ABC):
     @abstractmethod
     def execute(self, request: SearchProjectsRequest) -> ProjectSearchResponse: ...
+
+
+class SearchProjectsScopedUseCase(ABC):
+    @abstractmethod
+    def execute(self, request: ScopedProjectSearchRequest) -> ScopedProjectSearchResponse: ...
 
 
 class GetProjectUseCase(ABC):

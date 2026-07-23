@@ -24,6 +24,37 @@ class ProjectSearchResponse(TypedModel):
     page: PageMeta
 
 
+class ProjectSearchItem(TypedModel):
+    """One project in the scale-hardened, risk-ranked search result.
+
+    ``risk_score``/``risk_band`` are null for projects that have no computed
+    metrics yet (ranked last)."""
+
+    project_key: str
+    name: str
+    risk_score: float | None = None
+    risk_band: str | None = None
+    open_issue_count: int = 0
+
+
+class ScopedProjectSearchResponse(TypedModel):
+    """Server-side, paginated, risk-ranked project search result.
+
+    ``total`` is the full match count (for the pager); ``returned`` is how many
+    items this page carries. Ordered by ``risk_score`` desc (nulls last), then
+    ``project_key``. Optionally scoped to a user's assigned projects.
+
+    (Distinct from ``ProjectSearchResponse`` — which backs the pre-existing bare
+    ``GET /api/v1/projects`` list — because this endpoint carries risk fields and
+    a flat pager shape; kept separate so existing behavior is unchanged.)"""
+
+    total: int
+    returned: int
+    offset: int
+    limit: int
+    items: list[ProjectSearchItem]
+
+
 class ProjectMetricsResponse(TypedModel):
     """Latest computed delivery-health metrics for a project."""
 

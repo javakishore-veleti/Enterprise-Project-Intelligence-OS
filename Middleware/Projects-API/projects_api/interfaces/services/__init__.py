@@ -6,6 +6,7 @@ from datetime import date
 
 from projects_api.dtos.requests import (
     CreateProjectGroupRequest,
+    ScopedProjectSearchRequest,
     SearchProjectsRequest,
     UpdateProjectGroupRequest,
 )
@@ -17,12 +18,21 @@ from projects_api.dtos.responses import (
     ProjectMetricsResponse,
     ProjectResponse,
     ProjectSearchResponse,
+    ScopedProjectSearchResponse,
 )
 
 
 class ProjectQueryService(ABC):
     @abstractmethod
     def search(self, request: SearchProjectsRequest) -> ProjectSearchResponse: ...
+
+    @abstractmethod
+    def search_scoped(
+        self, request: ScopedProjectSearchRequest, project_keys: list[str] | None
+    ) -> ScopedProjectSearchResponse:
+        """Risk-ranked, paginated search. ``project_keys`` (resolved from the
+        request's scope by the facade) narrows the search in the DB; None -> all
+        projects."""
 
     @abstractmethod
     def get(self, project_key: str) -> ProjectResponse: ...

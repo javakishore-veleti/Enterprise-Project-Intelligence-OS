@@ -122,3 +122,31 @@ def test_history_capped_at_100() -> None:
     # Cannot page past the newest 100.
     beyond = dao.list_investigations(scope=None, q=None, limit=50, offset=100)
     assert beyond.returned == 0
+
+
+def _seed_multi_project(dao) -> None:
+    dao.insert_investigation(_record("a", project_key="APACHE", minute=1))
+    dao.insert_investigation(_record("b", project_key="BILLING", minute=2))
+    dao.insert_investigation(_record("c", project_key="SPARK", minute=3))
+
+
+def test_projects_filter_restricts_to_set() -> None:
+    dao = PostgresInvestigationDao(FakePostgresDatabase())
+    _seed_multi_project(dao)
+    page = dao.list_investigations(None, None, 20, 0, projects=["APACHE", "SPARK"])
+    assert {it.investigation_id for it in page.items} == {"a", "c"} and page.total == 2
+
+
+def test_projects_filter_combines_with_scope() -> None:
+    dao = PostgresInvestigationDao(FakePostgresDatabase())
+    dao.insert_investigation(_record("a", project_key="APACHE", requested_by="alice", minute=1))
+    dao.insert_investigation(_record("b", project_key="BILLING", requested_by="alice", minute=2))
+    dao.insert_investigation(_record("c", project_key="APACHE", requested_by="bob", minute=3))
+    page = dao.list_investigations("alice", None, 20, 0, projects=["APACHE"])
+    assert [it.investigation_id for it in page.items] == ["a"] and page.total == 1
+
+
+def test_projects_absent_returns_all() -> None:
+    dao = PostgresInvestigationDao(FakePostgresDatabase())
+    _seed_multi_project(dao)
+    assert dao.list_investigations(None, None, 20, 0, projects=None).total == 3

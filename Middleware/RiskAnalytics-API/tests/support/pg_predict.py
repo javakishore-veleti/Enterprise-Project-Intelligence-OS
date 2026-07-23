@@ -14,13 +14,18 @@ from contextlib import contextmanager
 from typing import Iterator
 
 
-def _matches(row: dict, scope: str | None, term: str | None, search_cols: list[str]) -> bool:
+def _matches(
+    row: dict, scope: str | None, term: str | None, search_cols: list[str],
+    projects: list | None = None,
+) -> bool:
     if scope is not None and row.get("requested_by") != scope:
         return False
     if term is not None:
         needle = term.strip("%").lower()
         if not any(needle in str(row.get(c) or "").lower() for c in search_cols):
             return False
+    if projects is not None and row.get("project_key") not in set(projects):
+        return False
     return True
 
 
@@ -43,14 +48,21 @@ class _FakeCursor:
         idx = 0
         scope = None
         term = None
+        projects = None
         if "requested_by = %s" in low:
             scope = params[idx]
             idx += 1
         if "ilike" in low:
             term = params[idx]
             idx += len(db.search_columns)  # N placeholders, same value
+        if "= any(%s)" in low:
+            projects = params[idx]
+            idx += 1
 
-        filtered = [r for r in db.rows if _matches(r, scope, term, db.search_columns)]
+        filtered = [
+            r for r in db.rows
+            if _matches(r, scope, term, db.search_columns, projects)
+        ]
 
         if "least(count(*)" in low:
             self._result = [(min(len(filtered), 100),)]

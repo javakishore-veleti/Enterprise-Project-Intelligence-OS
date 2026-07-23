@@ -64,9 +64,11 @@ class InvestigationService(ABC):
 
     @abstractmethod
     def list_investigations(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> InvestigationsPageResponse:
-        """Newest-first history page (capped at the newest 100)."""
+        """Newest-first history page (capped at the newest 100). ``projects``
+        optionally filters to ``project_key IN (...)``."""
 
     @abstractmethod
     def get_investigation(self, investigation_id: str) -> InvestigationResponse:
@@ -84,9 +86,11 @@ class ForecastService(ABC):
 
     @abstractmethod
     def list_forecasts(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ForecastsPageResponse:
-        """Newest-first history page (capped at the newest 100)."""
+        """Newest-first history page (capped at the newest 100). ``projects``
+        optionally filters to ``project_key IN (...)``."""
 
     @abstractmethod
     def get_forecast(self, forecast_id: str) -> ForecastResponse:
@@ -100,9 +104,11 @@ class ScenarioService(ABC):
 
     @abstractmethod
     def list_scenarios(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ScenariosPageResponse:
-        """Newest-first history page (capped at the newest 100)."""
+        """Newest-first history page (capped at the newest 100). ``projects``
+        optionally filters to ``project_key IN (...)``."""
 
     @abstractmethod
     def get_scenario(self, scenario_id: str) -> ScenarioResponse:
@@ -124,9 +130,11 @@ class DecisionService(ABC):
 
     @abstractmethod
     def list_decisions(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> DecisionsPageResponse:
-        """Newest-first history page (capped at the newest 100)."""
+        """Newest-first history page (capped at the newest 100). ``projects``
+        optionally filters to ``project_key IN (...)``."""
 
     @abstractmethod
     def get_decision(self, decision_id: str) -> DecisionResponse:

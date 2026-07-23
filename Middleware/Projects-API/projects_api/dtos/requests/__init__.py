@@ -14,6 +14,17 @@ class SearchProjectsRequest(TypedModel):
     offset: int = Field(default=0, ge=0)
 
 
+class ScopedProjectSearchRequest(TypedModel):
+    """Scale-hardened project search: optional per-user scope + substring query,
+    server-side paginated. ``scope`` is a user key; when it resolves to project
+    assignments the result is narrowed to those projects (else all projects)."""
+
+    scope: str | None = Field(default=None, description="User key to scope the search to (their assigned projects).")
+    query: str | None = Field(default=None, description="Case-insensitive substring match on project key or name.")
+    limit: int = Field(default=25, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
 class CreateProjectGroupRequest(TypedModel):
     """Create a user-defined group of project keys."""
 

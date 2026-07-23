@@ -30,8 +30,8 @@ class _FakeListFacade:
     def __init__(self):
         self.calls = []
 
-    def execute(self, scope, q, limit, offset):
-        self.calls.append((scope, q, limit, offset))
+    def execute(self, scope, q, limit, offset, projects=None):
+        self.calls.append((scope, q, limit, offset, projects))
         return InvestigationsPageResponse(
             total=1, returned=1, offset=offset, limit=limit,
             items=[InvestigationSummary(
@@ -88,7 +88,22 @@ def test_list_passes_scope_and_query() -> None:
     resp = _client(list_facade=facade).get(
         "/api/v1/analysis/investigations?scope=alice&q=reopen&limit=5&offset=2")
     assert resp.status_code == 200
-    assert facade.calls == [("alice", "reopen", 5, 2)]
+    assert facade.calls == [("alice", "reopen", 5, 2, None)]
+
+
+def test_list_passes_parsed_projects_filter() -> None:
+    facade = _FakeListFacade()
+    resp = _client(list_facade=facade).get(
+        "/api/v1/analysis/investigations?projects=APACHE,%20BILLING")
+    assert resp.status_code == 200
+    # comma-separated -> parsed, trimmed list threaded to the facade
+    assert facade.calls == [(None, None, 20, 0, ["APACHE", "BILLING"])]
+
+
+def test_list_absent_projects_is_none() -> None:
+    facade = _FakeListFacade()
+    _client(list_facade=facade).get("/api/v1/analysis/investigations")
+    assert facade.calls == [(None, None, 20, 0, None)]
 
 
 def test_get_investigation_returns_full_conclusion() -> None:

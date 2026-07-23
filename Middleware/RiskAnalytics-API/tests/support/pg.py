@@ -24,7 +24,9 @@ _SUMMARY_COLUMNS = [
 ]
 
 
-def _matches(row: dict, scope: str | None, term: str | None) -> bool:
+def _matches(
+    row: dict, scope: str | None, term: str | None, projects: list | None = None
+) -> bool:
     if scope is not None and row.get("requested_by") != scope:
         return False
     if term is not None:
@@ -33,6 +35,8 @@ def _matches(row: dict, scope: str | None, term: str | None) -> bool:
                      row.get("root_cause") or ""]
         if not any(needle in h.lower() for h in haystacks):
             return False
+    if projects is not None and row.get("project_key") not in set(projects):
+        return False
     return True
 
 
@@ -51,18 +55,22 @@ class _FakeCursor:
             self._result = []
             return
 
-        # Consume the WHERE params (scope, then 3x ILIKE) in the DAO's order.
+        # Consume the WHERE params (scope, 3x ILIKE, projects) in the DAO's order.
         idx = 0
         scope = None
         term = None
+        projects = None
         if "requested_by = %s" in low:
             scope = params[idx]
             idx += 1
         if "ilike" in low:
             term = params[idx]
             idx += 3  # three placeholders, same value
+        if "= any(%s)" in low:
+            projects = params[idx]
+            idx += 1
 
-        filtered = [r for r in self._db.rows if _matches(r, scope, term)]
+        filtered = [r for r in self._db.rows if _matches(r, scope, term, projects)]
 
         if "least(count(*)" in low:
             self._result = [(min(len(filtered), 100),)]

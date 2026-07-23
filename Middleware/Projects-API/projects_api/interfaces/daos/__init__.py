@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from projects_api.dtos.common import PortfolioAggregate
+from projects_api.dtos.common import PortfolioAggregate, ProjectSearchScoredRow
 from projects_api.dtos.responses import (
     ForecastSubjectsResponse,
     ProjectGroupResponse,
@@ -19,6 +19,16 @@ class ProjectsDao(ABC):
     @abstractmethod
     def search(self, query: str | None, limit: int, offset: int) -> tuple[list[ProjectResponse], int]:
         """Return (page of projects, total match count)."""
+
+    @abstractmethod
+    def search_scored(
+        self, query: str | None, project_keys: list[str] | None
+    ) -> list[ProjectSearchScoredRow]:
+        """Every project matching ``query`` (case-insensitive substring on
+        project_key OR name) joined with its latest metrics snapshot, optionally
+        narrowed to ``project_keys`` **in the database** (``$match $in``). Returns
+        the full matched set (unpaginated); the service ranks + paginates so the
+        risk ordering (computed in Python) is applied over the whole match."""
 
     @abstractmethod
     def get(self, project_key: str) -> ProjectResponse | None: ...

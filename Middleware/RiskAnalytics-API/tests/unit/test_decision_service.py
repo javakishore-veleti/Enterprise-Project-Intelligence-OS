@@ -81,7 +81,7 @@ class FakeDecisionDao(DecisionDao):
     def update_approval(self, decision_id, status, approved_at):  # pragma: no cover
         raise NotImplementedError
 
-    def list_decisions(self, scope, q, limit, offset):  # pragma: no cover
+    def list_decisions(self, scope, q, limit, offset, projects=None):  # pragma: no cover
         raise NotImplementedError
 
     def get_decision(self, decision_id):  # pragma: no cover

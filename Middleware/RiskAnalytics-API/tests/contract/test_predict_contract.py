@@ -72,8 +72,8 @@ class _FakeListForecasts:
     def __init__(self):
         self.calls = []
 
-    def execute(self, scope, q, limit, offset):
-        self.calls.append((scope, q, limit, offset))
+    def execute(self, scope, q, limit, offset, projects=None):
+        self.calls.append((scope, q, limit, offset, projects))
         return ForecastsPageResponse(
             total=1, returned=1, offset=offset, limit=limit,
             items=[ForecastSummary(forecast_id="fc-1", project_key="APACHE",
@@ -98,8 +98,8 @@ class _FakeListScenarios:
     def __init__(self):
         self.calls = []
 
-    def execute(self, scope, q, limit, offset):
-        self.calls.append((scope, q, limit, offset))
+    def execute(self, scope, q, limit, offset, projects=None):
+        self.calls.append((scope, q, limit, offset, projects))
         return ScenariosPageResponse(
             total=1, returned=1, offset=offset, limit=limit,
             items=[ScenarioSummary(scenario_id="sc-1", project_key="APACHE",
@@ -176,7 +176,19 @@ def test_list_forecasts_page_shape() -> None:
 def test_list_forecasts_passes_scope_and_query() -> None:
     facade = _FakeListForecasts()
     _client(list_fc=facade).get("/api/v1/analysis/forecasts?scope=alice&q=churn&limit=5&offset=2")
-    assert facade.calls == [("alice", "churn", 5, 2)]
+    assert facade.calls == [("alice", "churn", 5, 2, None)]
+
+
+def test_list_forecasts_passes_parsed_projects() -> None:
+    facade = _FakeListForecasts()
+    _client(list_fc=facade).get("/api/v1/analysis/forecasts?projects=APACHE,BILLING")
+    assert facade.calls == [(None, None, 20, 0, ["APACHE", "BILLING"])]
+
+
+def test_list_scenarios_passes_parsed_projects() -> None:
+    facade = _FakeListScenarios()
+    _client(list_sc=facade).get("/api/v1/analysis/scenarios?projects=APACHE")
+    assert facade.calls == [(None, None, 20, 0, ["APACHE"])]
 
 
 def test_list_forecasts_limit_over_100_rejected() -> None:

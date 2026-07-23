@@ -88,3 +88,34 @@ def test_history_capped_at_100() -> None:
         dao.insert_forecast(_record(f"f{i:03d}", minute=i))
     assert dao.list_forecasts(None, None, 100, 0).total == 100
     assert dao.list_forecasts(None, None, 50, 100).returned == 0
+
+
+def _seed_multi_project(dao) -> None:
+    dao.insert_forecast(_record("a", project_key="APACHE", minute=1))
+    dao.insert_forecast(_record("b", project_key="BILLING", minute=2))
+    dao.insert_forecast(_record("c", project_key="SPARK", minute=3))
+
+
+def test_projects_filter_restricts_to_set() -> None:
+    dao = PostgresForecastDao(fake_forecast_db())
+    _seed_multi_project(dao)
+    page = dao.list_forecasts(None, None, 20, 0, projects=["APACHE", "SPARK"])
+    assert {it.forecast_id for it in page.items} == {"a", "c"} and page.total == 2
+    assert "b" not in {it.forecast_id for it in page.items}
+
+
+def test_projects_filter_combines_with_scope_and_q() -> None:
+    dao = PostgresForecastDao(fake_forecast_db())
+    dao.insert_forecast(_record("a", project_key="APACHE", requested_by="alice", minute=1))
+    dao.insert_forecast(_record("b", project_key="BILLING", requested_by="alice", minute=2))
+    dao.insert_forecast(_record("c", project_key="APACHE", requested_by="bob", minute=3))
+    # scope=alice AND projects in {APACHE} -> only 'a'
+    page = dao.list_forecasts("alice", None, 20, 0, projects=["APACHE"])
+    assert [it.forecast_id for it in page.items] == ["a"] and page.total == 1
+
+
+def test_projects_absent_returns_all() -> None:
+    dao = PostgresForecastDao(fake_forecast_db())
+    _seed_multi_project(dao)
+    assert dao.list_forecasts(None, None, 20, 0).total == 3
+    assert dao.list_forecasts(None, None, 20, 0, projects=None).total == 3

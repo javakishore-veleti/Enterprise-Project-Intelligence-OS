@@ -237,12 +237,13 @@ class DefaultDecisionService(DecisionService):
         return found
 
     def list_decisions(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> DecisionsPageResponse:
         if self._dao is None:
             return DecisionsPageResponse(
                 total=0, returned=0, offset=offset, limit=limit, items=[])
-        return self._dao.list_decisions(scope, q, limit, offset)
+        return self._dao.list_decisions(scope, q, limit, offset, projects)
 
     def get_decision(self, decision_id: str) -> DecisionResponse:
         return self._require(decision_id)

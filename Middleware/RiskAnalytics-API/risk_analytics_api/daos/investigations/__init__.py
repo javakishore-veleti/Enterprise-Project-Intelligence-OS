@@ -41,8 +41,11 @@ def _jsonlist(v) -> list:
     return list(v or [])
 
 
-def _scope_clause(scope: str | None, q: str | None) -> tuple[str, list]:
-    """Build a parameterised WHERE clause for scope + case-insensitive search."""
+def _scope_clause(
+    scope: str | None, q: str | None, projects: list[str] | None = None
+) -> tuple[str, list]:
+    """Build a parameterised WHERE clause for scope + case-insensitive search +
+    an optional project_key IN (...) filter (server-side, parameterized)."""
     clauses: list[str] = []
     params: list = []
     if scope:
@@ -54,6 +57,9 @@ def _scope_clause(scope: str | None, q: str | None) -> tuple[str, list]:
         )
         like = f"%{q}%"
         params.extend([like, like, like])
+    if projects:
+        clauses.append("project_key = ANY(%s)")
+        params.append(list(projects))
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, params
 
@@ -81,9 +87,10 @@ class PostgresInvestigationDao(InvestigationDao):
             )
 
     def list_investigations(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> InvestigationsPageResponse:
-        where, params = _scope_clause(scope, q)
+        where, params = _scope_clause(scope, q, projects)
         # Clamp so the list + total never exceed the newest HISTORY_CAP rows.
         eff_offset = max(0, min(offset, HISTORY_CAP))
         eff_limit = max(0, min(limit, HISTORY_CAP))

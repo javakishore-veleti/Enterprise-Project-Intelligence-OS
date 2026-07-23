@@ -168,12 +168,13 @@ class DefaultScenarioService(ScenarioService):
         )
 
     def list_scenarios(
-        self, scope: str | None, q: str | None, limit: int, offset: int
+        self, scope: str | None, q: str | None, limit: int, offset: int,
+        projects: list[str] | None = None,
     ) -> ScenariosPageResponse:
         if self._dao is None:
             return ScenariosPageResponse(
                 total=0, returned=0, offset=offset, limit=limit, items=[])
-        return self._dao.list_scenarios(scope, q, limit, offset)
+        return self._dao.list_scenarios(scope, q, limit, offset, projects)
 
     def get_scenario(self, scenario_id: str) -> ScenarioResponse:
         found = self._dao.get_scenario(scenario_id) if self._dao else None

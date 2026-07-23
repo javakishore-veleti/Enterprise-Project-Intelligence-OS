@@ -12,8 +12,9 @@ from projects_api.api.dependencies import (
     provide_get_project_metrics_facade,
     provide_portfolio_summary_facade,
     provide_search_projects_facade,
+    provide_search_projects_scoped_facade,
 )
-from projects_api.dtos.requests import SearchProjectsRequest
+from projects_api.dtos.requests import ScopedProjectSearchRequest, SearchProjectsRequest
 from projects_api.dtos.responses import (
     ForecastSubjectsResponse,
     PortfolioSummaryResponse,
@@ -21,6 +22,7 @@ from projects_api.dtos.responses import (
     ProjectMetricsResponse,
     ProjectResponse,
     ProjectSearchResponse,
+    ScopedProjectSearchResponse,
 )
 from projects_api.facades.compute_metrics import ComputeMetricsFacade
 from projects_api.facades.forecast_subjects import ForecastSubjectsFacade
@@ -28,6 +30,7 @@ from projects_api.facades.get_project import GetProjectFacade
 from projects_api.facades.get_project_metrics import GetProjectMetricsFacade
 from projects_api.facades.portfolio_summary import PortfolioSummaryFacade
 from projects_api.facades.search_projects import SearchProjectsFacade
+from projects_api.facades.search_projects_scoped import SearchProjectsScopedFacade
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
@@ -60,6 +63,34 @@ def search_projects(
     facade: SearchProjectsFacade = Depends(provide_search_projects_facade),
 ) -> ProjectSearchResponse:
     return facade.execute(SearchProjectsRequest(query=query, limit=limit, offset=offset))
+
+
+# NOTE: must be declared BEFORE "/{project_key}" so the literal path is not
+# captured as a project key by the parameterized route.
+@router.get(
+    "/search",
+    response_model=ScopedProjectSearchResponse,
+    operation_id="searchProjectsScoped",
+)
+def search_projects_scoped(
+    scope: str | None = Query(
+        default=None,
+        description="User key to scope the search to their assigned projects. "
+        "Absent -> all projects.",
+    ),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive substring match on project_key OR name.",
+    ),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    facade: SearchProjectsScopedFacade = Depends(provide_search_projects_scoped_facade),
+) -> ScopedProjectSearchResponse:
+    """Server-side, risk-ranked, paginated project search (scales to thousands
+    of projects per user). Ordered by risk_score desc (nulls last), then key."""
+    return facade.execute(
+        ScopedProjectSearchRequest(scope=scope, query=q, limit=limit, offset=offset)
+    )
 
 
 # NOTE: must be declared BEFORE "/{project_key}" so the literal path is not

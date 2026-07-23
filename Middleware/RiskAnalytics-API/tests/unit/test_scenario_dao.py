@@ -89,3 +89,31 @@ def test_history_capped_at_100() -> None:
         dao.insert_scenario(_record(f"s{i:03d}", minute=i))
     assert dao.list_scenarios(None, None, 100, 0).total == 100
     assert dao.list_scenarios(None, None, 50, 100).returned == 0
+
+
+def _seed_multi_project(dao) -> None:
+    dao.insert_scenario(_record("a", project_key="APACHE", minute=1))
+    dao.insert_scenario(_record("b", project_key="BILLING", minute=2))
+    dao.insert_scenario(_record("c", project_key="SPARK", minute=3))
+
+
+def test_projects_filter_restricts_to_set() -> None:
+    dao = PostgresScenarioDao(fake_scenario_db())
+    _seed_multi_project(dao)
+    page = dao.list_scenarios(None, None, 20, 0, projects=["APACHE", "SPARK"])
+    assert {it.scenario_id for it in page.items} == {"a", "c"} and page.total == 2
+
+
+def test_projects_filter_combines_with_scope() -> None:
+    dao = PostgresScenarioDao(fake_scenario_db())
+    dao.insert_scenario(_record("a", project_key="APACHE", requested_by="alice", minute=1))
+    dao.insert_scenario(_record("b", project_key="BILLING", requested_by="alice", minute=2))
+    dao.insert_scenario(_record("c", project_key="APACHE", requested_by="bob", minute=3))
+    page = dao.list_scenarios("alice", None, 20, 0, projects=["APACHE"])
+    assert [it.scenario_id for it in page.items] == ["a"] and page.total == 1
+
+
+def test_projects_absent_returns_all() -> None:
+    dao = PostgresScenarioDao(fake_scenario_db())
+    _seed_multi_project(dao)
+    assert dao.list_scenarios(None, None, 20, 0, projects=None).total == 3
