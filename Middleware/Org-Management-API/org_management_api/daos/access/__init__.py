@@ -8,8 +8,10 @@ org `o`, per `r.visibility_scope`:
   - subtree    : a == o OR a is a descendant of o     (a.path under o.path)
   - ancestors  : a == o OR a is an ancestor of o      (o.path under a.path)
   - tenant     : a.root_org_id == o.root_org_id       (same tenant tree)
-  - shared     : a repository_grant to a exists        (or, direction='subtree',
-                 to an ancestor of a)
+  - shared     : relies on grants (no base cascade of its own)
+
+Plus, for ANY scope, an explicit repository_grant to `a` (or, direction='subtree',
+to an ancestor of a) is ADDITIVE — it makes the repo visible regardless of scope.
 
 `visible_projects_for_subject` runs it for every org the user is a member of;
 `effective_projects_for_org` runs it for a single org. Both return the DISTINCT
@@ -23,18 +25,22 @@ from org_management_api.interfaces.daos import AccessDao
 
 # Relates context org `a` to owner org `o` for repository `r`. No bind params:
 # every value here is a column reference, so this is safe to embed directly.
+# Base scope predicates OR an ADDITIVE grant: an explicit repository_grant makes
+# the repo visible to `a` regardless of the base visibility_scope (so a repo can
+# be, e.g., 'subtree' to its own branch AND separately granted to a sibling).
+# The 'shared' scope simply relies on grants (no base cascade of its own).
 _VISIBILITY_PREDICATE = """(
       (r.visibility_scope = 'org'       AND a.org_id = o.org_id)
    OR (r.visibility_scope = 'subtree'   AND (a.org_id = o.org_id OR a.path LIKE o.path || '.%'))
    OR (r.visibility_scope = 'ancestors' AND (a.org_id = o.org_id OR o.path LIKE a.path || '.%'))
    OR (r.visibility_scope = 'tenant'    AND a.root_org_id = o.root_org_id)
-   OR (r.visibility_scope = 'shared'    AND EXISTS (
+   OR EXISTS (
           SELECT 1 FROM org.repository_grants g
           LEFT JOIN org.organizations go ON go.org_id = g.grantee_org_id
           WHERE g.repo_id = r.repo_id
             AND ( g.grantee_org_id = a.org_id
                   OR (g.direction = 'subtree' AND a.path LIKE go.path || '.%') )
-       ))
+       )
 )"""
 
 _SELECT = "SELECT DISTINCT tp.external_key, tp.name, r.repo_id, r.org_id, r.provider"
