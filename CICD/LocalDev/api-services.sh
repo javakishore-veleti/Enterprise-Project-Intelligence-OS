@@ -19,6 +19,7 @@ SERVICES=(
   "Middleware/Admin-API:admin_api.api.main:app:8002"
   "Middleware/Projects-API:projects_api.api.main:app:8003"
   "Middleware/RiskAnalytics-API:risk_analytics_api.api.main:app:8004"
+  "Middleware/Org-Management-API:org_management_api.api.main:app:8005"
 )
 
 start_one() {
