@@ -63,8 +63,8 @@ ON CONFLICT (repo_id) DO NOTHING;
 
 -- Tracker projects using REAL evidence project keys ---------------------------
 INSERT INTO org.tracker_projects (tracker_project_id, repo_id, external_key, name) VALUES
-    ('cccccccc-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'SAKAI',  'Sakai'),
-    ('cccccccc-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001', 'SPR',    'Spring Framework')
+    ('cccccccc-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'Sakai',  'Sakai'),
+    ('cccccccc-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001', 'Spring', 'Spring Framework')
 ON CONFLICT (repo_id, external_key) DO NOTHING;
 
 -- Cross-branch share: grant the EMEA repo to the sibling branch APAC ----------
