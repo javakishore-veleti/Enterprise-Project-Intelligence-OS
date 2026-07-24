@@ -15,8 +15,9 @@ export interface OrgNode {
   root_org_id: string;
 }
 
-interface OrgSubtreeResponse {
-  items: OrgNode[];
+interface OrgListResponse {
+  organizations?: OrgNode[];
+  items?: OrgNode[];
 }
 
 /**
@@ -30,18 +31,18 @@ export class OrgService {
 
   constructor(private readonly http: HttpClient) {}
 
-  /** Root organizations. Tolerates either `{items:[...]}` or a bare array. */
+  /** Root organizations. Tolerates `{organizations:[...]}`, `{items:[...]}`, or a bare array. */
   roots(): Observable<OrgNode[]> {
     return this.http
-      .get<OrgSubtreeResponse | OrgNode[]>(this.baseUrl)
-      .pipe(map((r) => (Array.isArray(r) ? r : (r.items ?? []))));
+      .get<OrgListResponse | OrgNode[]>(this.baseUrl)
+      .pipe(map((r) => (Array.isArray(r) ? r : (r.organizations ?? r.items ?? []))));
   }
 
   /** Full subtree rooted at {orgId}, flattened (each item carries its level/path). */
   subtree(orgId: string): Observable<OrgNode[]> {
     return this.http
-      .get<OrgSubtreeResponse>(`${this.baseUrl}/${encodeURIComponent(orgId)}/subtree`)
-      .pipe(map((r) => r.items ?? []));
+      .get<OrgListResponse>(`${this.baseUrl}/${encodeURIComponent(orgId)}/subtree`)
+      .pipe(map((r) => r.organizations ?? r.items ?? []));
   }
 
   /**
