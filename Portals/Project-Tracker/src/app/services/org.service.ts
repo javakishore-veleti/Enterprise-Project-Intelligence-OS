@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 
@@ -20,6 +20,30 @@ interface OrgListResponse {
   items?: OrgNode[];
 }
 
+/** Parameters for the scalable server-side org search. */
+export interface OrgSearchParams {
+  /** Free-text query (matched against name/path server-side). */
+  q?: string;
+  /** Restrict the search to a single root's subtree. */
+  root?: string;
+  /** Max results to return (server default 25; the picker asks for 20). */
+  limit?: number;
+  /** Result offset for paging. */
+  offset?: number;
+}
+
+/** Bounded search result page from `GET /api/v1/orgs/search`. */
+export interface ScopedOrgSearch {
+  organizations: OrgNode[];
+  total: number;
+}
+
+interface OrgSearchResponse {
+  organizations?: OrgNode[];
+  items?: OrgNode[];
+  total?: number;
+}
+
 /**
  * Client for the Org-Management-API (:8005). Read-only tree navigation used to
  * populate the org switcher; never scoped by X-Org-Key itself (the interceptor
@@ -30,6 +54,33 @@ export class OrgService {
   private readonly baseUrl = `${environment.orgApiBaseUrl}/api/v1/orgs`;
 
   constructor(private readonly http: HttpClient) {}
+
+  /**
+   * Scalable, server-side org search — never loads the whole tree. Returns a
+   * bounded page (`limit` results) so the switcher's DOM/network stay flat
+   * regardless of how many organizations exist. Tolerates
+   * `{organizations:[...]}`, `{items:[...]}`, or a bare array in the body.
+   */
+  searchOrgs(params: OrgSearchParams = {}): Observable<ScopedOrgSearch> {
+    let httpParams = new HttpParams();
+    if (params.q) {
+      httpParams = httpParams.set('q', params.q);
+    }
+    if (params.root) {
+      httpParams = httpParams.set('root', params.root);
+    }
+    httpParams = httpParams.set('limit', String(params.limit ?? 20));
+    httpParams = httpParams.set('offset', String(params.offset ?? 0));
+    return this.http
+      .get<OrgSearchResponse | OrgNode[]>(`${this.baseUrl}/search`, { params: httpParams })
+      .pipe(
+        map((r) => {
+          const organizations = Array.isArray(r) ? r : (r.organizations ?? r.items ?? []);
+          const total = Array.isArray(r) ? r.length : (r.total ?? organizations.length);
+          return { organizations, total };
+        }),
+      );
+  }
 
   /** Root organizations. Tolerates `{organizations:[...]}`, `{items:[...]}`, or a bare array. */
   roots(): Observable<OrgNode[]> {
