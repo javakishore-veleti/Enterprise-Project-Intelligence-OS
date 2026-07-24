@@ -1,4 +1,13 @@
-<div class="panel">
+<section class="page-wrap">
+  <app-org-picker />
+
+  @if (!ctx.selected()) {
+    <div class="panel"><div class="panel__body empty-hint">
+      <div class="empty-hint__icon">◈</div>
+      <p>Pick an organization above to manage its repositories and visibility.</p>
+    </div></div>
+  } @else {
+  <div class="panel">
   <div class="panel__head">
     <h2 class="panel__title">Repositories &amp; Visibility</h2>
     <span class="panel__count">{{ repositories().length }} repo(s)</span>
@@ -123,4 +132,6 @@
       </div>
     }
   }
-</div>
+  </div>
+  }
+</section>

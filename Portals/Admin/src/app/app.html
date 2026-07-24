@@ -20,12 +20,30 @@
         <span>Agents</span>
       </a>
 
-      <!-- Organizations: the org-tree entry point; per-org sub-pages are reached
-           via the breadcrumb tabs on each org's detail shell. -->
-      <a routerLink="/organizations" routerLinkActive="is-active">
+      <!-- Organizations: expandable parent with an indented, route-based sub-nav.
+           The sub-items are standalone full-width pages sharing one selected-org
+           context; they show once an org area is active. -->
+      <button
+        type="button"
+        class="sidebar__parent"
+        [class.is-active]="orgNavExpanded()"
+        (click)="toggleOrgNav()"
+        [attr.aria-expanded]="orgNavExpanded()"
+      >
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01"/><path d="M15 11h.01"/></svg>
         <span>Organizations</span>
-      </a>
+        <svg class="sidebar__caret" [class.is-open]="orgNavExpanded()" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      @if (orgNavExpanded()) {
+        <div class="sidebar__subnav">
+          <a routerLink="/organizations" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Choose Org</a>
+          <a routerLink="/organizations/profile" routerLinkActive="is-active">Profile</a>
+          <a routerLink="/organizations/sub-orgs" routerLinkActive="is-active">Sub Organizations</a>
+          <a routerLink="/organizations/members" routerLinkActive="is-active">Members &amp; Roles</a>
+          <a routerLink="/organizations/repositories" routerLinkActive="is-active">Repositories &amp; Visibility</a>
+          <a routerLink="/organizations/access" routerLinkActive="is-active">Effective Access</a>
+        </div>
+      }
 
       <a routerLink="/health" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -57,7 +75,7 @@
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <span class="breadcrumb__root">Admin Console</span>
         <svg class="breadcrumb__sep" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        <span class="breadcrumb__page">{{ pageTitle() }}</span>
+        <span class="breadcrumb__page">{{ pageCrumb() }}</span>
       </nav>
       <div class="topbar__actions">
         <span class="topbar__date">{{ today }}</span>

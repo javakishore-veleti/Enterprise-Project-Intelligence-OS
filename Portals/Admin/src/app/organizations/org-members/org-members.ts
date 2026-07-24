@@ -1,43 +1,43 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
 import { AddMemberRequest, Member, ROLE_OPTIONS } from '../../models/org';
 import { OrgAdminService } from '../../services/org-admin.service';
+import { OrgContextService } from '../../services/org-context.service';
 import { NotificationService } from '../../ui/notification.service';
+import { OrgPicker } from '../org-picker/org-picker';
 
 const PAGE_SIZE = 25;
 
 /**
- * Members & Roles page (route: /organizations/:orgId/members). Server-paged +
- * searchable + role-filterable — never loads all members. Each row shows the
- * member's DIRECT roles and the roles INHERITED from ancestor orgs (badged with
- * their source), so the inheritance chain is visible.
+ * Members & Roles page (route: /organizations/members). Standalone, full-width,
+ * operating on the shared selected-org context. Server-paged + searchable +
+ * role-filterable — never loads all members. Each row shows DIRECT roles and
+ * roles INHERITED from ancestor orgs (badged with their source).
  */
 @Component({
   selector: 'app-org-members',
-  imports: [FormsModule],
+  imports: [FormsModule, OrgPicker],
   templateUrl: './org-members.html',
   styleUrls: ['../org.css'],
 })
-export class OrgMembers implements OnInit {
-  private readonly route = inject(ActivatedRoute);
+export class OrgMembers {
   private readonly orgAdmin = inject(OrgAdminService);
+  protected readonly ctx = inject(OrgContextService);
   private readonly notifications = inject(NotificationService);
 
   protected readonly roleOptions = ROLE_OPTIONS;
 
-  protected readonly orgId = signal<string>('');
   protected readonly members = signal<Member[]>([]);
   protected readonly total = signal(0);
   protected readonly offset = signal(0);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
-
   protected readonly limit = PAGE_SIZE;
+  private lastId: string | null = null;
 
   // Filters
   protected query = '';
@@ -56,27 +56,37 @@ export class OrgMembers implements OnInit {
   protected memberInherits = true;
   protected addingMember = signal(false);
 
-  ngOnInit(): void {
+  constructor() {
     this.search$.pipe(debounceTime(300)).subscribe(() => {
       this.offset.set(0);
       this.load();
     });
-    this.route.paramMap.subscribe((pm) => {
-      this.orgId.set(pm.get('orgId') ?? '');
-      this.offset.set(0);
-      this.load();
+    effect(() => {
+      const sel = this.ctx.selected();
+      untracked(() => {
+        const id = sel?.org_id ?? null;
+        if (id !== this.lastId) {
+          this.lastId = id;
+          this.query = '';
+          this.roleFilter = '';
+          this.offset.set(0);
+          this.load();
+        }
+      });
     });
   }
 
   private load(): void {
-    const id = this.orgId();
-    if (!id) {
+    const org = this.ctx.selected();
+    if (!org) {
+      this.members.set([]);
+      this.total.set(0);
       return;
     }
     this.loading.set(true);
     this.error.set(null);
     this.orgAdmin
-      .listMembers(id, {
+      .listMembers(org.org_id, {
         q: this.query.trim() || undefined,
         role: this.roleFilter || undefined,
         limit: this.limit,
@@ -121,9 +131,9 @@ export class OrgMembers implements OnInit {
   }
 
   addMember(): void {
-    const id = this.orgId();
+    const org = this.ctx.selected();
     const subject = this.memberSubject.trim();
-    if (!id || !subject) {
+    if (!org || !subject) {
       return;
     }
     this.addingMember.set(true);
@@ -132,13 +142,13 @@ export class OrgMembers implements OnInit {
       roles: [...this.memberRoles],
       inherits_down: this.memberInherits,
     };
-    this.orgAdmin.addMember(id, body).subscribe({
+    this.orgAdmin.addMember(org.org_id, body).subscribe({
       next: (member) => {
         this.addingMember.set(false);
         this.memberSubject = '';
         this.memberRoles = [];
         this.memberInherits = true;
-        this.notifications.success('Member added', `${member.subject} added to this organization.`);
+        this.notifications.success('Member added', `${member.subject} added to ${org.name}.`);
         this.offset.set(0);
         this.load();
       },

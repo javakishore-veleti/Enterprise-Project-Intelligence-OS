@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
 
 import {
   AddGrantRequest,
@@ -20,23 +19,27 @@ import {
   VisibilityScope,
 } from '../../models/org';
 import { OrgAdminService } from '../../services/org-admin.service';
+import { OrgContextService } from '../../services/org-context.service';
 import { NotificationService } from '../../ui/notification.service';
+import { OrgPicker } from '../org-picker/org-picker';
 
 /**
- * Repositories & Visibility page (route: /organizations/:orgId/repositories).
- * Lists / adds repos for this org, sets visibility scope, adds tracker projects
- * and cross-org grants. Loads only this org's repositories.
+ * Repositories & Visibility page (route: /organizations/repositories).
+ * Standalone, full-width, operating on the shared selected-org context. Lists /
+ * adds repos for the org, sets visibility scope, adds tracker projects and
+ * cross-org grants. Loads only the selected org's repositories.
  */
 @Component({
   selector: 'app-org-repositories',
-  imports: [FormsModule],
+  imports: [FormsModule, OrgPicker],
   templateUrl: './org-repositories.html',
   styleUrls: ['../org.css'],
 })
-export class OrgRepositories implements OnInit {
-  private readonly route = inject(ActivatedRoute);
+export class OrgRepositories {
   private readonly orgAdmin = inject(OrgAdminService);
+  protected readonly ctx = inject(OrgContextService);
   private readonly notifications = inject(NotificationService);
+  private lastId: string | null = null;
 
   protected readonly providers = PROVIDERS;
   protected readonly providerLabels = PROVIDER_LABELS;
@@ -44,7 +47,6 @@ export class OrgRepositories implements OnInit {
   protected readonly visibilityHints = VISIBILITY_HINTS;
   protected readonly grantDirections = GRANT_DIRECTIONS;
 
-  protected readonly orgId = signal<string>('');
   protected readonly repositories = signal<Repository[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -77,22 +79,29 @@ export class OrgRepositories implements OnInit {
   protected grantDirection: GrantDirection = 'org';
   protected addingGrant = signal(false);
 
-  ngOnInit(): void {
-    this.route.paramMap.subscribe((pm) => {
-      this.orgId.set(pm.get('orgId') ?? '');
-      this.selectedRepoId.set(null);
-      this.load();
+  constructor() {
+    effect(() => {
+      const sel = this.ctx.selected();
+      untracked(() => {
+        const id = sel?.org_id ?? null;
+        if (id !== this.lastId) {
+          this.lastId = id;
+          this.selectedRepoId.set(null);
+          this.load();
+        }
+      });
     });
   }
 
   private load(): void {
-    const id = this.orgId();
-    if (!id) {
+    const org = this.ctx.selected();
+    if (!org) {
+      this.repositories.set([]);
       return;
     }
     this.loading.set(true);
     this.error.set(null);
-    this.orgAdmin.listRepositories(id).subscribe({
+    this.orgAdmin.listRepositories(org.org_id).subscribe({
       next: (resp) => {
         this.repositories.set(resp.repositories);
         this.loading.set(false);
@@ -119,8 +128,8 @@ export class OrgRepositories implements OnInit {
   }
 
   addRepository(): void {
-    const id = this.orgId();
-    if (!id) {
+    const org = this.ctx.selected();
+    if (!org) {
       return;
     }
     this.addingRepo.set(true);
@@ -129,7 +138,7 @@ export class OrgRepositories implements OnInit {
       external_account: this.repoExternalAccount.trim() || null,
       visibility_scope: this.repoVisibility,
     };
-    this.orgAdmin.createRepository(id, body).subscribe({
+    this.orgAdmin.createRepository(org.org_id, body).subscribe({
       next: (repo) => {
         this.addingRepo.set(false);
         this.repoExternalAccount = '';

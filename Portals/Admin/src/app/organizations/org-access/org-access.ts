@@ -4,20 +4,26 @@ import { FormsModule } from '@angular/forms';
 
 import { VisibleProject } from '../../models/org';
 import { OrgAdminService } from '../../services/org-admin.service';
+import { OrgContextService } from '../../services/org-context.service';
+import { OrgPicker } from '../org-picker/org-picker';
 
 /**
- * Effective Access page (route: /organizations/:orgId/access). Resolves the
- * exact set of tracker projects visible to a user subject — the net result of
- * memberships, repository visibility scopes and grants across every org.
+ * Effective Access page (route: /organizations/access). Standalone, full-width.
+ * Resolves the exact set of tracker projects visible to a user subject — the net
+ * result of memberships, repository visibility scopes and grants across every
+ * org. Shows the org picker for consistency with the other org sub-pages, and
+ * pre-fills the subject search from the selected org's members is left to the
+ * operator (subject-scoped resolution is tenant-wide by design).
  */
 @Component({
   selector: 'app-org-access',
-  imports: [FormsModule],
+  imports: [FormsModule, OrgPicker],
   templateUrl: './org-access.html',
   styleUrls: ['../org.css'],
 })
 export class OrgAccess {
   private readonly orgAdmin = inject(OrgAdminService);
+  protected readonly ctx = inject(OrgContextService);
 
   protected accessSubject = '';
   protected readonly accessProjects = signal<VisibleProject[] | null>(null);

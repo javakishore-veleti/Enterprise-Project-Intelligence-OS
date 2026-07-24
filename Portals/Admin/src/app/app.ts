@@ -8,7 +8,12 @@ import { NotificationService } from './ui/notification.service';
 const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
   '/dashboard': { title: 'Dashboard', crumb: 'Dashboard' },
   '/agents': { title: 'Agents', crumb: 'Agents' },
-  '/organizations': { title: 'Organizations', crumb: 'Organizations' },
+  '/organizations': { title: 'Organizations', crumb: 'Choose Org' },
+  '/organizations/profile': { title: 'Organizations', crumb: 'Profile' },
+  '/organizations/sub-orgs': { title: 'Organizations', crumb: 'Sub Organizations' },
+  '/organizations/members': { title: 'Organizations', crumb: 'Members & Roles' },
+  '/organizations/repositories': { title: 'Organizations', crumb: 'Repositories & Visibility' },
+  '/organizations/access': { title: 'Organizations', crumb: 'Effective Access' },
   '/audit': { title: 'Audit', crumb: 'Audit' },
   '/health': { title: 'System Health', crumb: 'System Health' },
   '/data': { title: 'Data Management', crumb: 'Data Management' },
@@ -30,6 +35,8 @@ export class App {
   protected readonly navOpen = signal(true);
   protected readonly pageTitle = signal('Dashboard');
   protected readonly pageCrumb = signal('Dashboard');
+  /** Whether the Organizations parent nav item is expanded to show its sub-nav. */
+  protected readonly orgNavExpanded = signal(false);
 
   protected readonly today = new Date().toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -40,18 +47,22 @@ export class App {
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
         const path = e.urlAfterRedirects.split('?')[0].split('#')[0];
-        // Every /organizations* route reads as "Organizations" in the topbar
-        // (the per-org breadcrumb tabs live inside the detail shell).
-        const meta = path.startsWith('/organizations')
-          ? { title: 'Organizations', crumb: 'Organizations' }
-          : PAGE_TITLES[path] ?? PAGE_TITLES['/dashboard'];
+        const meta = PAGE_TITLES[path] ?? PAGE_TITLES['/dashboard'];
         this.pageTitle.set(meta.title);
         this.pageCrumb.set(meta.crumb);
+        // Auto-expand the Organizations sub-nav whenever an org page is active.
+        if (path.startsWith('/organizations')) {
+          this.orgNavExpanded.set(true);
+        }
       });
   }
 
   protected toggleNav(): void {
     this.navOpen.update((v) => !v);
+  }
+
+  protected toggleOrgNav(): void {
+    this.orgNavExpanded.update((v) => !v);
   }
 
   protected toastIcon(kind: string): string {

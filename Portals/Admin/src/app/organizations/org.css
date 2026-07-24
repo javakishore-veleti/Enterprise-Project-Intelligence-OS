@@ -4,6 +4,24 @@
 
 .kpi__value--sm { font-size: 1.05rem; line-height: 1.25; }
 
+/* ---- Shared org picker bar ----------------------------------------------- */
+.org-picker {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: .8rem 1rem; margin-bottom: 1.3rem;
+}
+.org-picker__bar { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+.org-picker__label {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ink-400); font-weight: 700;
+}
+.org-picker__current { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 0; flex-wrap: wrap; }
+.org-picker__name { font-weight: 700; color: var(--ink-900); }
+.org-picker__path { font-size: .72rem; color: var(--ink-400); overflow: hidden; text-overflow: ellipsis; }
+.org-picker__none { flex: 1; color: var(--ink-500); font-size: .86rem; font-weight: 600; }
+.org-picker__search { margin-top: .7rem; }
+.org-picker__search input { width: 100%; }
+
 /* ---- Detail-shell breadcrumb + tabs -------------------------------------- */
 .org-crumb {
   display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
@@ -66,6 +84,8 @@
   box-shadow: none; font-weight: 600; font-size: .9rem;
 }
 .tree__node:hover { background: var(--surface-alt); filter: none; box-shadow: none; color: var(--ink-900); }
+.tree__twig { flex: none; color: var(--ink-400); font-size: .8rem; }
+.tree__twig--root { color: var(--brand-500); }
 .tree__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree__level { flex: none; background: var(--bg-2); color: var(--brand-500); }
 .tree__count {
@@ -73,6 +93,8 @@
   display: inline-flex; align-items: center; gap: .25rem;
 }
 .tree__kind { flex: none; font-size: .72rem; color: var(--ink-400); font-weight: 600; }
+.tree__drill { flex: none; margin-left: auto; font-size: .74rem; font-weight: 700; color: var(--brand-500); opacity: 0; }
+.tree__node:hover .tree__drill { opacity: 1; }
 .tree__loadmore {
   margin: .1rem 0 .2rem; padding: .4rem .7rem; font-size: .78rem; font-weight: 600;
   color: var(--brand-500); background: transparent; border: 1px dashed var(--border-strong);

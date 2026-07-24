@@ -1,0 +1,41 @@
+<div class="org-picker">
+  <div class="org-picker__bar">
+    <span class="org-picker__label">Organization</span>
+    @if (ctx.selected(); as o) {
+      <div class="org-picker__current">
+        <span class="org-picker__name">{{ o.name }}</span>
+        <span class="badge tree__level">L{{ o.level }}</span>
+        @if (o.kind) { <span class="tree__kind">{{ o.kind }}</span> }
+        <span class="org-picker__path mono">{{ o.path }}</span>
+      </div>
+      <button type="button" class="btn--sm btn--ghost" (click)="toggleChange()">
+        {{ changing() ? 'Cancel' : 'Change' }}
+      </button>
+    } @else {
+      <span class="org-picker__none">No organization selected — search to pick one.</span>
+    }
+  </div>
+
+  @if (showSearch()) {
+    <div class="org-picker__search">
+      <input type="text" [(ngModel)]="query" (ngModelChange)="onInput($event)"
+             placeholder="Search organizations by name…" aria-label="Search organizations" />
+      @if (searchLoading()) {
+        <p class="panel__status"><span class="spinner spinner--brand"></span> Searching…</p>
+      } @else if (results().length) {
+        <div class="search-results">
+          @for (o of results(); track o.org_id) {
+            <button type="button" class="search-result" (click)="pick(o)">
+              <span class="search-result__name">{{ o.name }}</span>
+              <span class="badge tree__level">L{{ o.level }}</span>
+              @if (o.child_count) { <span class="tree__count">{{ o.child_count }} child</span> }
+              <span class="search-result__crumb mono">{{ o.path }}</span>
+            </button>
+          }
+        </div>
+      } @else if (query.trim()) {
+        <p class="panel__status">No organizations match “{{ query }}”.</p>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,105 @@
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">
+        Pick an organization to manage. Choose a tenant root below or search across all orgs — the
+        selection is remembered as you move between its Profile, Sub-Organizations, Members,
+        Repositories and Effective Access pages.
+      </p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="loadRoots()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="alert alert--error" style="margin-bottom: 1.1rem;">
+      <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Search across all orgs -->
+  <div class="panel" style="margin-bottom: 1.3rem;">
+    <div class="panel__head">
+      <h2 class="panel__title">Find an organization</h2>
+      @if (searching()) { <span class="panel__count">{{ searchResults().length }} match(es)</span> }
+    </div>
+    <div class="panel__body">
+      <div class="org-search">
+        <div class="field">
+          <label>Search by name</label>
+          <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange($event)"
+                 placeholder="Type at least one character…" aria-label="Search organizations" />
+        </div>
+        @if (searching()) {
+          <button type="button" class="btn--ghost btn--sm" (click)="clearSearch()">Clear</button>
+        }
+      </div>
+      @if (searching()) {
+        @if (searchLoading()) {
+          <p class="panel__status"><span class="spinner spinner--brand"></span> Searching…</p>
+        } @else {
+          <div class="search-results">
+            @for (o of searchResults(); track o.org_id) {
+              <button type="button" class="search-result" (click)="choose(o)">
+                <span class="search-result__name">{{ o.name }}</span>
+                <span class="badge tree__level">L{{ o.level }}</span>
+                @if (o.child_count) { <span class="tree__count">{{ o.child_count }} child</span> }
+                <span class="search-result__crumb mono">{{ o.path }}</span>
+              </button>
+            } @empty {
+              <p class="panel__status">No organizations match “{{ searchQuery }}”.</p>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Tenant roots -->
+  <div class="panel" style="margin-bottom: 1.3rem;">
+    <div class="panel__head">
+      <h2 class="panel__title">Tenant Roots</h2>
+      <span class="panel__count">{{ roots().length }} root(s)</span>
+    </div>
+    @if (loading()) {
+      <p class="panel__status"><span class="spinner spinner--brand"></span> Loading roots…</p>
+    } @else {
+      <div class="tree">
+        @for (r of roots(); track r.org_id) {
+          <button type="button" class="tree__node" (click)="choose(r)">
+            <span class="tree__twig tree__twig--root">◈</span>
+            <span class="tree__name">{{ r.name }}</span>
+            <span class="badge tree__level">L{{ r.level }}</span>
+            @if (r.child_count) { <span class="tree__count">{{ r.child_count }} child</span> }
+            @if (r.member_count) { <span class="tree__count">· {{ r.member_count }} member</span> }
+            @if (r.kind) { <span class="tree__kind">{{ r.kind }}</span> }
+          </button>
+        } @empty {
+          <p class="panel__status">No organizations yet. Create a tenant root below to begin.</p>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Create root -->
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">New root / tenant</h2>
+    </div>
+    <div class="form-row form-row--members">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" [(ngModel)]="rootName" placeholder="Organization name" aria-label="Root organization name" />
+      </div>
+      <div class="field field--kind">
+        <label>Kind</label>
+        <input type="text" [(ngModel)]="rootKind" placeholder="tenant, division…" aria-label="Root organization kind" />
+      </div>
+      <button type="button" class="btn--sm" (click)="createRoot()" [disabled]="!rootName.trim() || creatingRoot()">
+        @if (creatingRoot()) { <span class="spinner"></span> } @else { Create root }
+      </button>
+    </div>
+  </div>
+</section>
