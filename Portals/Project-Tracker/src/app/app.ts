@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs/operators';
 import { NotificationService } from './ui/notification.service';
 import { ScopeSwitcher } from './ui/scope-switcher';
+import { OrgSwitcher } from './ui/org-switcher';
 
 // Page title MUST match the sidebar menu label so the breadcrumb and the active
 // nav item always read the same word (Project Tracker > Projects / Project Risk).
@@ -19,7 +20,7 @@ const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ScopeSwitcher],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ScopeSwitcher, OrgSwitcher],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
