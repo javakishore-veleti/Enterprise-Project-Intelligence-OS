@@ -211,6 +211,111 @@ def test_move_endpoint_reparents_and_recomputes() -> None:
     assert bad.status_code == 422
 
 
+def test_org_stats_contract() -> None:
+    c = _client()
+    acme = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    emea = c.post("/api/v1/orgs", json={"name": "EMEA", "parent_org_id": acme["org_id"]}).json()
+    c.post("/api/v1/orgs", json={"name": "Sales", "parent_org_id": emea["org_id"]})
+    globex = c.post("/api/v1/orgs", json={"name": "Globex"}).json()
+    # A member + a repo so members/repos counts are exercised.
+    c.post(f"/api/v1/orgs/{emea['org_id']}/members", json={"subject": "alice", "roles": ["viewer"]})
+    c.post(f"/api/v1/orgs/{acme['org_id']}/repositories",
+           json={"provider": "jira", "visibility_scope": "org"})
+
+    # Whole platform: 4 orgs across 2 roots — computed WITHOUT any subtree fetch.
+    stats = c.get("/api/v1/orgs/stats").json()
+    assert stats == {
+        "total_orgs": 4, "root_count": 2, "total_members": 1, "total_repositories": 1,
+    }
+
+    # Scoped to the Acme tenant only (Globex excluded).
+    scoped = c.get(f"/api/v1/orgs/stats?root={acme['org_id']}").json()
+    assert scoped["total_orgs"] == 3 and scoped["root_count"] == 1
+    assert scoped["total_members"] == 1 and scoped["total_repositories"] == 1
+    # Globex tenant: just itself, no members/repos.
+    other = c.get(f"/api/v1/orgs/stats?root={globex['org_id']}").json()
+    assert other == {
+        "total_orgs": 1, "root_count": 1, "total_members": 0, "total_repositories": 0,
+    }
+
+
+def test_repositories_paging_and_search_contract() -> None:
+    c = _client()
+    org = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    for prov, acct in [("jira", "acme-jira"), ("github", "acme-gh"), ("jira", "team-jira")]:
+        c.post(f"/api/v1/orgs/{org['org_id']}/repositories",
+               json={"provider": prov, "external_account": acct, "visibility_scope": "org"})
+
+    # Default list carries the paging envelope + all 3 repos.
+    listed = c.get(f"/api/v1/orgs/{org['org_id']}/repositories").json()
+    assert listed["total"] == 3 and listed["returned"] == 3 and listed["offset"] == 0
+
+    # Page size 2.
+    page = c.get(f"/api/v1/orgs/{org['org_id']}/repositories?limit=2&offset=0").json()
+    assert page["total"] == 3 and len(page["repositories"]) == 2 and page["limit"] == 2
+
+    # `q` filters on provider / external_account.
+    ghs = c.get(f"/api/v1/orgs/{org['org_id']}/repositories?q=github").json()
+    assert ghs["total"] == 1 and ghs["repositories"][0]["provider"] == "github"
+    jiras = c.get(f"/api/v1/orgs/{org['org_id']}/repositories?q=jira").json()
+    assert jiras["total"] == 2
+
+
+def test_repository_projects_and_grants_list_paging_contract() -> None:
+    c = _client()
+    org = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    other = c.post("/api/v1/orgs", json={"name": "Globex"}).json()
+    third = c.post("/api/v1/orgs", json={"name": "Initech"}).json()
+    repo = c.post(f"/api/v1/orgs/{org['org_id']}/repositories",
+                  json={"provider": "jira", "visibility_scope": "shared"}).json()
+    repo_id = repo["repo_id"]
+    c.post(f"/api/v1/repositories/{repo_id}/projects",
+           json={"projects": [{"external_key": "SAKAI", "name": "Sakai"},
+                              {"external_key": "SPR", "name": "Spring"},
+                              {"external_key": "MVN", "name": "Maven"}]})
+
+    # Paged tracker-projects list (new GET endpoint).
+    proj = c.get(f"/api/v1/repositories/{repo_id}/projects?limit=2&offset=0").json()
+    assert proj["repo_id"] == repo_id and proj["total"] == 3 and len(proj["projects"]) == 2
+
+    # `q` on external_key / name.
+    spr = c.get(f"/api/v1/repositories/{repo_id}/projects?q=spr").json()
+    assert spr["total"] == 1 and spr["projects"][0]["external_key"] == "SPR"
+
+    # Paged grants list (new GET endpoint).
+    c.post(f"/api/v1/repositories/{repo_id}/grants",
+           json={"grantee_org_id": other["org_id"], "direction": "org"})
+    c.post(f"/api/v1/repositories/{repo_id}/grants",
+           json={"grantee_org_id": third["org_id"], "direction": "subtree"})
+    grants = c.get(f"/api/v1/repositories/{repo_id}/grants?limit=1&offset=0").json()
+    assert grants["repo_id"] == repo_id and grants["total"] == 2 and len(grants["grants"]) == 1
+
+
+def test_effective_access_paging_and_search_contract() -> None:
+    c = _client()
+    org = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    repo = c.post(f"/api/v1/orgs/{org['org_id']}/repositories",
+                  json={"provider": "jira", "visibility_scope": "org"}).json()
+    c.post(f"/api/v1/repositories/{repo['repo_id']}/projects",
+           json={"projects": [{"external_key": "SAKAI", "name": "Sakai"},
+                              {"external_key": "SPR", "name": "Spring"}]})
+    c.post(f"/api/v1/orgs/{org['org_id']}/members", json={"subject": "alice", "roles": ["viewer"]})
+
+    # visible-projects: paged envelope + `q`.
+    vis = c.get("/api/v1/users/alice/visible-projects?limit=1&offset=0").json()
+    assert vis["subject"] == "alice" and vis["total"] == 2 and len(vis["projects"]) == 1
+    filtered = c.get("/api/v1/users/alice/visible-projects?q=sak").json()
+    assert filtered["total"] == 1 and filtered["projects"][0]["external_key"] == "SAKAI"
+
+    # effective-projects: same envelope.
+    eff = c.get(f"/api/v1/orgs/{org['org_id']}/effective-projects?limit=1").json()
+    assert eff["org_id"] == org["org_id"] and eff["total"] == 2 and len(eff["projects"]) == 1
+
+    # No-param call still returns the full (unpaged-feel) list under the cap.
+    plain = c.get("/api/v1/users/alice/visible-projects").json()
+    assert {p["external_key"] for p in plain["projects"]} == {"SAKAI", "SPR"}
+
+
 def test_missing_org_returns_404() -> None:
     assert _client().get("/api/v1/orgs/does-not-exist").status_code == 404
 

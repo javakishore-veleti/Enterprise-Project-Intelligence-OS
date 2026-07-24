@@ -1,17 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
 
 import { AgentConfig, AuditEvent } from '../models/admin';
 import { Organization } from '../models/org';
 import { AdminService } from '../services/admin.service';
 import { OrgAdminService } from '../services/org-admin.service';
 
-/** A tenant root plus the size of its subtree (for the org summary). */
-interface RootSummary {
-  org: Organization;
-  nodeCount: number;
-}
+/** How many tenant roots to show in the bounded mini list. */
+const MAX_ROOTS_SHOWN = 6;
 
 /**
  * Admin Console home. Summarizes three things at a glance from real data:
@@ -32,12 +28,14 @@ export class Dashboard implements OnInit {
   private readonly orgAdmin = inject(OrgAdminService);
 
   // --- Organizations --------------------------------------------------------
+  // Counts come from the cheap COUNT-only stats endpoint (never a subtree
+  // fetch); the mini list shows a BOUNDED set of tenant roots from listRoots
+  // (already bounded), each with its own cheap child_count.
   protected readonly orgCount = signal(0);
-  protected readonly roots = signal<RootSummary[]>([]);
+  protected readonly rootCount = signal(0);
+  protected readonly roots = signal<Organization[]>([]);
   protected readonly orgsLoading = signal(true);
   protected readonly orgsError = signal<string | null>(null);
-
-  protected readonly rootCount = computed(() => this.roots().length);
 
   // --- Agents ---------------------------------------------------------------
   protected readonly agents = signal<AgentConfig[]>([]);
@@ -76,33 +74,20 @@ export class Dashboard implements OnInit {
   loadOrganizations(): void {
     this.orgsLoading.set(true);
     this.orgsError.set(null);
-    this.orgAdmin.listRoots().subscribe({
-      next: (resp) => {
-        const rootOrgs = resp.organizations;
-        if (rootOrgs.length === 0) {
-          this.roots.set([]);
-          this.orgCount.set(0);
-          this.orgsLoading.set(false);
-          return;
-        }
-        forkJoin(rootOrgs.map((r) => this.orgAdmin.subtree(r.org_id))).subscribe({
-          next: (subtrees) => {
-            const unique = new Set<string>();
-            const summaries: RootSummary[] = rootOrgs.map((r, i) => {
-              const nodes = subtrees[i].organizations;
-              for (const o of nodes) {
-                unique.add(o.org_id);
-              }
-              return { org: r, nodeCount: nodes.length };
-            });
-            this.roots.set(summaries);
-            this.orgCount.set(unique.size);
-            this.orgsLoading.set(false);
-          },
-          error: () => this.failOrgs(),
-        });
+    // 1) Cheap aggregate counts (COUNT queries only — no subtree load).
+    this.orgAdmin.orgStats().subscribe({
+      next: (stats) => {
+        this.orgCount.set(stats.total_orgs);
+        this.rootCount.set(stats.root_count);
+        this.orgsLoading.set(false);
       },
       error: () => this.failOrgs(),
+    });
+    // 2) A BOUNDED mini list of tenant roots (listRoots is already bounded;
+    //    we cap what we render). Each root carries its own cheap child_count.
+    this.orgAdmin.listRoots().subscribe({
+      next: (resp) => this.roots.set(resp.organizations.slice(0, MAX_ROOTS_SHOWN)),
+      error: () => this.roots.set([]),
     });
   }
 
@@ -110,6 +95,7 @@ export class Dashboard implements OnInit {
     this.orgsError.set('Unable to reach the Org-Management-API on :8005.');
     this.roots.set([]);
     this.orgCount.set(0);
+    this.rootCount.set(0);
     this.orgsLoading.set(false);
   }
 

@@ -13,17 +13,22 @@ from datetime import datetime, timezone
 
 from org_management_api.common.utilities import new_id
 from org_management_api.dtos.common import (
+    GrantPage,
     InheritedRoleRecord,
     MemberPage,
     MemberRecord,
     OrganizationPage,
     OrganizationRecord,
+    OrgStatsRecord,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
     RoleAssignmentRecord,
     RolePage,
+    TrackerProjectPage,
     TrackerProjectRecord,
     UserRecord,
+    VisibleProjectPage,
     VisibleProjectRecord,
 )
 from org_management_api.interfaces.daos import (
@@ -136,6 +141,17 @@ class FakeOrganizationsDao(OrganizationsDao):
     def list_by_root(self, root_org_id: str) -> list[OrganizationRecord]:
         rows = [o for o in self._s.orgs.values() if o.root_org_id == root_org_id]
         return sorted(rows, key=lambda o: o.path)
+
+    def stats(self, root: str | None) -> OrgStatsRecord:
+        orgs = [o for o in self._s.orgs.values() if root is None or o.root_org_id == root]
+        org_ids = {o.org_id for o in orgs}
+        total_orgs = len(orgs)
+        root_count = sum(1 for o in orgs if o.parent_org_id is None)
+        total_members = sum(1 for (_uid, oid) in self._s.memberships if oid in org_ids)
+        total_repositories = sum(1 for r in self._s.repos.values() if r.org_id in org_ids)
+        return OrgStatsRecord(
+            total_orgs=total_orgs, root_count=root_count,
+            total_members=total_members, total_repositories=total_repositories)
 
     def reparent(self, node_id, new_parent_id, old_path, new_path,
                  new_root_org_id, depth_delta, level_delta) -> None:
@@ -274,6 +290,20 @@ class FakeRepositoriesDao(RepositoriesDao):
         rows = [r for r in self._s.repos.values() if r.org_id == org_id]
         return sorted(rows, key=lambda r: (r.created_at, r.repo_id))
 
+    def list_by_org_page(self, org_id, q, limit, offset) -> RepositoryPage:
+        rows = [r for r in self._s.repos.values() if r.org_id == org_id]
+        if q:
+            needle = q.lower()
+            rows = [
+                r for r in rows
+                if needle in (r.provider or "").lower()
+                or needle in (r.external_account or "").lower()
+            ]
+        rows.sort(key=lambda r: (r.created_at, r.repo_id))
+        total = len(rows)
+        return RepositoryPage(
+            repositories=rows[offset:offset + limit], total=total, offset=offset, limit=limit)
+
     def update_visibility(self, repo_id, visibility_scope) -> RepositoryRecord | None:
         rec = self._s.repos.get(repo_id)
         if rec is None:
@@ -298,10 +328,35 @@ class FakeRepositoriesDao(RepositoriesDao):
         bucket = self._s.tracker.get(repo_id, {})
         return sorted(bucket.values(), key=lambda t: t.external_key)
 
+    def list_tracker_projects_page(self, repo_id, q, limit, offset) -> TrackerProjectPage:
+        rows = list(self._s.tracker.get(repo_id, {}).values())
+        if q:
+            needle = q.lower()
+            rows = [
+                t for t in rows
+                if needle in (t.external_key or "").lower()
+                or needle in (t.name or "").lower()
+            ]
+        rows.sort(key=lambda t: t.external_key)
+        total = len(rows)
+        return TrackerProjectPage(
+            projects=rows[offset:offset + limit], total=total, offset=offset, limit=limit)
+
     def add_grant(self, repo_id, grantee_org_id, direction) -> RepositoryGrantRecord:
         self._s.grants[(repo_id, grantee_org_id)] = direction
         return RepositoryGrantRecord(
             repo_id=repo_id, grantee_org_id=grantee_org_id, direction=direction)
+
+    def list_grants_page(self, repo_id, limit, offset) -> GrantPage:
+        rows = [
+            RepositoryGrantRecord(repo_id=rid, grantee_org_id=gid, direction=direction)
+            for (rid, gid), direction in self._s.grants.items()
+            if rid == repo_id
+        ]
+        rows.sort(key=lambda g: g.grantee_org_id)
+        total = len(rows)
+        return GrantPage(
+            grants=rows[offset:offset + limit], total=total, offset=offset, limit=limit)
 
 
 class FakeAccessDao(AccessDao):
@@ -361,3 +416,22 @@ class FakeAccessDao(AccessDao):
     def effective_projects_for_org(self, org_id) -> list[VisibleProjectRecord]:
         org = self._s.orgs.get(org_id)
         return self._resolve([org] if org else [])
+
+    @staticmethod
+    def _paged(rows: list[VisibleProjectRecord], q, limit, offset) -> VisibleProjectPage:
+        if q:
+            needle = q.lower()
+            rows = [
+                r for r in rows
+                if needle in (r.external_key or "").lower()
+                or needle in (r.name or "").lower()
+            ]
+        total = len(rows)
+        return VisibleProjectPage(
+            projects=rows[offset:offset + limit], total=total, offset=offset, limit=limit)
+
+    def visible_projects_for_subject_page(self, subject, q, limit, offset) -> VisibleProjectPage:
+        return self._paged(self.visible_projects_for_subject(subject), q, limit, offset)
+
+    def effective_projects_for_org_page(self, org_id, q, limit, offset) -> VisibleProjectPage:
+        return self._paged(self.effective_projects_for_org(org_id), q, limit, offset)

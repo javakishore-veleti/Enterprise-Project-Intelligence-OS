@@ -4,15 +4,20 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from org_management_api.dtos.common import (
+    GrantPage,
     MemberPage,
     OrganizationPage,
     OrganizationRecord,
+    OrgStatsRecord,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
     RoleAssignmentRecord,
     RolePage,
+    TrackerProjectPage,
     TrackerProjectRecord,
     UserRecord,
+    VisibleProjectPage,
     VisibleProjectRecord,
 )
 
@@ -58,6 +63,12 @@ class OrganizationsDao(ABC):
     @abstractmethod
     def update(self, org_id: str, name: str, kind: str | None) -> OrganizationRecord | None:
         """Rename / re-kind an org."""
+
+    @abstractmethod
+    def stats(self, root: str | None) -> OrgStatsRecord:
+        """Cheap tenancy aggregate counts via COUNT queries (never a subtree
+        fetch): total orgs, tenant roots, memberships, repositories. ``root``
+        scopes every count to one tenant tree (root_org_id)."""
 
     @abstractmethod
     def list_roots(self) -> list[OrganizationRecord]:
@@ -152,6 +163,13 @@ class RepositoriesDao(ABC):
     def list_by_org(self, org_id: str) -> list[RepositoryRecord]: ...
 
     @abstractmethod
+    def list_by_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> RepositoryPage:
+        """One page of an org's repositories, filtered by ``q`` (substring on
+        provider / external_account), with the filtered total for the envelope."""
+
+    @abstractmethod
     def update_visibility(self, repo_id: str, visibility_scope: str) -> RepositoryRecord | None: ...
 
     @abstractmethod
@@ -164,10 +182,23 @@ class RepositoriesDao(ABC):
     def list_tracker_projects(self, repo_id: str) -> list[TrackerProjectRecord]: ...
 
     @abstractmethod
+    def list_tracker_projects_page(
+        self, repo_id: str, q: str | None, limit: int, offset: int
+    ) -> TrackerProjectPage:
+        """One page of a repo's tracker projects (a repo can carry thousands),
+        filtered by ``q`` (substring on external_key / name), with the total."""
+
+    @abstractmethod
     def add_grant(
         self, repo_id: str, grantee_org_id: str, direction: str
     ) -> RepositoryGrantRecord:
         """Idempotent add of a cross-org sharing grant."""
+
+    @abstractmethod
+    def list_grants_page(
+        self, repo_id: str, limit: int, offset: int
+    ) -> GrantPage:
+        """One page of a repo's cross-org sharing grants, with the total."""
 
 
 class AccessDao(ABC):
@@ -178,5 +209,18 @@ class AccessDao(ABC):
         """Union of tracker projects visible to ANY org the user is a member of."""
 
     @abstractmethod
+    def visible_projects_for_subject_page(
+        self, subject: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        """One page of the union above, filtered by ``q`` (substring on
+        external_key / name), with the filtered total for the envelope."""
+
+    @abstractmethod
     def effective_projects_for_org(self, org_id: str) -> list[VisibleProjectRecord]:
         """Tracker projects visible from a single org context."""
+
+    @abstractmethod
+    def effective_projects_for_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        """One page of the org projection above, filtered by ``q``, with total."""

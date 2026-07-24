@@ -20,7 +20,8 @@ materialized `path` and the text_pattern_ops index.
 """
 from __future__ import annotations
 
-from org_management_api.dtos.common import VisibleProjectRecord
+from org_management_api.common.utilities import escape_like
+from org_management_api.dtos.common import VisibleProjectPage, VisibleProjectRecord
 from org_management_api.interfaces.daos import AccessDao
 
 # Relates context org `a` to owner org `o` for repository `r`. No bind params:
@@ -46,6 +47,28 @@ _VISIBILITY_PREDICATE = """(
 _SELECT = "SELECT DISTINCT tp.external_key, tp.name, r.repo_id, r.org_id, r.provider"
 _TRAILER = " ORDER BY tp.external_key, r.repo_id"
 
+# Reusable FROM/JOIN chains (the only difference between the subject-scoped and
+# org-scoped resolution is the driving table + the leading WHERE key).
+_SUBJECT_FROM = (
+    "FROM org.users u "
+    "JOIN org.memberships m ON m.user_id = u.user_id "
+    "JOIN org.organizations a ON a.org_id = m.org_id "
+    "JOIN org.repositories r ON TRUE "
+    "JOIN org.organizations o ON o.org_id = r.org_id "
+    "JOIN org.tracker_projects tp ON tp.repo_id = r.repo_id "
+    f"WHERE u.subject = %s AND {_VISIBILITY_PREDICATE}"
+)
+_ORG_FROM = (
+    "FROM org.organizations a "
+    "JOIN org.repositories r ON TRUE "
+    "JOIN org.organizations o ON o.org_id = r.org_id "
+    "JOIN org.tracker_projects tp ON tp.repo_id = r.repo_id "
+    f"WHERE a.org_id = %s AND {_VISIBILITY_PREDICATE}"
+)
+
+# A case-insensitive substring filter on the projected key/name (paged reads).
+_Q_FILTER = " AND (tp.external_key ILIKE %s ESCAPE '\\' OR tp.name ILIKE %s ESCAPE '\\')"
+
 
 def _row(r: tuple) -> VisibleProjectRecord:
     return VisibleProjectRecord(
@@ -57,31 +80,47 @@ class PostgresAccessDao(AccessDao):
         self._db = database
 
     def visible_projects_for_subject(self, subject: str) -> list[VisibleProjectRecord]:
-        sql = (
-            f"{_SELECT} "
-            "FROM org.users u "
-            "JOIN org.memberships m ON m.user_id = u.user_id "
-            "JOIN org.organizations a ON a.org_id = m.org_id "
-            "JOIN org.repositories r ON TRUE "
-            "JOIN org.organizations o ON o.org_id = r.org_id "
-            "JOIN org.tracker_projects tp ON tp.repo_id = r.repo_id "
-            f"WHERE u.subject = %s AND {_VISIBILITY_PREDICATE}{_TRAILER}"
-        )
+        sql = f"{_SELECT} {_SUBJECT_FROM}{_TRAILER}"
         with self._db.connection() as conn:
             cur = conn.cursor()
             cur.execute(sql, (subject,))
             return [_row(r) for r in cur.fetchall()]
 
     def effective_projects_for_org(self, org_id: str) -> list[VisibleProjectRecord]:
-        sql = (
-            f"{_SELECT} "
-            "FROM org.organizations a "
-            "JOIN org.repositories r ON TRUE "
-            "JOIN org.organizations o ON o.org_id = r.org_id "
-            "JOIN org.tracker_projects tp ON tp.repo_id = r.repo_id "
-            f"WHERE a.org_id = %s AND {_VISIBILITY_PREDICATE}{_TRAILER}"
-        )
+        sql = f"{_SELECT} {_ORG_FROM}{_TRAILER}"
         with self._db.connection() as conn:
             cur = conn.cursor()
             cur.execute(sql, (org_id,))
             return [_row(r) for r in cur.fetchall()]
+
+    def _page(
+        self, from_clause: str, key: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        where = from_clause
+        params: list = [key]
+        if q:
+            like = f"%{escape_like(q)}%"
+            where += _Q_FILTER
+            params += [like, like]
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            # COUNT the DISTINCT projection (the SELECT is DISTINCT, so counting
+            # the subquery gives the exact filtered total for the envelope).
+            cur.execute(
+                f"SELECT COUNT(*) FROM ({_SELECT} {where}) t", tuple(params))
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"{_SELECT} {where}{_TRAILER} LIMIT %s OFFSET %s",
+                tuple(params) + (limit, offset))
+            rows = [_row(r) for r in cur.fetchall()]
+            return VisibleProjectPage(projects=rows, total=total, offset=offset, limit=limit)
+
+    def visible_projects_for_subject_page(
+        self, subject: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        return self._page(_SUBJECT_FROM, subject, q, limit, offset)
+
+    def effective_projects_for_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        return self._page(_ORG_FROM, org_id, q, limit, offset)

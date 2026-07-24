@@ -26,33 +26,73 @@
       <div class="alert alert--error" style="margin-top: 1rem;"><span class="alert__icon">⚠</span><span>{{ accessError() }}</span></div>
     }
 
-    @if (accessProjects(); as projects) {
+    @if (projects(); as rows) {
       <div class="access-result">
         <p class="access-result__head">
-          <strong>{{ accessResolvedSubject() }}</strong> can see
-          <span class="badge badge--info">{{ projects.length }}</span> project(s)
+          <strong>{{ resolvedSubject() }}</strong> can see
+          <span class="badge badge--info">{{ total() }}</span> project(s)
         </p>
-        @if (projects.length) {
+
+        <!-- In-results filter + page size (server-side; both reset to page 0) -->
+        <div class="form-row form-row--members">
+          <div class="field">
+            <label>Filter visible projects</label>
+            <input type="text" [(ngModel)]="filter" (ngModelChange)="onFilterChange()"
+                   placeholder="Filter by project key or name…" aria-label="Filter visible projects" />
+          </div>
+          <div class="field field--kind">
+            <label>Page size</label>
+            <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)" aria-label="Rows per page">
+              @for (s of pageSizes; track s) { <option [ngValue]="s">{{ s }} / page</option> }
+            </select>
+          </div>
+        </div>
+
+        @if (accessLoading()) {
+          <p class="panel__status"><span class="spinner spinner--brand"></span> Resolving…</p>
+        } @else if (total() > 0) {
           <div class="panel__table-wrap">
             <table>
               <thead>
                 <tr><th>Project Key</th><th>Name</th><th>Provider</th><th>Owning Org</th></tr>
               </thead>
               <tbody>
-                @for (p of projects; track p.external_key + p.repo_id) {
+                @for (p of rows; track p.external_key + p.repo_id) {
                   <tr>
                     <td class="mono">{{ p.external_key }}</td>
                     <td>{{ p.name || '—' }}</td>
                     <td><span class="badge">{{ p.provider }}</span></td>
                     <td class="mono">{{ p.org_id }}</td>
                   </tr>
+                } @empty {
+                  <tr><td class="empty" colspan="4">No projects on this page.</td></tr>
                 }
               </tbody>
             </table>
           </div>
+
+          <!-- Bounded pager (page-replacement) -->
+          <div class="pager">
+            <span class="pager__info">Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}</span>
+            <div class="pager__controls">
+              <button type="button" class="btn--sm btn--ghost" (click)="prev()" [disabled]="!canPrev()">Previous</button>
+              <span class="pager__page">
+                Page
+                <input type="number" min="1" [max]="pageCount()" [ngModel]="currentPage()"
+                       (change)="jumpToPage($any($event.target).valueAsNumber)"
+                       aria-label="Jump to page" class="pager__jump" />
+                of {{ pageCount() }}
+              </span>
+              <button type="button" class="btn--sm btn--ghost" (click)="next()" [disabled]="!canNext()">Next</button>
+            </div>
+          </div>
         } @else {
           <div class="alert alert--warning" style="margin-top: .6rem;">
-            <span class="alert__icon">∅</span><span>No projects are visible to this user.</span>
+            <span class="alert__icon">∅</span>
+            <span>
+              @if (filter.trim()) { No visible projects match “{{ filter }}”. }
+              @else { No projects are visible to this user. }
+            </span>
           </div>
         }
       </div>

@@ -12,6 +12,7 @@ from org_management_api.dtos.requests import (
 from org_management_api.dtos.responses import (
     OrganizationListResponse,
     OrganizationResponse,
+    OrgStatsResponse,
 )
 from org_management_api.facades.manage_organizations import ManageOrganizationsFacade
 
@@ -35,6 +36,19 @@ def list_organizations(
 ):
     # `?root=<id>` returns the whole tenant tree; no `root` returns all roots.
     return facade.list_tenant(root) if root else facade.list_roots()
+
+
+# NOTE: declared BEFORE `/{org_id}` so the literal `/stats` path is not captured
+# as an org id by the parameterized route.
+@router.get("/stats", response_model=OrgStatsResponse, operation_id="getOrganizationStats")
+def get_organization_stats(
+    root: str | None = Query(
+        default=None, description="Restrict every count to one tenant (root_org_id)."),
+    facade: ManageOrganizationsFacade = Facade,
+):
+    # Cheap COUNT-only aggregate for the dashboard org summary — never a subtree
+    # fetch. `root` scopes total_orgs/root_count/total_members/total_repositories.
+    return facade.stats(root)
 
 
 # NOTE: declared BEFORE `/{org_id}` so the literal `/search` path is not captured

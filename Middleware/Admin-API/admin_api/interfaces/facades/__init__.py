@@ -25,7 +25,7 @@ class ManageAgentsUseCase(ABC):
 
 class GetAuditHistoryUseCase(ABC):
     @abstractmethod
-    def execute(self, limit: int, offset: int) -> AuditListResponse: ...
+    def execute(self, limit: int, offset: int, q: str | None = None) -> AuditListResponse: ...
 
 
 class GetSystemHealthUseCase(ABC):

@@ -5,7 +5,11 @@ shape (including the 1-indexed `level`, root = 1).
 """
 from __future__ import annotations
 
-from org_management_api.dtos.common import OrganizationPage, OrganizationRecord
+from org_management_api.dtos.common import (
+    OrganizationPage,
+    OrganizationRecord,
+    OrgStatsRecord,
+)
 from org_management_api.dtos.requests import (
     CreateOrganizationRequest,
     MoveOrganizationRequest,
@@ -14,6 +18,7 @@ from org_management_api.dtos.requests import (
 from org_management_api.dtos.responses import (
     OrganizationListResponse,
     OrganizationResponse,
+    OrgStatsResponse,
 )
 from org_management_api.interfaces.services import OrganizationService
 
@@ -85,6 +90,12 @@ class ManageOrganizationsFacade:
 
     def move(self, org_id: str, request: MoveOrganizationRequest) -> OrganizationResponse:
         return _response(self._service.move(org_id, request))
+
+    def stats(self, root: str | None) -> OrgStatsResponse:
+        s: OrgStatsRecord = self._service.stats(root)
+        return OrgStatsResponse(
+            total_orgs=s.total_orgs, root_count=s.root_count,
+            total_members=s.total_members, total_repositories=s.total_repositories)
 
     def list_roots(self) -> OrganizationListResponse:
         return _list(self._service.list_roots())

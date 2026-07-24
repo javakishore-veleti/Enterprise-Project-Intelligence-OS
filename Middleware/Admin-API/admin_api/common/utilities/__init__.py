@@ -11,3 +11,11 @@ def new_id() -> str:
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def escape_like(term: str) -> str:
+    """Escape LIKE/ILIKE wildcards so user-supplied text matches literally.
+
+    Pair with ``ESCAPE '\\'`` in the SQL predicate (used by the audit search).
+    """
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

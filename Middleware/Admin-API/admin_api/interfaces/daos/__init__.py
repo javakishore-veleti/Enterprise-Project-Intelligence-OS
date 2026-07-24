@@ -47,4 +47,8 @@ class AuditDao(ABC):
     def append(self, event: AuditEventResponse) -> AuditEventResponse: ...
 
     @abstractmethod
-    def list(self, limit: int, offset: int) -> tuple[list[AuditEventResponse], int]: ...
+    def list(
+        self, limit: int, offset: int, q: str | None = None
+    ) -> tuple[list[AuditEventResponse], int]:
+        """One page of audit events (newest first), optionally filtered by ``q``
+        (case-insensitive substring on action / actor / entity_key / entity_type)."""

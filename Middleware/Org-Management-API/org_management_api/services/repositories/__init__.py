@@ -4,8 +4,11 @@ from __future__ import annotations
 from org_management_api.common.exceptions import NotFoundError
 from org_management_api.common.utilities import new_id, utc_now
 from org_management_api.dtos.common import (
+    GrantPage,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
+    TrackerProjectPage,
     TrackerProjectRecord,
 )
 from org_management_api.dtos.requests import (
@@ -76,3 +79,22 @@ class DefaultRepositoryService(RepositoryService):
         if self._orgs.get(org_id) is None:
             raise NotFoundError(f"organization '{org_id}' not found")
         return self._repos.list_by_org(org_id)
+
+    def list_repositories_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> RepositoryPage:
+        if self._orgs.get(org_id) is None:
+            raise NotFoundError(f"organization '{org_id}' not found")
+        return self._repos.list_by_org_page(org_id, q, limit, offset)
+
+    def list_tracker_projects_page(
+        self, repo_id: str, q: str | None, limit: int, offset: int
+    ) -> TrackerProjectPage:
+        self._require_repo(repo_id)
+        return self._repos.list_tracker_projects_page(repo_id, q, limit, offset)
+
+    def list_grants_page(
+        self, repo_id: str, limit: int, offset: int
+    ) -> GrantPage:
+        self._require_repo(repo_id)
+        return self._repos.list_grants_page(repo_id, limit, offset)

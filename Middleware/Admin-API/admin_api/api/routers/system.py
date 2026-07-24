@@ -18,9 +18,13 @@ router = APIRouter(prefix="/api/v1/admin", tags=["system"])
 def get_audit(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    q: str | None = Query(
+        default=None,
+        description="Case-insensitive substring on action / actor / entity_key / entity_type."),
     facade: GetAuditHistoryFacade = Depends(provide_get_audit_history_facade),
 ) -> AuditListResponse:
-    return facade.execute(limit, offset)
+    # Server-paged + searchable so the audit view never loads the whole log.
+    return facade.execute(limit, offset, q)
 
 
 @router.get("/system/health", response_model=SystemHealthResponse, operation_id="getSystemHealth")

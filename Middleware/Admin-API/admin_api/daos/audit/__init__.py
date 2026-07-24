@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 
+from admin_api.common.utilities import escape_like
 from admin_api.daos.connection import Database
 from admin_api.dtos.responses import AuditEventResponse
 from admin_api.interfaces.daos import AuditDao
@@ -48,14 +49,26 @@ class PostgresAuditDao(AuditDao):
             )
             return _row(cur.fetchone())
 
-    def list(self, limit, offset):
+    def list(self, limit, offset, q=None):
+        where = ""
+        params: list = []
+        if q:
+            like = f"%{escape_like(q)}%"
+            where = (
+                "WHERE (action ILIKE %s ESCAPE '\\' "
+                "OR actor ILIKE %s ESCAPE '\\' "
+                "OR entity_key ILIKE %s ESCAPE '\\' "
+                "OR entity_type ILIKE %s ESCAPE '\\')"
+            )
+            params = [like, like, like, like]
         with self._db.connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT count(*) FROM admin.audit_events")
+            cur.execute(
+                f"SELECT count(*) FROM admin.audit_events {where}", tuple(params))
             total = cur.fetchone()[0]
             cur.execute(
-                f"SELECT {_COLUMNS} FROM admin.audit_events "
+                f"SELECT {_COLUMNS} FROM admin.audit_events {where} "
                 "ORDER BY created_at DESC LIMIT %s OFFSET %s",
-                (limit, offset),
+                tuple(params) + (limit, offset),
             )
             return [_row(r) for r in cur.fetchall()], total

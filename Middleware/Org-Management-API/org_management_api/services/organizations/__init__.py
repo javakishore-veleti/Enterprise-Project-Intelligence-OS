@@ -13,7 +13,11 @@ from __future__ import annotations
 
 from org_management_api.common.exceptions import NotFoundError, ValidationError
 from org_management_api.common.utilities import new_id, utc_now
-from org_management_api.dtos.common import OrganizationPage, OrganizationRecord
+from org_management_api.dtos.common import (
+    OrganizationPage,
+    OrganizationRecord,
+    OrgStatsRecord,
+)
 from org_management_api.dtos.requests import (
     CreateOrganizationRequest,
     MoveOrganizationRequest,
@@ -127,6 +131,9 @@ class DefaultOrganizationService(OrganizationService):
             level_delta=level_delta,
         )
         return self._require(org_id)
+
+    def stats(self, root: str | None) -> OrgStatsRecord:
+        return self._dao.stats(root)
 
     def list_roots(self) -> list[OrganizationRecord]:
         return self._dao.list_roots()

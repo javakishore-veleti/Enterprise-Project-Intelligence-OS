@@ -25,7 +25,7 @@ class AgentManagementService(ABC):
 
 class AuditManagementService(ABC):
     @abstractmethod
-    def list(self, limit: int, offset: int) -> AuditListResponse: ...
+    def list(self, limit: int, offset: int, q: str | None = None) -> AuditListResponse: ...
 
 
 class SystemHealthService(ABC):

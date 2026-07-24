@@ -68,6 +68,16 @@ class OrganizationPage(TypedModel):
     limit: int = 0
 
 
+class OrgStatsRecord(TypedModel):
+    """Cheap aggregate counts for the tenancy, computed with COUNT queries (never
+    by fetching rows/subtrees). ``root`` scopes every count to one tenant tree."""
+
+    total_orgs: int = 0
+    root_count: int = 0
+    total_members: int = 0
+    total_repositories: int = 0
+
+
 class UserRecord(TypedModel):
     """Internal record of a global user identity."""
 
@@ -163,3 +173,42 @@ class VisibleProjectRecord(TypedModel):
     repo_id: str
     org_id: str
     provider: str
+
+
+# --- Bounded pages (server-side pagination so the caller never loads-all) ---
+
+class RepositoryPage(TypedModel):
+    """One page of repositories under an org, with the (filtered) total."""
+
+    repositories: list[RepositoryRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
+
+
+class TrackerProjectPage(TypedModel):
+    """One page of tracker projects under a repo (a repo can have thousands)."""
+
+    projects: list[TrackerProjectRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
+
+
+class GrantPage(TypedModel):
+    """One page of cross-org sharing grants on a repo, with the total."""
+
+    grants: list[RepositoryGrantRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
+
+
+class VisibleProjectPage(TypedModel):
+    """One page of the (potentially huge) effective-access projection, with the
+    filtered total so a UI can page a subject's/org's visible projects."""
+
+    projects: list[VisibleProjectRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0

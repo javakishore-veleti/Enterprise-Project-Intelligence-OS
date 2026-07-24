@@ -47,8 +47,17 @@ class _FakeAuditDao(AuditDao):
         self.events.append(event)
         return event
 
-    def list(self, limit, offset):
+    def list(self, limit, offset, q=None):
         ordered = list(reversed(self.events))
+        if q:
+            needle = q.lower()
+            ordered = [
+                e for e in ordered
+                if needle in e.action.lower()
+                or needle in e.actor.lower()
+                or needle in e.entity_key.lower()
+                or needle in e.entity_type.lower()
+            ]
         return ordered[offset : offset + limit], len(ordered)
 
 
@@ -105,6 +114,32 @@ def test_upsert_then_get_agent_and_audit_and_health() -> None:
 
     health = client.get("/api/v1/admin/system/health")
     assert health.json()["agent_count"] == 1 and health.json()["enabled_agent_count"] == 1
+
+
+def test_audit_paging_and_search_contract() -> None:
+    client = _client()
+    # Two agents => two audited "created" events with different entity_keys.
+    client.put("/api/v1/admin/agents/schedule_risk",
+               json={"model": "claude-opus-4-8", "framework": "langgraph", "enabled": True})
+    client.put("/api/v1/admin/agents/quality_risk",
+               json={"model": "claude-opus-4-8", "framework": "langgraph", "enabled": True})
+
+    # Full log: 2 events, paged envelope.
+    page = client.get("/api/v1/admin/audit?limit=1&offset=0").json()
+    assert page["page"]["total"] == 2 and len(page["items"]) == 1 and page["page"]["limit"] == 1
+
+    # `q` on entity_key narrows to one; total reflects the filter.
+    scoped = client.get("/api/v1/admin/audit?q=schedule_risk").json()
+    assert scoped["page"]["total"] == 1
+    assert scoped["items"][0]["entity_key"] == "schedule_risk"
+
+    # `q` on action matches both.
+    created = client.get("/api/v1/admin/audit?q=created").json()
+    assert created["page"]["total"] == 2
+
+    # Non-matching query => empty page, total 0.
+    none = client.get("/api/v1/admin/audit?q=zzz-nope").json()
+    assert none["page"]["total"] == 0 and none["items"] == []
 
 
 def test_get_missing_agent_returns_404() -> None:

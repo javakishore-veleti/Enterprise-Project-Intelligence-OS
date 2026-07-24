@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import json
 
-from org_management_api.common.utilities import new_id
+from org_management_api.common.utilities import escape_like, new_id
 from org_management_api.dtos.common import (
+    GrantPage,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
+    TrackerProjectPage,
     TrackerProjectRecord,
 )
 from org_management_api.interfaces.daos import RepositoriesDao
@@ -68,6 +71,27 @@ class PostgresRepositoriesDao(RepositoriesDao):
                 "WHERE org_id = %s ORDER BY created_at, repo_id", (org_id,))
             return [_repo(r) for r in cur.fetchall()]
 
+    def list_by_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> RepositoryPage:
+        where = "org_id = %s"
+        params: list = [org_id]
+        if q:
+            like = f"%{escape_like(q)}%"
+            where += " AND (provider ILIKE %s ESCAPE '\\' OR external_account ILIKE %s ESCAPE '\\')"
+            params += [like, like]
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT COUNT(*) FROM org.repositories WHERE {where}", tuple(params))
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT {_REPO_COLS} FROM org.repositories WHERE {where} "
+                "ORDER BY created_at, repo_id LIMIT %s OFFSET %s",
+                tuple(params) + (limit, offset))
+            rows = [_repo(r) for r in cur.fetchall()]
+            return RepositoryPage(repositories=rows, total=total, offset=offset, limit=limit)
+
     def update_visibility(self, repo_id: str, visibility_scope: str) -> RepositoryRecord | None:
         with self._db.connection() as conn:
             cur = conn.cursor()
@@ -101,6 +125,27 @@ class PostgresRepositoriesDao(RepositoriesDao):
                 "WHERE repo_id = %s ORDER BY external_key", (repo_id,))
             return [_tp(r) for r in cur.fetchall()]
 
+    def list_tracker_projects_page(
+        self, repo_id: str, q: str | None, limit: int, offset: int
+    ) -> TrackerProjectPage:
+        where = "repo_id = %s"
+        params: list = [repo_id]
+        if q:
+            like = f"%{escape_like(q)}%"
+            where += " AND (external_key ILIKE %s ESCAPE '\\' OR name ILIKE %s ESCAPE '\\')"
+            params += [like, like]
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT COUNT(*) FROM org.tracker_projects WHERE {where}", tuple(params))
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT {_TP_COLS} FROM org.tracker_projects WHERE {where} "
+                "ORDER BY external_key LIMIT %s OFFSET %s",
+                tuple(params) + (limit, offset))
+            rows = [_tp(r) for r in cur.fetchall()]
+            return TrackerProjectPage(projects=rows, total=total, offset=offset, limit=limit)
+
     def add_grant(
         self, repo_id: str, grantee_org_id: str, direction: str
     ) -> RepositoryGrantRecord:
@@ -115,3 +160,20 @@ class PostgresRepositoriesDao(RepositoriesDao):
             r = cur.fetchone()
             return RepositoryGrantRecord(
                 repo_id=str(r[0]), grantee_org_id=str(r[1]), direction=r[2])
+
+    def list_grants_page(self, repo_id: str, limit: int, offset: int) -> GrantPage:
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COUNT(*) FROM org.repository_grants WHERE repo_id = %s", (repo_id,))
+            total = cur.fetchone()[0]
+            cur.execute(
+                "SELECT repo_id, grantee_org_id, direction FROM org.repository_grants "
+                "WHERE repo_id = %s ORDER BY grantee_org_id LIMIT %s OFFSET %s",
+                (repo_id, limit, offset))
+            rows = [
+                RepositoryGrantRecord(
+                    repo_id=str(r[0]), grantee_org_id=str(r[1]), direction=r[2])
+                for r in cur.fetchall()
+            ]
+            return GrantPage(grants=rows, total=total, offset=offset, limit=limit)

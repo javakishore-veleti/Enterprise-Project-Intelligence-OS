@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 from org_management_api.dtos.common import (
+    GrantPage,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
+    TrackerProjectPage,
     TrackerProjectRecord,
 )
 from org_management_api.dtos.requests import (
@@ -14,6 +17,7 @@ from org_management_api.dtos.requests import (
 )
 from org_management_api.dtos.responses import (
     GrantResponse,
+    GrantsResponse,
     RepositoriesResponse,
     RepositoryResponse,
     TrackerProjectResponse,
@@ -62,6 +66,46 @@ class ManageRepositoriesFacade:
             repo_id=grant.repo_id, grantee_org_id=grant.grantee_org_id,
             direction=grant.direction)
 
-    def list_repositories(self, org_id: str) -> RepositoriesResponse:
-        repos = self._service.list_repositories(org_id)
-        return RepositoriesResponse(org_id=org_id, repositories=[_repo(r) for r in repos])
+    def list_repositories(
+        self, org_id: str, q: str | None = None, limit: int = 50, offset: int = 0
+    ) -> RepositoriesResponse:
+        page: RepositoryPage = self._service.list_repositories_page(org_id, q, limit, offset)
+        return RepositoriesResponse(
+            org_id=org_id,
+            repositories=[_repo(r) for r in page.repositories],
+            total=page.total,
+            returned=len(page.repositories),
+            offset=page.offset,
+            limit=page.limit,
+        )
+
+    def list_tracker_projects(
+        self, repo_id: str, q: str | None = None, limit: int = 50, offset: int = 0
+    ) -> TrackerProjectsResponse:
+        page: TrackerProjectPage = self._service.list_tracker_projects_page(
+            repo_id, q, limit, offset)
+        return TrackerProjectsResponse(
+            repo_id=repo_id,
+            projects=[_tp(p) for p in page.projects],
+            total=page.total,
+            returned=len(page.projects),
+            offset=page.offset,
+            limit=page.limit,
+        )
+
+    def list_grants(
+        self, repo_id: str, limit: int = 50, offset: int = 0
+    ) -> GrantsResponse:
+        page: GrantPage = self._service.list_grants_page(repo_id, limit, offset)
+        return GrantsResponse(
+            repo_id=repo_id,
+            grants=[
+                GrantResponse(
+                    repo_id=g.repo_id, grantee_org_id=g.grantee_org_id, direction=g.direction)
+                for g in page.grants
+            ],
+            total=page.total,
+            returned=len(page.grants),
+            offset=page.offset,
+            limit=page.limit,
+        )

@@ -84,6 +84,17 @@ export interface OrganizationListResponse {
   limit?: number;
 }
 
+/**
+ * Cheap tenancy aggregate counts (`GET /orgs/stats`) — computed with COUNT
+ * queries, never a subtree fetch. Powers the dashboard org summary.
+ */
+export interface OrgStats {
+  total_orgs: number;
+  root_count: number;
+  total_members: number;
+  total_repositories: number;
+}
+
 /** Whitelisted sort keys for the direct-children page (mirrors the API). */
 export type OrgChildSort = 'name' | 'created_at' | 'child_count';
 
@@ -187,6 +198,18 @@ export interface Repository {
 export interface RepositoriesResponse {
   org_id: string;
   repositories: Repository[];
+  /** Paging envelope — present on the paginated list. */
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
+}
+
+/** Query options for the paginated + searchable repositories list. */
+export interface RepositoryQuery {
+  q?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface CreateRepositoryRequest {
@@ -206,6 +229,18 @@ export interface TrackerProject {
 export interface TrackerProjectsResponse {
   repo_id: string;
   projects: TrackerProject[];
+  /** Paging envelope — present on the paginated LIST endpoint. */
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
+}
+
+/** Query options for the paginated + searchable tracker-projects list. */
+export interface TrackerProjectQuery {
+  q?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface TrackerProjectInput {
@@ -232,6 +267,16 @@ export interface AddGrantRequest {
   direction: GrantDirection;
 }
 
+/** A page of cross-org sharing grants on a repo (`GET /repositories/{id}/grants`). */
+export interface GrantsResponse {
+  repo_id: string;
+  grants: Grant[];
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
+}
+
 // --- Effective access resolution --------------------------------------------
 
 export interface VisibleProject {
@@ -245,4 +290,16 @@ export interface VisibleProject {
 export interface VisibleProjectsResponse {
   subject: string;
   projects: VisibleProject[];
+  /** Paging envelope — present when the caller pages/searches. */
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
+}
+
+/** Query options for the paginated + searchable effective-access list. */
+export interface VisibleProjectQuery {
+  q?: string;
+  limit?: number;
+  offset?: number;
 }

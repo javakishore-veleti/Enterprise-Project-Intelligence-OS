@@ -7,7 +7,7 @@ the query the OTHER services will call in Phase 2 to scope evidence/queries.
 from __future__ import annotations
 
 from org_management_api.common.exceptions import NotFoundError
-from org_management_api.dtos.common import VisibleProjectRecord
+from org_management_api.dtos.common import VisibleProjectPage, VisibleProjectRecord
 from org_management_api.interfaces.daos import (
     AccessDao,
     OrganizationsDao,
@@ -29,7 +29,21 @@ class DefaultAccessService(AccessService):
             raise NotFoundError(f"user '{subject}' not found")
         return self._access.visible_projects_for_subject(subject)
 
+    def visible_projects_for_subject_page(
+        self, subject: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        if self._users.get_by_subject(subject) is None:
+            raise NotFoundError(f"user '{subject}' not found")
+        return self._access.visible_projects_for_subject_page(subject, q, limit, offset)
+
     def effective_projects_for_org(self, org_id: str) -> list[VisibleProjectRecord]:
         if self._orgs.get(org_id) is None:
             raise NotFoundError(f"organization '{org_id}' not found")
         return self._access.effective_projects_for_org(org_id)
+
+    def effective_projects_for_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage:
+        if self._orgs.get(org_id) is None:
+            raise NotFoundError(f"organization '{org_id}' not found")
+        return self._access.effective_projects_for_org_page(org_id, q, limit, offset)

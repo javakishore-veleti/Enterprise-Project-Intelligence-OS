@@ -15,26 +15,27 @@
       <div class="kpi__body">
         <span class="kpi__label">Total Events</span>
         <span class="kpi__value">{{ total() }}</span>
+        @if (query.trim()) { <span class="kpi__sub">matching “{{ query }}”</span> }
       </div>
     </div>
     <div class="kpi">
       <div class="kpi__icon kpi__icon--info">⚡</div>
       <div class="kpi__body">
-        <span class="kpi__label">Distinct Actions</span>
+        <span class="kpi__label">Actions (this page)</span>
         <span class="kpi__value">{{ actionCount() }}</span>
       </div>
     </div>
     <div class="kpi">
       <div class="kpi__icon kpi__icon--success">◉</div>
       <div class="kpi__body">
-        <span class="kpi__label">Actors</span>
+        <span class="kpi__label">Actors (this page)</span>
         <span class="kpi__value">{{ actorCount() }}</span>
       </div>
     </div>
     <div class="kpi">
       <div class="kpi__icon kpi__icon--warning">▤</div>
       <div class="kpi__body">
-        <span class="kpi__label">Entity Types</span>
+        <span class="kpi__label">Entity Types (this page)</span>
         <span class="kpi__value">{{ entityTypeCount() }}</span>
       </div>
     </div>
@@ -46,6 +47,24 @@
       @if (!loading()) {
         <span class="panel__count">{{ total() }} event(s)</span>
       }
+    </div>
+
+    <!-- Search (server-side) + page size (both reset to page 0) -->
+    <div class="form-row form-row--members">
+      <div class="field">
+        <label>Search audit</label>
+        <input type="text" [(ngModel)]="query" (ngModelChange)="onQueryChange()"
+               placeholder="Match action, actor, entity key or type…" aria-label="Search audit events" />
+      </div>
+      @if (query.trim()) {
+        <button type="button" class="btn--sm btn--ghost" (click)="clearSearch()">Clear</button>
+      }
+      <div class="field field--kind">
+        <label>Page size</label>
+        <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)" aria-label="Rows per page">
+          @for (s of pageSizes; track s) { <option [ngValue]="s">{{ s }} / page</option> }
+        </select>
+      </div>
     </div>
 
     @if (loading()) {
@@ -84,11 +103,33 @@
               </tr>
             } @empty {
               <tr>
-                <td class="empty" colspan="5">No audit events.</td>
+                <td class="empty" colspan="5">
+                  @if (query.trim()) { No audit events match “{{ query }}”. }
+                  @else { No audit events. }
+                </td>
               </tr>
             }
           </tbody>
         </table>
+      </div>
+
+      <!-- Bounded pager (page-replacement) -->
+      <div class="pager">
+        <span class="pager__info">
+          @if (total() > 0) { Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }} }
+          @else { No events }
+        </span>
+        <div class="pager__controls">
+          <button type="button" class="btn--sm btn--ghost" (click)="prev()" [disabled]="!canPrev()">Previous</button>
+          <span class="pager__page">
+            Page
+            <input type="number" min="1" [max]="pageCount()" [ngModel]="currentPage()"
+                   (change)="jumpToPage($any($event.target).valueAsNumber)"
+                   aria-label="Jump to page" class="pager__jump" />
+            of {{ pageCount() }}
+          </span>
+          <button type="button" class="btn--sm btn--ghost" (click)="next()" [disabled]="!canNext()">Next</button>
+        </div>
       </div>
     }
   </div>

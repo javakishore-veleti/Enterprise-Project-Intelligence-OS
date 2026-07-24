@@ -4,14 +4,19 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from org_management_api.dtos.common import (
+    GrantPage,
     MemberPage,
     OrganizationPage,
     OrganizationRecord,
+    OrgStatsRecord,
     RepositoryGrantRecord,
+    RepositoryPage,
     RepositoryRecord,
     RolePage,
+    TrackerProjectPage,
     TrackerProjectRecord,
     UserRecord,
+    VisibleProjectPage,
     VisibleProjectRecord,
 )
 from org_management_api.dtos.requests import (
@@ -62,6 +67,10 @@ class OrganizationService(ABC):
 
     @abstractmethod
     def move(self, org_id: str, request: MoveOrganizationRequest) -> OrganizationRecord: ...
+
+    @abstractmethod
+    def stats(self, root: str | None) -> OrgStatsRecord:
+        """Cheap tenancy aggregate counts (COUNT queries only)."""
 
     @abstractmethod
     def list_roots(self) -> list[OrganizationRecord]: ...
@@ -123,6 +132,21 @@ class RepositoryService(ABC):
     @abstractmethod
     def list_repositories(self, org_id: str) -> list[RepositoryRecord]: ...
 
+    @abstractmethod
+    def list_repositories_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> RepositoryPage: ...
+
+    @abstractmethod
+    def list_tracker_projects_page(
+        self, repo_id: str, q: str | None, limit: int, offset: int
+    ) -> TrackerProjectPage: ...
+
+    @abstractmethod
+    def list_grants_page(
+        self, repo_id: str, limit: int, offset: int
+    ) -> GrantPage: ...
+
 
 class AccessService(ABC):
     """Effective-access resolution over the tenancy graph."""
@@ -131,4 +155,14 @@ class AccessService(ABC):
     def visible_projects_for_subject(self, subject: str) -> list[VisibleProjectRecord]: ...
 
     @abstractmethod
+    def visible_projects_for_subject_page(
+        self, subject: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage: ...
+
+    @abstractmethod
     def effective_projects_for_org(self, org_id: str) -> list[VisibleProjectRecord]: ...
+
+    @abstractmethod
+    def effective_projects_for_org_page(
+        self, org_id: str, q: str | None, limit: int, offset: int
+    ) -> VisibleProjectPage: ...

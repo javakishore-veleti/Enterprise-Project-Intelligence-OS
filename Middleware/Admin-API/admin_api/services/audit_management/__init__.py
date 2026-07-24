@@ -11,8 +11,8 @@ class DefaultAuditManagementService(AuditManagementService):
     def __init__(self, audit_dao: AuditDao) -> None:
         self._audit = audit_dao
 
-    def list(self, limit: int, offset: int) -> AuditListResponse:
-        items, total = self._audit.list(limit, offset)
+    def list(self, limit: int, offset: int, q: str | None = None) -> AuditListResponse:
+        items, total = self._audit.list(limit, offset, q)
         return AuditListResponse(
             items=items, page=PageMeta(total=total, limit=limit, offset=offset)
         )

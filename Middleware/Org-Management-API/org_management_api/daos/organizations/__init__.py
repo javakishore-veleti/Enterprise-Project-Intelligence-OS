@@ -9,7 +9,11 @@ from __future__ import annotations
 
 from org_management_api.common.utilities import escape_like
 from org_management_api.daos.connection import Database
-from org_management_api.dtos.common import OrganizationPage, OrganizationRecord
+from org_management_api.dtos.common import (
+    OrganizationPage,
+    OrganizationRecord,
+    OrgStatsRecord,
+)
 from org_management_api.interfaces.daos import OrganizationsDao
 
 _COLUMNS = "org_id, parent_org_id, root_org_id, path, depth, level, name, kind, status, created_at"
@@ -171,6 +175,44 @@ class PostgresOrganizationsDao(OrganizationsDao):
                 (name, kind, org_id))
             row = cur.fetchone()
             return _row(row) if row else None
+
+    def stats(self, root: str | None) -> OrgStatsRecord:
+        # Four COUNT queries, each optionally scoped to one tenant tree via
+        # root_org_id. No rows/subtrees are fetched — just aggregate counts.
+        org_where = ""
+        org_params: tuple = ()
+        mem_join_where = ""
+        repo_where = ""
+        scoped: tuple = ()
+        if root:
+            org_where = "WHERE root_org_id = %s"
+            org_params = (root,)
+            # Memberships have no root column; join to the org for the scope.
+            mem_join_where = (
+                "JOIN org.organizations o ON o.org_id = m.org_id "
+                "WHERE o.root_org_id = %s"
+            )
+            repo_where = "WHERE root_org_id = %s"
+            scoped = (root,)
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT COUNT(*) FROM org.organizations {org_where}", org_params)
+            total_orgs = cur.fetchone()[0]
+            cur.execute(
+                "SELECT COUNT(*) FROM org.organizations "
+                f"WHERE parent_org_id IS NULL{' AND root_org_id = %s' if root else ''}",
+                scoped)
+            root_count = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT COUNT(*) FROM org.memberships m {mem_join_where}", scoped)
+            total_members = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT COUNT(*) FROM org.repositories {repo_where}", scoped)
+            total_repositories = cur.fetchone()[0]
+        return OrgStatsRecord(
+            total_orgs=total_orgs, root_count=root_count,
+            total_members=total_members, total_repositories=total_repositories)
 
     def list_roots(self) -> list[OrganizationRecord]:
         with self._db.connection() as conn:

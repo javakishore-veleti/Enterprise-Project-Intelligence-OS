@@ -47,6 +47,16 @@ class OrganizationListResponse(TypedModel):
     limit: int | None = None
 
 
+class OrgStatsResponse(TypedModel):
+    """Cheap tenancy aggregate counts (COUNT queries only — never a subtree
+    fetch). Powers the dashboard org summary. ``root`` scopes to one tenant."""
+
+    total_orgs: int
+    root_count: int
+    total_members: int
+    total_repositories: int
+
+
 # --- Users / membership / roles ---
 
 class RoleView(TypedModel):
@@ -136,8 +146,16 @@ class RepositoryResponse(TypedModel):
 
 
 class RepositoriesResponse(TypedModel):
+    """Repositories under an org. Paging fields are populated by the paginated
+    list endpoint (``q`` / ``limit`` / ``offset``); ``None`` when unset so the
+    default (no-param) call is unchanged."""
+
     org_id: str
     repositories: list[RepositoryResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 class TrackerProjectResponse(TypedModel):
@@ -148,14 +166,32 @@ class TrackerProjectResponse(TypedModel):
 
 
 class TrackerProjectsResponse(TypedModel):
+    """Tracker projects under a repo. Paging fields populated by the paginated
+    LIST endpoint; ``None`` on the (create) response so that stays unchanged."""
+
     repo_id: str
     projects: list[TrackerProjectResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 class GrantResponse(TypedModel):
     repo_id: str
     grantee_org_id: str
     direction: str
+
+
+class GrantsResponse(TypedModel):
+    """A page of cross-org sharing grants on a repo."""
+
+    repo_id: str
+    grants: list[GrantResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 # --- Effective access resolution ---
@@ -169,10 +205,25 @@ class VisibleProjectResponse(TypedModel):
 
 
 class VisibleProjectsResponse(TypedModel):
+    """A subject's visible tracker projects. Paging fields populated when the
+    caller pages/searches (``q`` / ``limit`` / ``offset``); ``None`` otherwise
+    so the existing no-param call is unchanged."""
+
     subject: str
     projects: list[VisibleProjectResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 class EffectiveProjectsResponse(TypedModel):
+    """An org's effective (visible) tracker projects, with the same optional
+    paging envelope as ``VisibleProjectsResponse``."""
+
     org_id: str
     projects: list[VisibleProjectResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None

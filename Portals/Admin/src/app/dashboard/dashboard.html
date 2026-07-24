@@ -65,12 +65,12 @@
         <div class="panel__body">
           <p class="dash-lead"><strong>{{ orgCount() }}</strong> organization(s) across <strong>{{ rootCount() }}</strong> tenant root(s).</p>
           <ul class="root-list">
-            @for (r of roots(); track r.org.org_id) {
+            @for (r of roots(); track r.org_id) {
               <li class="root-list__item">
                 <span class="root-list__mark">◈</span>
-                <span class="root-list__name">{{ r.org.name }}</span>
-                @if (r.org.kind) { <span class="badge">{{ r.org.kind }}</span> }
-                <span class="badge badge--info root-list__count">{{ r.nodeCount }} node(s)</span>
+                <span class="root-list__name">{{ r.name }}</span>
+                @if (r.kind) { <span class="badge">{{ r.kind }}</span> }
+                <span class="badge badge--info root-list__count">{{ r.child_count ?? 0 }} sub-org(s)</span>
               </li>
             } @empty {
               <li class="root-list__empty">No organizations yet. Create a tenant root in <a routerLink="/organizations">Organizations</a>.</li>

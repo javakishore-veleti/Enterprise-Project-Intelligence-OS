@@ -10,7 +10,7 @@
   <div class="panel">
   <div class="panel__head">
     <h2 class="panel__title">Repositories &amp; Visibility</h2>
-    <span class="panel__count">{{ repositories().length }} repo(s)</span>
+    <span class="panel__count">{{ repoTotal() }} repo(s)</span>
   </div>
 
   <div class="form-row form-row--members">
@@ -33,6 +33,21 @@
     <button type="button" class="btn--sm" (click)="addRepository()" [disabled]="addingRepo()">
       @if (addingRepo()) { <span class="spinner"></span> } @else { Add repository }
     </button>
+  </div>
+
+  <!-- Repo list search + page size (server-side; both reset to page 0) -->
+  <div class="form-row form-row--members">
+    <div class="field">
+      <label>Filter repositories</label>
+      <input type="text" [(ngModel)]="repoFilter" (ngModelChange)="onRepoFilterChange()"
+             placeholder="Filter by provider or account…" aria-label="Filter repositories" />
+    </div>
+    <div class="field field--kind">
+      <label>Page size</label>
+      <select [ngModel]="repoPageSize()" (ngModelChange)="onRepoPageSizeChange($event)" aria-label="Rows per page">
+        @for (s of pageSizes; track s) { <option [ngValue]="s">{{ s }} / page</option> }
+      </select>
+    </div>
   </div>
 
   @if (error()) {
@@ -59,10 +74,34 @@
               </td>
             </tr>
           } @empty {
-            <tr><td class="empty" colspan="4">No repositories connected.</td></tr>
+            <tr>
+              <td class="empty" colspan="4">
+                @if (repoFilter.trim()) { No repositories match “{{ repoFilter }}”. }
+                @else { No repositories connected. }
+              </td>
+            </tr>
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- Bounded repo pager -->
+    <div class="pager">
+      <span class="pager__info">
+        @if (repoTotal() > 0) { Showing {{ repoRangeStart() }}–{{ repoRangeEnd() }} of {{ repoTotal() }} }
+        @else { No repositories }
+      </span>
+      <div class="pager__controls">
+        <button type="button" class="btn--sm btn--ghost" (click)="repoPrev()" [disabled]="!repoCanPrev()">Previous</button>
+        <span class="pager__page">
+          Page
+          <input type="number" min="1" [max]="repoPageCount()" [ngModel]="repoCurrentPage()"
+                 (change)="repoJumpToPage($any($event.target).valueAsNumber)"
+                 aria-label="Jump to page" class="pager__jump" />
+          of {{ repoPageCount() }}
+        </span>
+        <button type="button" class="btn--sm btn--ghost" (click)="repoNext()" [disabled]="!repoCanNext()">Next</button>
+      </div>
     </div>
 
     @if (selectedRepo(); as repo) {
@@ -97,37 +136,122 @@
                 @if (addingProject()) { <span class="spinner"></span> } @else { Add }
               </button>
             </div>
-            @if (projectsFor(repo.repo_id).length) {
-              <div class="chips">
-                @for (p of projectsFor(repo.repo_id); track p.tracker_project_id) {
-                  <span class="chip">{{ p.external_key }}@if (p.name) { · {{ p.name }} }</span>
-                }
-              </div>
-            }
           </div>
+        </div>
 
-          <div class="mini-form">
-            <span class="mini-form__title">Cross-branch / cross-tenant grant</span>
-            <div class="form-row form-row--split">
-              <div class="field"><input type="text" [(ngModel)]="grantOrgId" placeholder="grantee org_id" aria-label="Grantee org id" /></div>
-              <div class="field field--kind">
-                <select [(ngModel)]="grantDirection" aria-label="Grant direction">
-                  @for (d of grantDirections; track d) { <option [value]="d">{{ d }}</option> }
-                </select>
-              </div>
-              <button type="button" class="btn--sm" (click)="addGrant()" [disabled]="addingGrant() || !grantOrgId.trim()">
-                @if (addingGrant()) { <span class="spinner"></span> } @else { Grant }
-              </button>
-            </div>
-            <p class="hint">Grants apply when visibility scope is <strong>shared</strong>.</p>
-            @if (grantsFor(repo.repo_id).length) {
-              <div class="chips">
-                @for (g of grantsFor(repo.repo_id); track g.grantee_org_id) {
-                  <span class="chip">→ {{ g.grantee_org_id }} ({{ g.direction }})</span>
-                }
-              </div>
-            }
+        <!-- Tracker projects (server-paged + searchable, bounded DOM) -->
+        <div class="repo-list-block">
+          <div class="repo-list-block__head">
+            <span class="mini-form__title">Tracker projects</span>
+            <span class="panel__count">{{ projTotal() }} project(s)</span>
           </div>
+          <div class="form-row form-row--members">
+            <div class="field">
+              <label>Filter projects</label>
+              <input type="text" [(ngModel)]="projFilter" (ngModelChange)="onProjFilterChange()"
+                     placeholder="Filter by key or name…" aria-label="Filter tracker projects" />
+            </div>
+            <div class="field field--kind">
+              <label>Page size</label>
+              <select [ngModel]="projPageSize()" (ngModelChange)="onProjPageSizeChange($event)" aria-label="Projects per page">
+                @for (s of pageSizes; track s) { <option [ngValue]="s">{{ s }} / page</option> }
+              </select>
+            </div>
+          </div>
+          @if (projLoading()) {
+            <p class="panel__status"><span class="spinner spinner--brand"></span> Loading projects…</p>
+          } @else {
+            <div class="panel__table-wrap">
+              <table>
+                <thead><tr><th>Project Key</th><th>Name</th></tr></thead>
+                <tbody>
+                  @for (p of projects(); track p.tracker_project_id) {
+                    <tr>
+                      <td class="mono">{{ p.external_key }}</td>
+                      <td>{{ p.name || '—' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td class="empty" colspan="2">
+                        @if (projFilter.trim()) { No projects match “{{ projFilter }}”. }
+                        @else { No tracker projects yet. }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="pager">
+              <span class="pager__info">
+                @if (projTotal() > 0) { Showing {{ projRangeStart() }}–{{ projRangeEnd() }} of {{ projTotal() }} }
+                @else { No projects }
+              </span>
+              <div class="pager__controls">
+                <button type="button" class="btn--sm btn--ghost" (click)="projPrev()" [disabled]="!projCanPrev()">Previous</button>
+                <span class="pager__page">
+                  Page
+                  <input type="number" min="1" [max]="projPageCount()" [ngModel]="projCurrentPage()"
+                         (change)="projJumpToPage($any($event.target).valueAsNumber)"
+                         aria-label="Jump to page" class="pager__jump" />
+                  of {{ projPageCount() }}
+                </span>
+                <button type="button" class="btn--sm btn--ghost" (click)="projNext()" [disabled]="!projCanNext()">Next</button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="mini-form">
+          <span class="mini-form__title">Cross-branch / cross-tenant grant</span>
+          <div class="form-row form-row--split">
+            <div class="field"><input type="text" [(ngModel)]="grantOrgId" placeholder="grantee org_id" aria-label="Grantee org id" /></div>
+            <div class="field field--kind">
+              <select [(ngModel)]="grantDirection" aria-label="Grant direction">
+                @for (d of grantDirections; track d) { <option [value]="d">{{ d }}</option> }
+              </select>
+            </div>
+            <button type="button" class="btn--sm" (click)="addGrant()" [disabled]="addingGrant() || !grantOrgId.trim()">
+              @if (addingGrant()) { <span class="spinner"></span> } @else { Grant }
+            </button>
+          </div>
+          <p class="hint">Grants apply when visibility scope is <strong>shared</strong>.</p>
+        </div>
+
+        <!-- Grants (server-paged, bounded DOM) -->
+        <div class="repo-list-block">
+          <div class="repo-list-block__head">
+            <span class="mini-form__title">Grants</span>
+            <span class="panel__count">{{ grantTotal() }} grant(s)</span>
+          </div>
+          @if (grantLoading()) {
+            <p class="panel__status"><span class="spinner spinner--brand"></span> Loading grants…</p>
+          } @else {
+            <div class="panel__table-wrap">
+              <table>
+                <thead><tr><th>Grantee Org</th><th>Direction</th></tr></thead>
+                <tbody>
+                  @for (g of grants(); track g.grantee_org_id) {
+                    <tr>
+                      <td class="mono">{{ g.grantee_org_id }}</td>
+                      <td><span class="badge badge--info">{{ g.direction }}</span></td>
+                    </tr>
+                  } @empty {
+                    <tr><td class="empty" colspan="2">No grants on this repository.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="pager">
+              <span class="pager__info">
+                @if (grantTotal() > 0) { Showing {{ grantRangeStart() }}–{{ grantRangeEnd() }} of {{ grantTotal() }} }
+                @else { No grants }
+              </span>
+              <div class="pager__controls">
+                <button type="button" class="btn--sm btn--ghost" (click)="grantPrev()" [disabled]="!grantCanPrev()">Previous</button>
+                <button type="button" class="btn--sm btn--ghost" (click)="grantNext()" [disabled]="!grantCanNext()">Next</button>
+              </div>
+            </div>
+          }
         </div>
       </div>
     }

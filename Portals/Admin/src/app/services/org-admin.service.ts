@@ -10,19 +10,24 @@ import {
   CreateOrganizationRequest,
   CreateRepositoryRequest,
   Grant,
+  GrantsResponse,
   Member,
   MemberQuery,
   MembersResponse,
   MoveOrganizationRequest,
   Organization,
   OrgChildrenQuery,
+  OrgStats,
   OrganizationListResponse,
   RepositoriesResponse,
   Repository,
+  RepositoryQuery,
   RolesResponse,
+  TrackerProjectQuery,
   TrackerProjectsResponse,
   UpdateOrganizationRequest,
   UpdateVisibilityRequest,
+  VisibleProjectQuery,
   VisibleProjectsResponse,
 } from '../models/org';
 
@@ -54,6 +59,18 @@ export class OrgAdminService {
 
   getOrg(orgId: string): Observable<Organization> {
     return this.http.get<Organization>(`${this.baseUrl}/orgs/${encodeURIComponent(orgId)}`);
+  }
+
+  /**
+   * Cheap tenancy aggregate counts (COUNT queries only — never a subtree
+   * fetch). Backs the dashboard org summary. `root` scopes to one tenant.
+   */
+  orgStats(root?: string | null): Observable<OrgStats> {
+    let params = new HttpParams();
+    if (root) {
+      params = params.set('root', root);
+    }
+    return this.http.get<OrgStats>(`${this.baseUrl}/orgs/stats`, { params });
   }
 
   /**
@@ -169,9 +186,56 @@ export class OrgAdminService {
 
   // --- Repositories / tracker projects / visibility / grants ----------------
 
-  listRepositories(orgId: string): Observable<RepositoriesResponse> {
+  /**
+   * One PAGE of an org's repositories — server-filtered (`q` on provider /
+   * external_account) and bounded so a large repo set never loads all at once.
+   */
+  listRepositories(
+    orgId: string,
+    opts: RepositoryQuery = {},
+  ): Observable<RepositoriesResponse> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 25)
+      .set('offset', opts.offset ?? 0);
+    if (opts.q) {
+      params = params.set('q', opts.q);
+    }
     return this.http.get<RepositoriesResponse>(
       `${this.baseUrl}/orgs/${encodeURIComponent(orgId)}/repositories`,
+      { params },
+    );
+  }
+
+  /**
+   * One PAGE of a repo's tracker projects — server-filtered (`q` on
+   * external_key / name). A repo can carry thousands, so this is always paged.
+   */
+  listRepositoryProjects(
+    repoId: string,
+    opts: TrackerProjectQuery = {},
+  ): Observable<TrackerProjectsResponse> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 25)
+      .set('offset', opts.offset ?? 0);
+    if (opts.q) {
+      params = params.set('q', opts.q);
+    }
+    return this.http.get<TrackerProjectsResponse>(
+      `${this.baseUrl}/repositories/${encodeURIComponent(repoId)}/projects`,
+      { params },
+    );
+  }
+
+  /** One PAGE of a repo's cross-org sharing grants. */
+  listRepositoryGrants(
+    repoId: string,
+    limit = 25,
+    offset = 0,
+  ): Observable<GrantsResponse> {
+    const params = new HttpParams().set('limit', limit).set('offset', offset);
+    return this.http.get<GrantsResponse>(
+      `${this.baseUrl}/repositories/${encodeURIComponent(repoId)}/grants`,
+      { params },
     );
   }
 
@@ -208,9 +272,23 @@ export class OrgAdminService {
 
   // --- Effective access resolution ------------------------------------------
 
-  visibleProjects(subject: string): Observable<VisibleProjectsResponse> {
+  /**
+   * One PAGE of a subject's visible tracker projects — server-filtered (`q` on
+   * external_key / name) and bounded (the visible set can be huge).
+   */
+  visibleProjects(
+    subject: string,
+    opts: VisibleProjectQuery = {},
+  ): Observable<VisibleProjectsResponse> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 25)
+      .set('offset', opts.offset ?? 0);
+    if (opts.q) {
+      params = params.set('q', opts.q);
+    }
     return this.http.get<VisibleProjectsResponse>(
       `${this.baseUrl}/users/${encodeURIComponent(subject)}/visible-projects`,
+      { params },
     );
   }
 }

@@ -19,6 +19,11 @@ export interface PageParams {
   offset?: number;
 }
 
+/** Page params plus an optional case-insensitive search term (audit). */
+export interface AuditQuery extends PageParams {
+  q?: string;
+}
+
 /**
  * Client for the Admin-API (source of truth: OpenAPI/admin-api.yaml).
  * The middleware is the single governed boundary; this portal never touches
@@ -58,9 +63,13 @@ export class AdminService {
     );
   }
 
-  getAudit(params: PageParams = {}): Observable<AuditListResponse> {
+  getAudit(params: AuditQuery = {}): Observable<AuditListResponse> {
+    let httpParams = this.pageParams(params);
+    if (params.q) {
+      httpParams = httpParams.set('q', params.q);
+    }
     return this.http.get<AuditListResponse>(`${this.baseUrl}/audit`, {
-      params: this.pageParams(params),
+      params: httpParams,
     });
   }
 
