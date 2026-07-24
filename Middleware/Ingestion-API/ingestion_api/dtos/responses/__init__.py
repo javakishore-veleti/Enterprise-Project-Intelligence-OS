@@ -104,6 +104,62 @@ class IngestionProgressResponse(TypedModel):
     recent_log: list[IngestionLogEntry] = []
 
 
+class SyncRunHandleResponse(TypedModel):
+    """Handle returned by "Sync now" — the id is the Airflow dag_run_id too."""
+
+    sync_run_id: str
+    repo_id: str
+    provider: str
+    status: str
+    since: datetime | None = None
+    dag_run: str | None = None
+
+
+class SyncProjectProgress(TypedModel):
+    """Per-project completion tracker within a sync run."""
+
+    project_key: str
+    status: str  # PENDING|IN_PROGRESS|COMPLETED|FAILED
+    issues_intended: int = 0
+    issues_imported: int = 0
+    batches_total: int = 0
+    batches_done: int = 0
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+class SyncBatchInfo(TypedModel):
+    """A committed batch checkpoint (for the per-batch drill-in)."""
+
+    project_key: str
+    batch_no: int
+    source_offset: int
+    record_count: int
+    status: str
+    attempts: int
+    updated_at: datetime
+
+
+class SyncRunProgressResponse(TypedModel):
+    """Aggregated sync-run progress (run + per-project + recent batches), polled by the UI."""
+
+    sync_run_id: str | None
+    repo_id: str
+    org_id: str | None = None
+    root_org_id: str | None = None
+    provider: str | None = None
+    status: str  # NOT_STARTED|RUNNING|COMPLETED|FAILED
+    since: datetime | None = None
+    projects_intended: list[str] = []
+    projects_considered: int = 0
+    projects_total: int = 0
+    issues_total: int = 0
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    projects: list[SyncProjectProgress] = []
+    recent_batches: list[SyncBatchInfo] = []
+
+
 class DatasetStatusResponse(TypedModel):
     """Acquisition status of a configured dataset (the Initial Dataset feature)."""
 

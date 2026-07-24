@@ -7,6 +7,7 @@ from ingestion_api.interfaces.daos import (
     DatasetAcquisitionGateway,
     DatasetIngestionGateway,
     MetricsComputeGateway,
+    TrackerSyncGateway,
 )
 
 
@@ -35,3 +36,12 @@ class AirflowMetricsComputeGateway(MetricsComputeGateway):
 
     def trigger_compute(self) -> str:
         return trigger_dag(self._settings, self._settings.metrics_dag_id, {})
+
+
+class AirflowTrackerSyncGateway(TrackerSyncGateway):
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def trigger_sync(self, sync_run_id: str, conf: dict) -> str:
+        # Pass sync_run_id as Airflow's dag_run_id so dag_run.run_id == sync_run_id.
+        return trigger_dag(self._settings, self._settings.sync_dag_id, conf, dag_run_id=sync_run_id)

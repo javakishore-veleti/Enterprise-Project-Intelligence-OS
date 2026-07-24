@@ -13,14 +13,21 @@ from ingestion_api.common.logging import get_logger
 _logger = get_logger(__name__)
 
 
-def trigger_dag(settings: Settings, dag_id: str, conf: dict) -> str:
+def trigger_dag(settings: Settings, dag_id: str, conf: dict, dag_run_id: str | None = None) -> str:
     """POST a dagRun to Airflow's REST API. Returns the dag_run id.
+
+    When ``dag_run_id`` is given it is used as Airflow's run id, so the caller's
+    own identifier (e.g. a ``sync_run_id``) becomes the DAG-run name — the run and
+    its tracking rows are then trivially correlatable in both directions.
 
     Raises DependencyUnavailableError (-> HTTP 503) if Airflow is unreachable or
     rejects the request, so callers surface a clean "is Airflow running?" error.
     """
     url = f"{settings.airflow_base_url.rstrip('/')}/api/v1/dags/{dag_id}/dagRuns"
-    payload = json.dumps({"conf": conf}).encode()
+    body: dict = {"conf": conf}
+    if dag_run_id:
+        body["dag_run_id"] = dag_run_id
+    payload = json.dumps(body).encode()
     token = base64.b64encode(
         f"{settings.airflow_user}:{settings.airflow_password}".encode()
     ).decode()

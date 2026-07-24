@@ -13,6 +13,7 @@ from ingestion_api.daos.airflow_gateway.dataset_acquisition import (
     AirflowDatasetAcquisitionGateway,
     AirflowDatasetIngestionGateway,
     AirflowMetricsComputeGateway,
+    AirflowTrackerSyncGateway,
 )
 from ingestion_api.daos.connection import Database
 from ingestion_api.daos.datasets import PostgresDatasetsDao
@@ -20,10 +21,12 @@ from ingestion_api.daos.evidence_counts import MongoEvidenceCountsGateway
 from ingestion_api.daos.ingestion_progress import PostgresIngestionProgressDao
 from ingestion_api.daos.ingestion_tracking import PostgresIngestionTrackingDao
 from ingestion_api.daos.operations import PostgresOperationsDao
+from ingestion_api.daos.sync_tracking import PostgresSyncTrackingDao
 from ingestion_api.facades.dataset_operations import DatasetOperationsFacade
 from ingestion_api.facades.get_ingestion_status import GetIngestionStatusFacade
 from ingestion_api.facades.manage_dataset import ManageDatasetFacade
 from ingestion_api.facades.manage_ingestion import ManageIngestionFacade
+from ingestion_api.facades.manage_tracker_sync import ManageTrackerSyncFacade
 from ingestion_api.facades.start_ingestion import StartIngestionFacade
 from ingestion_api.services.dataset_ingestion import DefaultDatasetIngestionService
 from ingestion_api.services.datasets import DefaultDatasetService
@@ -31,6 +34,7 @@ from ingestion_api.services.ingestion_orchestration import (
     DefaultIngestionOrchestrationService,
 )
 from ingestion_api.services.operations import DefaultOperationsService
+from ingestion_api.services.tracker_sync import DefaultTrackerSyncService
 
 
 @lru_cache
@@ -84,3 +88,12 @@ def provide_manage_ingestion_facade() -> ManageIngestionFacade:
         auto_compute_metrics=settings.auto_compute_metrics,
     )
     return ManageIngestionFacade(service)
+
+
+def provide_manage_tracker_sync_facade() -> ManageTrackerSyncFacade:
+    settings = get_settings()
+    service = DefaultTrackerSyncService(
+        PostgresSyncTrackingDao(get_database()),
+        AirflowTrackerSyncGateway(settings),
+    )
+    return ManageTrackerSyncFacade(service)

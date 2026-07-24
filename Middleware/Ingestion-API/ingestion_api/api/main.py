@@ -18,6 +18,7 @@ from ingestion_api.api.routers import (
     health,
     ingestion,
     operations,
+    tracker_sync,
 )
 from ingestion_api.common.configuration import get_settings
 from ingestion_api.common.logging import configure_logging
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(operations.router, dependencies=secured)
     app.include_router(datasets.router, dependencies=secured)
     app.include_router(dataset_ingestion.router, dependencies=secured)
+    app.include_router(tracker_sync.router, dependencies=secured)
     return app
 
 

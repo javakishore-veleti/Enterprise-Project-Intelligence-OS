@@ -7,18 +7,25 @@ from ingestion_api.dtos.common import OperationRecord
 from ingestion_api.dtos.requests import (
     AcquireDatasetRequest,
     IndexDatasetRequest,
+    PlanSyncProjectRequest,
     ReconcileDatasetRequest,
+    RecordSyncBatchRequest,
+    RecordSyncProjectsRequest,
     ReportBatchProgressRequest,
+    RepositorySyncRequest,
     StartDatasetIngestionRequest,
     StartIngestionRequest,
     UpdateDatasetStatusRequest,
     UpdateRunStatusRequest,
+    UpdateSyncRunStatusRequest,
     ValidateDatasetRequest,
 )
 from ingestion_api.dtos.responses import (
     DatasetStatusResponse,
     IngestionProgressResponse,
     IngestionRunResponse,
+    SyncRunHandleResponse,
+    SyncRunProgressResponse,
 )
 
 
@@ -97,3 +104,34 @@ class DatasetIngestionService(ABC):
     @abstractmethod
     def committed_batches(self, run_id: str, entity: str) -> list[int]:
         """Batch numbers already committed for (run, entity) — the DAG skips these to resume."""
+
+
+class TrackerSyncService(ABC):
+    """Tracker-repository sync: trigger the DAG + govern the two-level tracking log."""
+
+    @abstractmethod
+    def start(self, repo_id: str, request: RepositorySyncRequest) -> SyncRunHandleResponse:
+        """Generate a ``sync_run_id``, insert the run, and trigger the sync DAG
+        with ``dag_run_id == sync_run_id``."""
+
+    @abstractmethod
+    def progress(self, repo_id: str) -> SyncRunProgressResponse:
+        """Aggregated progress of the latest sync run for the repo."""
+
+    @abstractmethod
+    def progress_by_run(self, sync_run_id: str) -> SyncRunProgressResponse: ...
+
+    @abstractmethod
+    def record_run_projects(self, sync_run_id: str, request: RecordSyncProjectsRequest) -> None: ...
+
+    @abstractmethod
+    def plan_project(self, sync_run_id: str, project_key: str, request: PlanSyncProjectRequest) -> None: ...
+
+    @abstractmethod
+    def committed_batches(self, sync_run_id: str, project_key: str) -> list[int]: ...
+
+    @abstractmethod
+    def record_batch(self, sync_run_id: str, request: RecordSyncBatchRequest) -> None: ...
+
+    @abstractmethod
+    def finalize_run(self, sync_run_id: str, request: UpdateSyncRunStatusRequest) -> SyncRunProgressResponse: ...

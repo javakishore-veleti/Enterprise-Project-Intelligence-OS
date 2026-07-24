@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     acquire_dag_id: str = Field(default="project_dataset_acquire", alias="ACQUIRE_DAG_ID")
     ingest_dag_id: str = Field(default="project_dataset_ingest", alias="INGEST_DAG_ID")
     metrics_dag_id: str = Field(default="project_metrics_compute", alias="METRICS_DAG_ID")
+    sync_dag_id: str = Field(default="tracker_repository_sync", alias="TRACKER_SYNC_DAG_ID")
     # Auto-trigger metric computation when an ingestion run completes.
     auto_compute_metrics: bool = Field(default=True, alias="AUTO_COMPUTE_METRICS")
 
