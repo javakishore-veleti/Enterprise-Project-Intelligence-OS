@@ -13,6 +13,10 @@ from datetime import datetime, timezone
 
 from org_management_api.common.utilities import new_id
 from org_management_api.dtos.common import (
+    InheritedRoleRecord,
+    MemberPage,
+    MemberRecord,
+    OrganizationPage,
     OrganizationRecord,
     RepositoryGrantRecord,
     RepositoryRecord,
@@ -56,16 +60,36 @@ class FakeOrganizationsDao(OrganizationsDao):
     def __init__(self, store: Store) -> None:
         self._s = store
 
+    def _decorate(self, rec: OrganizationRecord) -> OrganizationRecord:
+        """Attach child_count + member_count, mirroring the production DAO."""
+        child_count = sum(1 for o in self._s.orgs.values() if o.parent_org_id == rec.org_id)
+        member_count = sum(1 for (_uid, oid) in self._s.memberships if oid == rec.org_id)
+        return rec.model_copy(update={"child_count": child_count, "member_count": member_count})
+
     def insert(self, record: OrganizationRecord) -> OrganizationRecord:
         self._s.orgs[record.org_id] = record
         return record
 
     def get(self, org_id: str) -> OrganizationRecord | None:
-        return self._s.orgs.get(org_id)
+        rec = self._s.orgs.get(org_id)
+        return self._decorate(rec) if rec else None
 
-    def children(self, org_id: str) -> list[OrganizationRecord]:
-        rows = [o for o in self._s.orgs.values() if o.parent_org_id == org_id]
-        return sorted(rows, key=lambda o: (o.name, o.org_id))
+    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
+        rows = sorted(
+            (o for o in self._s.orgs.values() if o.parent_org_id == org_id),
+            key=lambda o: (o.name, o.org_id))
+        page = [self._decorate(o) for o in rows[offset:offset + limit]]
+        return OrganizationPage(organizations=page, total=len(rows), offset=offset, limit=limit)
+
+    def search(self, q: str, root: str | None, limit: int, offset: int) -> OrganizationPage:
+        needle = q.lower()
+        rows = [
+            o for o in self._s.orgs.values()
+            if needle in o.name.lower() and (root is None or o.root_org_id == root)
+        ]
+        rows.sort(key=lambda o: (o.name, o.org_id))
+        page = [self._decorate(o) for o in rows[offset:offset + limit]]
+        return OrganizationPage(organizations=page, total=len(rows), offset=offset, limit=limit)
 
     def subtree(self, path: str) -> list[OrganizationRecord]:
         rows = [o for o in self._s.orgs.values() if o.path == path or _under(o.path, path)]
@@ -84,8 +108,10 @@ class FakeOrganizationsDao(OrganizationsDao):
         return rec
 
     def list_roots(self) -> list[OrganizationRecord]:
-        rows = [o for o in self._s.orgs.values() if o.parent_org_id is None]
-        return sorted(rows, key=lambda o: (o.name, o.org_id))
+        rows = sorted(
+            (o for o in self._s.orgs.values() if o.parent_org_id is None),
+            key=lambda o: (o.name, o.org_id))
+        return [self._decorate(o) for o in rows]
 
     def list_by_root(self, root_org_id: str) -> list[OrganizationRecord]:
         rows = [o for o in self._s.orgs.values() if o.root_org_id == root_org_id]
@@ -151,6 +177,48 @@ class FakeMembersDao(MembersDao):
             (self._user_by_id(uid) for (uid, oid) in self._s.memberships if oid == org_id),
             key=lambda u: u.subject)
         return [(u, self._roles_for(u.user_id, org_id)) for u in users]
+
+    def _inherited_for(self, user_id, ancestor_org_ids) -> list[InheritedRoleRecord]:
+        out: list[InheritedRoleRecord] = []
+        ancestors = set(ancestor_org_ids)
+        for (uid, oid, role), inh in self._s.roles.items():
+            if uid != user_id or oid not in ancestors or not inh:
+                continue
+            src = self._s.orgs.get(oid)
+            if src is None:
+                continue
+            out.append(InheritedRoleRecord(
+                role=role, source_org_id=oid,
+                source_org_name=src.name, source_org_level=src.level))
+        return sorted(out, key=lambda r: (r.source_org_level, r.role))
+
+    def list_members_page(self, org_id, q, role, limit, offset, ancestor_org_ids) -> MemberPage:
+        users = [self._user_by_id(uid) for (uid, oid) in self._s.memberships if oid == org_id]
+        if q:
+            needle = q.lower()
+            users = [
+                u for u in users
+                if needle in (u.subject or "").lower()
+                or needle in (u.display_name or "").lower()
+                or needle in (u.email or "").lower()
+            ]
+        if role:
+            users = [
+                u for u in users
+                if any(r.role == role for r in self._roles_for(u.user_id, org_id))
+            ]
+        users.sort(key=lambda u: (u.subject, u.user_id))
+        total = len(users)
+        page = users[offset:offset + limit]
+        members = [
+            MemberRecord(
+                user=u,
+                direct_roles=self._roles_for(u.user_id, org_id),
+                inherited_roles=self._inherited_for(u.user_id, ancestor_org_ids),
+            )
+            for u in page
+        ]
+        return MemberPage(members=members, total=total, offset=offset, limit=limit)
 
     def list_orgs_for_user(self, subject):
         user = self._s.users.get(subject)

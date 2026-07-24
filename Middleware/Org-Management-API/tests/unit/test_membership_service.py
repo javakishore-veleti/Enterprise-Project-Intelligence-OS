@@ -75,3 +75,68 @@ def test_create_user_and_missing_user_orgs() -> None:
     assert created.subject == "carol" and created.display_name == "Carol"
     with pytest.raises(NotFoundError):
         members.list_orgs_for_user("ghost")
+
+
+# --- paged / filtered members ---------------------------------------------
+
+
+def test_list_members_page_paginates_and_orders() -> None:
+    members, orgs, _ = _wire()
+    org = orgs.create(CreateOrganizationRequest(name="Acme"))
+    for subj in ["dave", "alice", "carol", "bob"]:
+        members.add_member(org.org_id, AddMemberRequest(subject=subj, roles=["viewer"]))
+
+    first = members.list_members_page(org.org_id, None, None, limit=2, offset=0)
+    assert first.total == 4 and first.limit == 2 and first.offset == 0
+    assert [m.user.subject for m in first.members] == ["alice", "bob"]  # ordered by subject
+
+    second = members.list_members_page(org.org_id, None, None, limit=2, offset=2)
+    assert [m.user.subject for m in second.members] == ["carol", "dave"]
+
+
+def test_list_members_page_q_and_role_filters() -> None:
+    members, orgs, _ = _wire()
+    org = orgs.create(CreateOrganizationRequest(name="Acme"))
+    members.add_member(org.org_id, AddMemberRequest(
+        subject="alice", roles=["admin"], display_name="Alice Ng", email="alice@x.io"))
+    members.add_member(org.org_id, AddMemberRequest(subject="bob", roles=["viewer"]))
+
+    # q matches display_name substring, case-insensitive.
+    by_q = members.list_members_page(org.org_id, "ng", None, limit=25, offset=0)
+    assert [m.user.subject for m in by_q.members] == ["alice"]
+
+    # role filter keeps only members holding that direct role.
+    by_role = members.list_members_page(org.org_id, None, "viewer", limit=25, offset=0)
+    assert [m.user.subject for m in by_role.members] == ["bob"]
+
+
+def test_list_members_page_resolves_inherited_roles_from_ancestors() -> None:
+    members, orgs, _ = _wire()
+    root = orgs.create(CreateOrganizationRequest(name="Acme"))
+    emea = orgs.create(CreateOrganizationRequest(name="EMEA", parent_org_id=root.org_id))
+
+    # alice is an admin at the ROOT with inherits_down=true, and a member of EMEA.
+    members.add_member(root.org_id, AddMemberRequest(subject="alice", roles=["admin"], inherits_down=True))
+    members.add_member(emea.org_id, AddMemberRequest(subject="alice", roles=["lead"]))
+    # bob holds a NON-inheriting role at root; it must NOT surface in EMEA.
+    members.add_member(root.org_id, AddMemberRequest(subject="bob", roles=["auditor"], inherits_down=False))
+    members.add_member(emea.org_id, AddMemberRequest(subject="bob", roles=[]))
+
+    page = members.list_members_page(emea.org_id, None, None, limit=25, offset=0)
+    by_subject = {m.user.subject: m for m in page.members}
+
+    alice = by_subject["alice"]
+    assert {r.role for r in alice.direct_roles} == {"lead"}
+    assert [r.role for r in alice.inherited_roles] == ["admin"]
+    assert alice.inherited_roles[0].source_org_id == root.org_id
+    assert alice.inherited_roles[0].source_org_name == "Acme"
+    assert alice.inherited_roles[0].source_org_level == 1
+
+    bob = by_subject["bob"]
+    assert bob.inherited_roles == []  # inherits_down=false is not inherited down
+
+
+def test_list_members_page_missing_org_raises() -> None:
+    members, _, _ = _wire()
+    with pytest.raises(NotFoundError):
+        members.list_members_page("nope", None, None, limit=25, offset=0)

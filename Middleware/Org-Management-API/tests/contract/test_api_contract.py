@@ -75,6 +75,81 @@ def test_organization_tree_lifecycle() -> None:
     assert renamed.json()["name"] == "Acme EMEA"
 
 
+def test_children_pagination_and_counts_contract() -> None:
+    c = _client()
+    root = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    for name in ["Delta", "Alpha", "Charlie"]:
+        c.post("/api/v1/orgs", json={"name": name, "parent_org_id": root["org_id"]})
+
+    # Roots list carries child_count without fetching children.
+    roots = c.get("/api/v1/orgs").json()["organizations"]
+    assert roots[0]["child_count"] == 3
+    assert roots[0]["member_count"] == 0
+
+    # First page of children, ordered by name, with paging envelope.
+    page = c.get(f"/api/v1/orgs/{root['org_id']}/children?limit=2&offset=0").json()
+    assert page["total"] == 3 and page["returned"] == 2
+    assert page["limit"] == 2 and page["offset"] == 0
+    assert [o["name"] for o in page["organizations"]] == ["Alpha", "Charlie"]
+
+    # Default (no params) still works — first page.
+    default = c.get(f"/api/v1/orgs/{root['org_id']}/children").json()
+    assert len(default["organizations"]) == 3
+
+
+def test_org_search_contract() -> None:
+    c = _client()
+    acme = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    c.post("/api/v1/orgs", json={"name": "Acme Sales", "parent_org_id": acme["org_id"]})
+    globex = c.post("/api/v1/orgs", json={"name": "Globex"}).json()
+    c.post("/api/v1/orgs", json={"name": "Acme Corp", "parent_org_id": globex["org_id"]})
+
+    allm = c.get("/api/v1/orgs/search?q=acme").json()
+    assert allm["total"] == 3
+    assert {o["name"] for o in allm["organizations"]} == {"Acme", "Acme Sales", "Acme Corp"}
+    # Each item carries path + level + child_count for the "where it sits" UI.
+    top = next(o for o in allm["organizations"] if o["name"] == "Acme")
+    assert top["level"] == 1 and top["child_count"] == 1 and "path" in top
+
+    scoped = c.get(f"/api/v1/orgs/search?q=acme&root={acme['org_id']}").json()
+    assert {o["name"] for o in scoped["organizations"]} == {"Acme", "Acme Sales"}
+
+
+def test_members_paging_filter_and_inherited_roles_contract() -> None:
+    c = _client()
+    root = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    emea = c.post("/api/v1/orgs", json={"name": "EMEA", "parent_org_id": root["org_id"]}).json()
+
+    c.post(f"/api/v1/orgs/{root['org_id']}/members",
+           json={"subject": "alice", "roles": ["admin"], "inherits_down": True})
+    c.post(f"/api/v1/orgs/{emea['org_id']}/members",
+           json={"subject": "alice", "roles": ["lead"]})
+    c.post(f"/api/v1/orgs/{emea['org_id']}/members",
+           json={"subject": "bob", "roles": ["viewer"]})
+
+    # Paged list with envelope + member_count on the org.
+    page = c.get(f"/api/v1/orgs/{emea['org_id']}/members?limit=1&offset=0").json()
+    assert page["total"] == 2 and page["returned"] == 1 and page["limit"] == 1
+
+    # role filter
+    leads = c.get(f"/api/v1/orgs/{emea['org_id']}/members?role=lead").json()["members"]
+    assert [m["subject"] for m in leads] == ["alice"]
+
+    # q filter
+    found = c.get(f"/api/v1/orgs/{emea['org_id']}/members?q=ali").json()["members"]
+    assert [m["subject"] for m in found] == ["alice"]
+
+    # inherited-role resolution for alice (admin inherited from Acme root).
+    alice = next(m for m in c.get(f"/api/v1/orgs/{emea['org_id']}/members").json()["members"]
+                 if m["subject"] == "alice")
+    assert {r["role"] for r in alice["direct_roles"]} == {"lead"}
+    assert [r["role"] for r in alice["inherited_roles"]] == ["admin"]
+    assert alice["inherited_roles"][0]["source_org_name"] == "Acme"
+
+    # member_count surfaces on the org record.
+    assert c.get(f"/api/v1/orgs/{emea['org_id']}").json()["member_count"] == 2
+
+
 def test_move_endpoint_reparents_and_recomputes() -> None:
     c = _client()
     root = c.post("/api/v1/orgs", json={"name": "Acme"}).json()

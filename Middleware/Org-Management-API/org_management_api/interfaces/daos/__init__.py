@@ -4,6 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from org_management_api.dtos.common import (
+    MemberPage,
+    OrganizationPage,
     OrganizationRecord,
     RepositoryGrantRecord,
     RepositoryRecord,
@@ -24,8 +26,16 @@ class OrganizationsDao(ABC):
     def get(self, org_id: str) -> OrganizationRecord | None: ...
 
     @abstractmethod
-    def children(self, org_id: str) -> list[OrganizationRecord]:
-        """Direct children of an org (one level down)."""
+    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
+        """One PAGE of direct children (one level down), ordered by name, with the
+        total child count for the paging envelope."""
+
+    @abstractmethod
+    def search(
+        self, q: str, root: str | None, limit: int, offset: int
+    ) -> OrganizationPage:
+        """One page of orgs whose ``name`` matches ``q`` (case-insensitive,
+        substring), optionally scoped to a tenant via ``root`` (root_org_id)."""
 
     @abstractmethod
     def subtree(self, path: str) -> list[OrganizationRecord]:
@@ -91,6 +101,21 @@ class MembersDao(ABC):
         self, org_id: str
     ) -> list[tuple[UserRecord, list[RoleAssignmentRecord]]]:
         """Members of an org, each with the roles they hold there."""
+
+    @abstractmethod
+    def list_members_page(
+        self,
+        org_id: str,
+        q: str | None,
+        role: str | None,
+        limit: int,
+        offset: int,
+        ancestor_org_ids: list[str],
+    ) -> MemberPage:
+        """One PAGE of an org's members, filtered by ``q`` (substring on
+        subject/display_name/email) and/or ``role`` (holds that direct role),
+        each row carrying direct roles PLUS roles inherited from the given
+        ancestor orgs (``inherits_down = true``). One bounded query set, no N+1."""
 
     @abstractmethod
     def list_orgs_for_user(

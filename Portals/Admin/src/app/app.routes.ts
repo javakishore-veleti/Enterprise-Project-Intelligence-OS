@@ -6,13 +6,33 @@ import { AuditList } from './audit-list/audit-list';
 import { SystemHealth } from './system-health/system-health';
 import { DataManagement } from './data-management/data-management';
 import { InitialDataset } from './initial-dataset/initial-dataset';
-import { Organizations } from './organizations/organizations';
+import { OrgTree } from './organizations/org-tree/org-tree';
+import { OrgDetail } from './organizations/org-detail/org-detail';
+import { OrgOverview } from './organizations/org-overview/org-overview';
+import { OrgMembers } from './organizations/org-members/org-members';
+import { OrgRepositories } from './organizations/org-repositories/org-repositories';
+import { OrgAccess } from './organizations/org-access/org-access';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: Dashboard },
   { path: 'agents', component: AgentsList },
-  { path: 'organizations', component: Organizations },
+
+  // Organizations: each operation is its own deep-linkable page. The tree page
+  // lazy-loads; the per-org detail shell hosts the Overview/Members/Repos/Access
+  // sub-pages, each of which loads only its own data on demand.
+  { path: 'organizations', component: OrgTree },
+  {
+    path: 'organizations/:orgId',
+    component: OrgDetail,
+    children: [
+      { path: '', component: OrgOverview },
+      { path: 'members', component: OrgMembers },
+      { path: 'repositories', component: OrgRepositories },
+      { path: 'access', component: OrgAccess },
+    ],
+  },
+
   { path: 'audit', component: AuditList },
   { path: 'health', component: SystemHealth },
   {

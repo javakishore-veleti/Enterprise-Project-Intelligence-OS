@@ -49,6 +49,23 @@ class OrganizationRecord(TypedModel):
     kind: str | None = None
     status: str = "active"
     created_at: datetime
+    # Cheap aggregate counters populated on read (grouped, never N+1). Default 0
+    # so records built without the counts (subtree/ancestors) stay valid.
+    child_count: int = 0    # number of DIRECT children (by parent_org_id)
+    member_count: int = 0   # number of direct memberships in this org
+
+
+class OrganizationPage(TypedModel):
+    """A single page of org records plus the paging envelope.
+
+    Returned by the paginated tree reads (children, search) so the caller can
+    render an expand/"load more" affordance without ever loading a whole subtree.
+    """
+
+    organizations: list[OrganizationRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
 
 
 class UserRecord(TypedModel):
@@ -66,6 +83,38 @@ class RoleAssignmentRecord(TypedModel):
 
     role: str
     inherits_down: bool = True
+
+
+class InheritedRoleRecord(TypedModel):
+    """A role that applies to a member in the current org because they hold it in
+    an ANCESTOR org whose assignment has ``inherits_down = true``.
+
+    Carries the source org so the UI can show WHERE the role comes from (the
+    inheritance chain), keeping it distinct from a direct assignment.
+    """
+
+    role: str
+    source_org_id: str
+    source_org_name: str
+    source_org_level: int
+
+
+class MemberRecord(TypedModel):
+    """A member of an org: identity + their direct roles here + roles inherited
+    from ancestor orgs (effective = direct ∪ inherited)."""
+
+    user: UserRecord
+    direct_roles: list[RoleAssignmentRecord] = []
+    inherited_roles: list[InheritedRoleRecord] = []
+
+
+class MemberPage(TypedModel):
+    """A single page of org members plus the paging envelope."""
+
+    members: list[MemberRecord] = []
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
 
 
 class RepositoryRecord(TypedModel):

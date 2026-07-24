@@ -1,0 +1,2 @@
+/* Page-specific tweaks for the org-tree view (shared bits live in ../org.css). */
+:host { display: block; }

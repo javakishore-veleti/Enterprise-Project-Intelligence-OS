@@ -5,7 +5,7 @@ shape (including the 1-indexed `level`, root = 1).
 """
 from __future__ import annotations
 
-from org_management_api.dtos.common import OrganizationRecord
+from org_management_api.dtos.common import OrganizationPage, OrganizationRecord
 from org_management_api.dtos.requests import (
     CreateOrganizationRequest,
     MoveOrganizationRequest,
@@ -30,11 +30,23 @@ def _response(rec: OrganizationRecord) -> OrganizationResponse:
         kind=rec.kind,
         status=rec.status,
         created_at=rec.created_at,
+        child_count=rec.child_count,
+        member_count=rec.member_count,
     )
 
 
 def _list(records: list[OrganizationRecord]) -> OrganizationListResponse:
     return OrganizationListResponse(organizations=[_response(r) for r in records])
+
+
+def _page(page: OrganizationPage) -> OrganizationListResponse:
+    return OrganizationListResponse(
+        organizations=[_response(r) for r in page.organizations],
+        total=page.total,
+        returned=len(page.organizations),
+        offset=page.offset,
+        limit=page.limit,
+    )
 
 
 class ManageOrganizationsFacade:
@@ -47,8 +59,13 @@ class ManageOrganizationsFacade:
     def get(self, org_id: str) -> OrganizationResponse:
         return _response(self._service.get(org_id))
 
-    def children(self, org_id: str) -> OrganizationListResponse:
-        return _list(self._service.children(org_id))
+    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationListResponse:
+        return _page(self._service.children(org_id, limit, offset))
+
+    def search(
+        self, q: str, root: str | None, limit: int, offset: int
+    ) -> OrganizationListResponse:
+        return _page(self._service.search(q, root, limit, offset))
 
     def subtree(self, org_id: str) -> OrganizationListResponse:
         return _list(self._service.subtree(org_id))

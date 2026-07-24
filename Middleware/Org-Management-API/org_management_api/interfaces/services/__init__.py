@@ -4,6 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from org_management_api.dtos.common import (
+    MemberPage,
+    OrganizationPage,
     OrganizationRecord,
     RepositoryGrantRecord,
     RepositoryRecord,
@@ -34,7 +36,12 @@ class OrganizationService(ABC):
     def get(self, org_id: str) -> OrganizationRecord: ...
 
     @abstractmethod
-    def children(self, org_id: str) -> list[OrganizationRecord]: ...
+    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage: ...
+
+    @abstractmethod
+    def search(
+        self, q: str, root: str | None, limit: int, offset: int
+    ) -> OrganizationPage: ...
 
     @abstractmethod
     def subtree(self, org_id: str) -> list[OrganizationRecord]: ...
@@ -69,6 +76,12 @@ class MembershipService(ABC):
 
     @abstractmethod
     def list_members(self, org_id: str) -> list[tuple[UserRecord, list]]: ...
+
+    @abstractmethod
+    def list_members_page(
+        self, org_id: str, q: str | None, role: str | None, limit: int, offset: int
+    ) -> MemberPage:
+        """One page of an org's members with direct + inherited roles resolved."""
 
     @abstractmethod
     def list_orgs_for_user(self, subject: str) -> list[tuple[OrganizationRecord, list]]: ...

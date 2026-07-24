@@ -37,6 +37,19 @@ def list_organizations(
     return facade.list_tenant(root) if root else facade.list_roots()
 
 
+# NOTE: declared BEFORE `/{org_id}` so the literal `/search` path is not captured
+# as an org id by the parameterized route.
+@router.get("/search", response_model=OrganizationListResponse, operation_id="searchOrganizations")
+def search_organizations(
+    q: str = Query(..., min_length=1, description="Case-insensitive substring match on org name."),
+    root: str | None = Query(default=None, description="Restrict to one tenant (root_org_id)."),
+    limit: int = Query(default=25, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    facade: ManageOrganizationsFacade = Facade,
+):
+    return facade.search(q, root, limit, offset)
+
+
 @router.get("/{org_id}", response_model=OrganizationResponse, operation_id="getOrganization")
 def get_organization(org_id: str, facade: ManageOrganizationsFacade = Facade):
     return facade.get(org_id)
@@ -44,8 +57,13 @@ def get_organization(org_id: str, facade: ManageOrganizationsFacade = Facade):
 
 @router.get("/{org_id}/children", response_model=OrganizationListResponse,
             operation_id="getOrganizationChildren")
-def get_children(org_id: str, facade: ManageOrganizationsFacade = Facade):
-    return facade.children(org_id)
+def get_children(
+    org_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    facade: ManageOrganizationsFacade = Facade,
+):
+    return facade.children(org_id, limit, offset)
 
 
 @router.get("/{org_id}/subtree", response_model=OrganizationListResponse,

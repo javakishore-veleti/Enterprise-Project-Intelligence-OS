@@ -1,0 +1,156 @@
+/* Shared Organizations styles — teal/azure tokens only (NO violet). Reuses the
+   .panel / .kpi / table / badge system from styles.css. Referenced by every
+   routed org page so the tree, search, paging and role badges read as one system. */
+
+.kpi__value--sm { font-size: 1.05rem; line-height: 1.25; }
+
+/* ---- Detail-shell breadcrumb + tabs -------------------------------------- */
+.org-crumb {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  font-size: .85rem; color: var(--ink-500); margin-bottom: 1rem;
+}
+.org-crumb a { color: var(--brand-500); font-weight: 600; }
+.org-crumb a:hover { color: var(--brand-400); }
+.org-crumb__sep { color: var(--ink-300); }
+.org-crumb__here { color: var(--ink-900); font-weight: 700; }
+
+.org-tabs {
+  display: flex; gap: .3rem; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); margin-bottom: 1.3rem;
+}
+.org-tabs a {
+  padding: .55rem .9rem; font-size: .86rem; font-weight: 600;
+  color: var(--ink-500); border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.org-tabs a:hover { color: var(--brand-500); background: var(--surface-alt); }
+.org-tabs a.is-active { color: var(--brand-600); border-bottom-color: var(--brand-500); }
+
+/* ---- Search bar ---------------------------------------------------------- */
+.org-search { display: flex; gap: .7rem; flex-wrap: wrap; align-items: flex-end; }
+.org-search .field { flex: 1; min-width: 12rem; }
+.org-search .field--scope { flex: 0 0 12rem; min-width: 10rem; }
+.search-results {
+  margin-top: .8rem; display: flex; flex-direction: column; gap: .2rem;
+}
+.search-result {
+  display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left;
+  padding: .55rem .7rem; background: transparent; color: var(--ink-800);
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  box-shadow: none; font-weight: 600;
+}
+.search-result:hover { background: var(--surface-alt); box-shadow: none; filter: none; border-color: var(--border-strong); }
+.search-result__name { flex: none; }
+.search-result__crumb {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .74rem; color: var(--ink-400); font-weight: 600;
+}
+
+/* ---- Lazy tree ----------------------------------------------------------- */
+.tree { padding: .5rem .4rem .8rem; display: flex; flex-direction: column; gap: .12rem; }
+.tree__row { display: flex; align-items: center; }
+.tree__chevron {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: var(--ink-400); box-shadow: none; padding: 0;
+}
+.tree__chevron:hover { background: var(--bg-2); color: var(--brand-500); box-shadow: none; filter: none; }
+.tree__chevron svg { transition: transform .15s ease; }
+.tree__chevron.is-open svg { transform: rotate(90deg); }
+.tree__chevron--leaf { visibility: hidden; }
+
+.tree__node {
+  display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 0; text-align: left;
+  padding: .45rem .6rem; background: transparent; color: var(--ink-700);
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  box-shadow: none; font-weight: 600; font-size: .9rem;
+}
+.tree__node:hover { background: var(--surface-alt); filter: none; box-shadow: none; color: var(--ink-900); }
+.tree__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree__level { flex: none; background: var(--bg-2); color: var(--brand-500); }
+.tree__count {
+  flex: none; font-size: .72rem; color: var(--ink-400); font-weight: 700;
+  display: inline-flex; align-items: center; gap: .25rem;
+}
+.tree__kind { flex: none; font-size: .72rem; color: var(--ink-400); font-weight: 600; }
+.tree__loadmore {
+  margin: .1rem 0 .2rem; padding: .4rem .7rem; font-size: .78rem; font-weight: 600;
+  color: var(--brand-500); background: transparent; border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm); box-shadow: none;
+}
+.tree__loadmore:hover { background: var(--bg-2); box-shadow: none; filter: none; }
+.tree__nodeloading { font-size: .74rem; color: var(--ink-400); padding: .2rem .6rem; }
+
+/* ---- Mini action forms --------------------------------------------------- */
+.actions-stack { display: flex; flex-direction: column; gap: 1.1rem; }
+.mini-form { display: flex; flex-direction: column; gap: .5rem; }
+.mini-form__title {
+  font-size: .74rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--brand-500); font-weight: 700;
+}
+.form-row { display: flex; align-items: flex-end; gap: .7rem; flex-wrap: wrap; }
+.form-row--split { padding: 1rem 1.25rem 0; }
+.actions-stack .form-row--split { padding: 0; }
+.form-row--members { padding: 1rem 1.25rem; gap: .8rem; }
+.field { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 9rem; }
+.field--kind { flex: 0 0 8.5rem; min-width: 8.5rem; }
+.field label { color: var(--ink-700); font-size: .78rem; font-weight: 600; }
+.toggle {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .82rem; color: var(--ink-700); font-weight: 600; white-space: nowrap;
+  padding-bottom: .5rem;
+}
+.multi { min-height: 5.4rem; }
+.hint { font-size: .76rem; color: var(--ink-500); margin: 0; }
+.hint.mono { color: var(--ink-400); }
+.strong { font-weight: 700; color: var(--ink-900); }
+
+/* ---- Overview facts ------------------------------------------------------ */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding: 1rem 1.25rem 1.25rem; }
+.fact { display: flex; flex-direction: column; gap: .25rem; }
+.fact__label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-400); font-weight: 700; }
+.fact__value { font-size: 1rem; color: var(--ink-900); font-weight: 700; }
+.fact__value.mono { font-size: .82rem; }
+
+/* ---- Members: role badges + pagination ----------------------------------- */
+.role-badges { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+.badge--inherited {
+  background: var(--surface); color: var(--brand-600);
+  border: 1px dashed var(--brand-300); font-weight: 600;
+}
+.badge--inherited small { font-weight: 600; opacity: .8; }
+
+.pager {
+  display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+  flex-wrap: wrap; padding: .8rem 1.25rem; border-top: 1px solid var(--border);
+}
+.pager__info { font-size: .8rem; color: var(--ink-500); font-weight: 600; }
+.pager__controls { display: flex; align-items: center; gap: .5rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  display: inline-flex; align-items: center; padding: .25rem .6rem; border-radius: 999px;
+  background: var(--bg-2); color: var(--brand-500); font-size: .74rem; font-weight: 600;
+  border: 1px solid var(--border-strong);
+}
+
+.empty-hint { text-align: center; color: var(--ink-500); padding: 2.4rem 1.5rem; }
+.empty-hint__icon {
+  width: 54px; height: 54px; margin: 0 auto .8rem; display: grid; place-items: center;
+  border-radius: 14px; background: var(--bg-2); color: var(--brand-500); font-size: 1.5rem;
+}
+.empty { text-align: center; color: var(--ink-400); font-style: italic; }
+
+/* ---- Repository detail --------------------------------------------------- */
+.repo-detail { border-top: 1px solid var(--border); background: var(--surface-alt); padding: 1.1rem 1.25rem 1.35rem; }
+.repo-detail__title { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-size: .98rem; margin: 0 0 1rem; }
+.repo-detail__id { font-size: .72rem; color: var(--ink-400); font-weight: 600; }
+.repo-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
+tbody tr.is-active-row { background: var(--bg-2); box-shadow: inset 3px 0 0 var(--brand-400); }
+tbody tr.is-active-row:hover { background: var(--bg-2); }
+
+/* ---- Access result ------------------------------------------------------- */
+.access-result { margin-top: 1.1rem; }
+.access-result__head { font-size: .92rem; color: var(--ink-700); margin-bottom: .6rem; }
+.access-result__head strong { color: var(--ink-900); }
+.form-row--access { padding: 0; align-items: flex-end; }

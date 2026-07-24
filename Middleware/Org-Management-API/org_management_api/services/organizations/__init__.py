@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from org_management_api.common.exceptions import NotFoundError, ValidationError
 from org_management_api.common.utilities import new_id, utc_now
-from org_management_api.dtos.common import OrganizationRecord
+from org_management_api.dtos.common import OrganizationPage, OrganizationRecord
 from org_management_api.dtos.requests import (
     CreateOrganizationRequest,
     MoveOrganizationRequest,
@@ -69,9 +69,16 @@ class DefaultOrganizationService(OrganizationService):
     def get(self, org_id: str) -> OrganizationRecord:
         return self._require(org_id)
 
-    def children(self, org_id: str) -> list[OrganizationRecord]:
+    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
         self._require(org_id)
-        return self._dao.children(org_id)
+        return self._dao.children(org_id, limit, offset)
+
+    def search(
+        self, q: str, root: str | None, limit: int, offset: int
+    ) -> OrganizationPage:
+        # `root` scopes the search to one tenant tree; a missing root is validated
+        # lazily (an unknown root simply returns no matches).
+        return self._dao.search(q, root, limit, offset)
 
     def subtree(self, org_id: str) -> list[OrganizationRecord]:
         rec = self._require(org_id)

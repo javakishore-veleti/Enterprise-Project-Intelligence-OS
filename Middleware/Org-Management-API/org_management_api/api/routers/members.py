@@ -1,7 +1,7 @@
 """User / membership / role endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from org_management_api.api.dependencies import provide_manage_members_facade
 from org_management_api.dtos.requests import AddMemberRequest, CreateUserRequest
@@ -32,8 +32,16 @@ def add_member(org_id: str, request: AddMemberRequest, facade: ManageMembersFaca
 
 @router.get("/orgs/{org_id}/members", response_model=MembersResponse,
             operation_id="listOrganizationMembers")
-def list_members(org_id: str, facade: ManageMembersFacade = Facade):
-    return facade.list_members(org_id)
+def list_members(
+    org_id: str,
+    q: str | None = Query(default=None, description="Substring match on subject/display_name/email."),
+    role: str | None = Query(default=None, description="Only members holding this direct role."),
+    limit: int = Query(default=25, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    facade: ManageMembersFacade = Facade,
+):
+    # Server-paged + filterable; each row carries direct + inherited roles.
+    return facade.list_members_page(org_id, q, role, limit, offset)
 
 
 @router.get("/users/{subject}/orgs", response_model=UserOrgsResponse,

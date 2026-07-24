@@ -13,3 +13,12 @@ def new_id() -> str:
 def utc_now() -> datetime:
     """Return the current UTC time as a timezone-aware datetime."""
     return datetime.now(timezone.utc)
+
+
+def escape_like(term: str) -> str:
+    """Escape LIKE/ILIKE wildcards so user-supplied text is matched literally.
+
+    Pair the result with ``ESCAPE '\\'`` in the SQL predicate. Used by the org
+    search + member search filters so ``%`` / ``_`` in input are not wildcards.
+    """
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

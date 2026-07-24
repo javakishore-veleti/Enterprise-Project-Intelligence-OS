@@ -1,0 +1,100 @@
+<div class="panel">
+  <div class="panel__head">
+    <h2 class="panel__title">Members &amp; Roles</h2>
+    <span class="panel__count">{{ total() }} member(s)</span>
+  </div>
+
+  <!-- Add member -->
+  <div class="form-row form-row--members">
+    <div class="field">
+      <label>Subject</label>
+      <input type="text" [(ngModel)]="memberSubject" placeholder="alice, bob…" aria-label="Member subject" />
+    </div>
+    <div class="field">
+      <label>Roles</label>
+      <select multiple [(ngModel)]="memberRoles" aria-label="Member roles" class="multi">
+        @for (r of roleOptions; track r) { <option [value]="r">{{ r }}</option> }
+      </select>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" [(ngModel)]="memberInherits" /> inherits down
+    </label>
+    <button type="button" class="btn--sm" (click)="addMember()" [disabled]="addingMember() || !memberSubject.trim()">
+      @if (addingMember()) { <span class="spinner"></span> } @else { Add member }
+    </button>
+  </div>
+
+  <!-- Search + role filter -->
+  <div class="form-row form-row--members" style="padding-top: 0;">
+    <div class="field">
+      <label>Search</label>
+      <input type="text" [(ngModel)]="query" (ngModelChange)="onQueryChange()"
+             placeholder="subject, name or email…" aria-label="Search members" />
+    </div>
+    <div class="field field--kind">
+      <label>Role</label>
+      <select [(ngModel)]="roleFilter" (ngModelChange)="onRoleFilterChange()" aria-label="Filter by role">
+        <option value="">All roles</option>
+        @for (r of roleOptions; track r) { <option [value]="r">{{ r }}</option> }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
+  }
+  @if (loading()) {
+    <p class="panel__status"><span class="spinner spinner--brand"></span> Loading members…</p>
+  } @else {
+    <div class="panel__table-wrap">
+      <table>
+        <thead>
+          <tr><th>Subject</th><th>Direct Roles</th><th>Inherited Roles</th><th class="center">Inherits Down</th></tr>
+        </thead>
+        <tbody>
+          @for (m of members(); track m.user_id) {
+            <tr>
+              <td>
+                <div class="strong">{{ m.subject }}</div>
+                @if (m.display_name) { <div class="tree__kind">{{ m.display_name }}</div> }
+              </td>
+              <td>
+                <div class="role-badges">
+                  @for (r of (m.direct_roles ?? m.roles); track r.role) { <span class="badge badge--info">{{ r.role }}</span> }
+                  @if ((m.direct_roles ?? m.roles).length === 0) { <span class="muted">—</span> }
+                </div>
+              </td>
+              <td>
+                <div class="role-badges">
+                  @for (r of (m.inherited_roles ?? []); track r.role + r.source_org_id) {
+                    <span class="badge badge--inherited">{{ r.role }} <small>· from {{ r.source_org_name }} (L{{ r.source_org_level }})</small></span>
+                  }
+                  @if ((m.inherited_roles ?? []).length === 0) { <span class="muted">—</span> }
+                </div>
+              </td>
+              <td class="center">
+                @if ((m.direct_roles ?? m.roles).length && (m.direct_roles ?? m.roles)[0].inherits_down) {
+                  <span class="badge badge--success badge--dot">yes</span>
+                } @else { <span class="muted">no</span> }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td class="empty" colspan="4">No members match the current filters.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pager -->
+    <div class="pager">
+      <span class="pager__info">
+        @if (total() > 0) { Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }} }
+        @else { No members }
+      </span>
+      <div class="pager__controls">
+        <button type="button" class="btn--sm btn--ghost" (click)="prev()" [disabled]="!canPrev()">Previous</button>
+        <button type="button" class="btn--sm btn--ghost" (click)="next()" [disabled]="!canNext()">Next</button>
+      </div>
+    </div>
+  }
+</div>

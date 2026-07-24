@@ -69,10 +69,19 @@ export interface Organization {
   kind: string | null;
   status: string;
   created_at: string;
+  /** Number of DIRECT children (cheap COUNT) — drives the expand chevron. */
+  child_count?: number;
+  /** Number of direct memberships in this org. */
+  member_count?: number;
 }
 
 export interface OrganizationListResponse {
   organizations: Organization[];
+  /** Paging envelope — present on the paginated reads (children, search). */
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
 }
 
 export interface CreateOrganizationRequest {
@@ -97,17 +106,42 @@ export interface RoleView {
   inherits_down: boolean;
 }
 
+/** A role that applies to a member via an ancestor org (inherited down). */
+export interface InheritedRoleView {
+  role: string;
+  source_org_id: string;
+  source_org_name: string;
+  source_org_level: number;
+}
+
 export interface Member {
   user_id: string;
   subject: string;
   email: string | null;
   display_name: string | null;
+  /** Direct role_assignments in this org (== direct_roles; kept for compat). */
   roles: RoleView[];
+  direct_roles?: RoleView[];
+  /** Roles inherited from an ancestor org, each with its source org. */
+  inherited_roles?: InheritedRoleView[];
 }
 
 export interface MembersResponse {
   org_id: string;
   members: Member[];
+  /** Paging envelope — present on the paginated members list. */
+  total?: number;
+  returned?: number;
+  offset?: number;
+  limit?: number;
+}
+
+/** Query options for the paginated members list. */
+export interface MemberQuery {
+  q?: string;
+  role?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface AddMemberRequest {

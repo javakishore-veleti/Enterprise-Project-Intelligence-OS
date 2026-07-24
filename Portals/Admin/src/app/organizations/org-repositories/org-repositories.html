@@ -1,0 +1,126 @@
+<div class="panel">
+  <div class="panel__head">
+    <h2 class="panel__title">Repositories &amp; Visibility</h2>
+    <span class="panel__count">{{ repositories().length }} repo(s)</span>
+  </div>
+
+  <div class="form-row form-row--members">
+    <div class="field">
+      <label>Provider</label>
+      <select [(ngModel)]="repoProvider" aria-label="Repository provider">
+        @for (p of providers; track p) { <option [value]="p">{{ providerLabels[p] }}</option> }
+      </select>
+    </div>
+    <div class="field">
+      <label>External account</label>
+      <input type="text" [(ngModel)]="repoExternalAccount" placeholder="org / account" aria-label="External account" />
+    </div>
+    <div class="field">
+      <label>Visibility</label>
+      <select [(ngModel)]="repoVisibility" aria-label="Repository visibility scope">
+        @for (v of visibilityScopes; track v) { <option [value]="v">{{ v }}</option> }
+      </select>
+    </div>
+    <button type="button" class="btn--sm" (click)="addRepository()" [disabled]="addingRepo()">
+      @if (addingRepo()) { <span class="spinner"></span> } @else { Add repository }
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
+  }
+  @if (loading()) {
+    <p class="panel__status"><span class="spinner spinner--brand"></span> Loading repositories…</p>
+  } @else {
+    <div class="panel__table-wrap">
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Account</th><th>Visibility</th><th class="center">Actions</th></tr>
+        </thead>
+        <tbody>
+          @for (repo of repositories(); track repo.repo_id) {
+            <tr [class.is-active-row]="isRepoSelected(repo)">
+              <td><span class="badge">{{ repo.provider }}</span></td>
+              <td class="mono">{{ repo.external_account || '—' }}</td>
+              <td><span class="badge badge--info">{{ repo.visibility_scope }}</span></td>
+              <td class="center">
+                <button type="button" class="btn--sm btn--ghost" (click)="selectRepo(repo)">
+                  {{ isRepoSelected(repo) ? 'Managing' : 'Manage' }}
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td class="empty" colspan="4">No repositories connected.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (selectedRepo(); as repo) {
+      <div class="repo-detail">
+        <h3 class="repo-detail__title">
+          <span class="badge">{{ repo.provider }}</span>
+          {{ repo.external_account || 'repository' }}
+          <span class="mono repo-detail__id">{{ repo.repo_id }}</span>
+        </h3>
+
+        <div class="repo-tools">
+          <div class="mini-form">
+            <span class="mini-form__title">Visibility scope</span>
+            <div class="form-row">
+              <select [(ngModel)]="repoNewVisibility" aria-label="Change visibility scope">
+                @for (v of visibilityScopes; track v) { <option [value]="v">{{ v }}</option> }
+              </select>
+              <button type="button" class="btn--sm" (click)="changeVisibility()"
+                      [disabled]="savingVisibility() || repoNewVisibility === repo.visibility_scope">
+                @if (savingVisibility()) { <span class="spinner"></span> } @else { Apply }
+              </button>
+            </div>
+            <p class="hint">{{ visibilityHints[repoNewVisibility] }}</p>
+          </div>
+
+          <div class="mini-form">
+            <span class="mini-form__title">Add tracker project</span>
+            <div class="form-row form-row--split">
+              <div class="field"><input type="text" [(ngModel)]="projKey" placeholder="external_key (e.g. SAKAI)" aria-label="Tracker project key" /></div>
+              <div class="field"><input type="text" [(ngModel)]="projName" placeholder="name (optional)" aria-label="Tracker project name" /></div>
+              <button type="button" class="btn--sm" (click)="addProject()" [disabled]="addingProject() || !projKey.trim()">
+                @if (addingProject()) { <span class="spinner"></span> } @else { Add }
+              </button>
+            </div>
+            @if (projectsFor(repo.repo_id).length) {
+              <div class="chips">
+                @for (p of projectsFor(repo.repo_id); track p.tracker_project_id) {
+                  <span class="chip">{{ p.external_key }}@if (p.name) { · {{ p.name }} }</span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="mini-form">
+            <span class="mini-form__title">Cross-branch / cross-tenant grant</span>
+            <div class="form-row form-row--split">
+              <div class="field"><input type="text" [(ngModel)]="grantOrgId" placeholder="grantee org_id" aria-label="Grantee org id" /></div>
+              <div class="field field--kind">
+                <select [(ngModel)]="grantDirection" aria-label="Grant direction">
+                  @for (d of grantDirections; track d) { <option [value]="d">{{ d }}</option> }
+                </select>
+              </div>
+              <button type="button" class="btn--sm" (click)="addGrant()" [disabled]="addingGrant() || !grantOrgId.trim()">
+                @if (addingGrant()) { <span class="spinner"></span> } @else { Grant }
+              </button>
+            </div>
+            <p class="hint">Grants apply when visibility scope is <strong>shared</strong>.</p>
+            @if (grantsFor(repo.repo_id).length) {
+              <div class="chips">
+                @for (g of grantsFor(repo.repo_id); track g.grantee_org_id) {
+                  <span class="chip">→ {{ g.grantee_org_id }} ({{ g.direction }})</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

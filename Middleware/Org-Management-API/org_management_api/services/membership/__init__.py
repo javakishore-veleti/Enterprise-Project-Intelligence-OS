@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from org_management_api.common.exceptions import NotFoundError
 from org_management_api.dtos.common import (
+    MemberPage,
     OrganizationRecord,
     RoleAssignmentRecord,
     UserRecord,
@@ -46,6 +47,16 @@ class DefaultMembershipService(MembershipService):
         if self._orgs.get(org_id) is None:
             raise NotFoundError(f"organization '{org_id}' not found")
         return self._members.list_members(org_id)
+
+    def list_members_page(
+        self, org_id: str, q: str | None, role: str | None, limit: int, offset: int
+    ) -> MemberPage:
+        org = self._orgs.get(org_id)
+        if org is None:
+            raise NotFoundError(f"organization '{org_id}' not found")
+        # Ancestor orgs supply inherited roles (assignments with inherits_down).
+        ancestor_ids = [a.org_id for a in self._orgs.ancestors(org.path)]
+        return self._members.list_members_page(org_id, q, role, limit, offset, ancestor_ids)
 
     def list_orgs_for_user(
         self, subject: str

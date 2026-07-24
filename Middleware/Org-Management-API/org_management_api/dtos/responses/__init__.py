@@ -29,10 +29,22 @@ class OrganizationResponse(TypedModel):
     kind: str | None = None
     status: str
     created_at: datetime
+    # Cheap counters so a UI can show an expand chevron + counts WITHOUT
+    # fetching children/members. Default 0 (populated on read where computed).
+    child_count: int = 0
+    member_count: int = 0
 
 
 class OrganizationListResponse(TypedModel):
+    """A list of orgs. For the paginated reads (children, search) the paging
+    fields are populated; for the unpaged reads (subtree, ancestors, roots)
+    they stay ``None`` so existing callers are unaffected."""
+
     organizations: list[OrganizationResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 # --- Users / membership / roles ---
@@ -40,6 +52,15 @@ class OrganizationListResponse(TypedModel):
 class RoleView(TypedModel):
     role: str
     inherits_down: bool
+
+
+class InheritedRoleView(TypedModel):
+    """A role that applies to a member via an ancestor org (inherited down)."""
+
+    role: str
+    source_org_id: str
+    source_org_name: str
+    source_org_level: int
 
 
 class UserResponse(TypedModel):
@@ -51,18 +72,31 @@ class UserResponse(TypedModel):
 
 
 class MemberResponse(TypedModel):
-    """A member of an org: identity + the roles they hold in that org."""
+    """A member of an org: identity + the roles they hold in that org.
+
+    ``roles`` / ``direct_roles`` are the DIRECT role_assignments in this org
+    (``roles`` retained for backward compatibility); ``inherited_roles`` are the
+    roles that apply here via an ancestor org (``inherits_down = true``)."""
 
     user_id: str
     subject: str
     email: str | None = None
     display_name: str | None = None
     roles: list[RoleView] = []
+    direct_roles: list[RoleView] = []
+    inherited_roles: list[InheritedRoleView] = []
 
 
 class MembersResponse(TypedModel):
+    """Members of an org. The paging fields are populated by the paginated list
+    endpoint; ``None`` when unset."""
+
     org_id: str
     members: list[MemberResponse] = []
+    total: int | None = None
+    returned: int | None = None
+    offset: int | None = None
+    limit: int | None = None
 
 
 class UserOrgView(TypedModel):

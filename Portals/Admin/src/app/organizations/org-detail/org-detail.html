@@ -1,0 +1,19 @@
+<section class="page-wrap">
+  <!-- Breadcrumb -->
+  <nav class="org-crumb" aria-label="Breadcrumb">
+    <a routerLink="/organizations">Organizations</a>
+    <span class="org-crumb__sep">/</span>
+    <span class="org-crumb__here">{{ org()?.name || orgId() }}</span>
+  </nav>
+
+  <!-- Tabs -->
+  <nav class="org-tabs" aria-label="Organization sections">
+    <a [routerLink]="['/organizations', orgId()]" routerLinkActive="is-active"
+       [routerLinkActiveOptions]="{ exact: true }">Overview</a>
+    <a [routerLink]="['/organizations', orgId(), 'members']" routerLinkActive="is-active">Members &amp; Roles</a>
+    <a [routerLink]="['/organizations', orgId(), 'repositories']" routerLinkActive="is-active">Repositories &amp; Visibility</a>
+    <a [routerLink]="['/organizations', orgId(), 'access']" routerLinkActive="is-active">Effective Access</a>
+  </nav>
+
+  <router-outlet />
+</section>

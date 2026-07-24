@@ -11,6 +11,7 @@ import {
   CreateRepositoryRequest,
   Grant,
   Member,
+  MemberQuery,
   MembersResponse,
   MoveOrganizationRequest,
   Organization,
@@ -53,10 +54,33 @@ export class OrgAdminService {
     return this.http.get<Organization>(`${this.baseUrl}/orgs/${encodeURIComponent(orgId)}`);
   }
 
-  children(orgId: string): Observable<OrganizationListResponse> {
+  /**
+   * One PAGE of an org's direct children. Used by the lazy tree — a node's
+   * children are fetched only when it is expanded, never a whole subtree.
+   */
+  children(orgId: string, limit = 50, offset = 0): Observable<OrganizationListResponse> {
+    const params = new HttpParams().set('limit', limit).set('offset', offset);
     return this.http.get<OrganizationListResponse>(
       `${this.baseUrl}/orgs/${encodeURIComponent(orgId)}/children`,
+      { params },
     );
+  }
+
+  /**
+   * Search orgs by name (case-insensitive substring), optionally scoped to a
+   * tenant (`root`). Returns a paged list; each item carries path/level/counts.
+   */
+  searchOrgs(
+    q: string,
+    root?: string | null,
+    limit = 25,
+    offset = 0,
+  ): Observable<OrganizationListResponse> {
+    let params = new HttpParams().set('q', q).set('limit', limit).set('offset', offset);
+    if (root) {
+      params = params.set('root', root);
+    }
+    return this.http.get<OrganizationListResponse>(`${this.baseUrl}/orgs/search`, { params });
   }
 
   subtree(orgId: string): Observable<OrganizationListResponse> {
@@ -92,9 +116,20 @@ export class OrgAdminService {
 
   // --- Members / roles ------------------------------------------------------
 
-  listMembers(orgId: string): Observable<MembersResponse> {
+  /** One PAGE of an org's members, server-filtered by `q` / `role`. */
+  listMembers(orgId: string, opts: MemberQuery = {}): Observable<MembersResponse> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 25)
+      .set('offset', opts.offset ?? 0);
+    if (opts.q) {
+      params = params.set('q', opts.q);
+    }
+    if (opts.role) {
+      params = params.set('role', opts.role);
+    }
     return this.http.get<MembersResponse>(
       `${this.baseUrl}/orgs/${encodeURIComponent(orgId)}/members`,
+      { params },
     );
   }
 

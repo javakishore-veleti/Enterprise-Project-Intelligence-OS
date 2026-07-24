@@ -1,0 +1,142 @@
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">
+        The organization tree. Loads roots first and fetches each branch's children only when you
+        expand it — so it stays fast across thousands of deeply-nested orgs. Search jumps straight to
+        any org. Select one to manage its members, repositories, visibility and effective access.
+      </p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="loadRoots()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="alert alert--error" style="margin-bottom: 1.1rem;">
+      <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+    </div>
+  }
+
+  <!-- ===== Search ===== -->
+  <div class="panel" style="margin-bottom: 1.3rem;">
+    <div class="panel__head">
+      <h2 class="panel__title">Find an organization</h2>
+      @if (searching()) { <span class="panel__count">{{ searchTotal() }} match(es)</span> }
+    </div>
+    <div class="panel__body">
+      <div class="org-search">
+        <div class="field field--scope">
+          <label>Tenant scope</label>
+          <select [(ngModel)]="searchRoot" (ngModelChange)="onScopeChange()" aria-label="Search tenant scope">
+            <option value="">All tenants</option>
+            @for (r of roots(); track r.org_id) { <option [value]="r.org_id">{{ r.name }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label>Search by name</label>
+          <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange($event)"
+                 placeholder="Type at least one character…" aria-label="Search organizations" />
+        </div>
+        @if (searching()) {
+          <button type="button" class="btn--ghost btn--sm" (click)="clearSearch()">Clear</button>
+        }
+      </div>
+
+      @if (searching()) {
+        @if (searchLoading()) {
+          <p class="panel__status"><span class="spinner spinner--brand"></span> Searching…</p>
+        } @else {
+          <div class="search-results">
+            @for (o of searchResults(); track o.org_id) {
+              <button type="button" class="search-result" (click)="open(o)">
+                <span class="search-result__name">{{ o.name }}</span>
+                <span class="badge tree__level">L{{ o.level }}</span>
+                @if (o.child_count) { <span class="tree__count">{{ o.child_count }} child</span> }
+                <span class="search-result__crumb mono">{{ o.path }}</span>
+              </button>
+            } @empty {
+              <p class="panel__status">No organizations match “{{ searchQuery }}”.</p>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- ===== Create root ===== -->
+  <div class="panel" style="margin-bottom: 1.3rem;">
+    <div class="panel__head">
+      <h2 class="panel__title">New root / tenant</h2>
+    </div>
+    <div class="form-row form-row--members">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" [(ngModel)]="rootName" placeholder="Organization name" aria-label="Root organization name" />
+      </div>
+      <div class="field field--kind">
+        <label>Kind</label>
+        <input type="text" [(ngModel)]="rootKind" placeholder="tenant, division…" aria-label="Root organization kind" />
+      </div>
+      <button type="button" class="btn--sm" (click)="createRoot()" [disabled]="!rootName.trim() || creatingRoot()">
+        @if (creatingRoot()) { <span class="spinner"></span> } @else { Create root }
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Lazy tree ===== -->
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Organization Tree</h2>
+      <span class="panel__count">{{ roots().length }} root(s)</span>
+    </div>
+
+    @if (loading()) {
+      <p class="panel__status"><span class="spinner spinner--brand"></span> Loading roots…</p>
+    } @else {
+      <div class="tree">
+        @for (row of rows(); track row.org.org_id) {
+          <div class="tree__row" [style.paddingLeft.px]="indentPx(row.org)">
+            @if (hasChildren(row.org)) {
+              <button type="button" class="tree__chevron" [class.is-open]="row.expanded"
+                      (click)="toggle(row.org)" [attr.aria-expanded]="row.expanded"
+                      [attr.aria-label]="row.expanded ? 'Collapse' : 'Expand'">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            } @else {
+              <span class="tree__chevron tree__chevron--leaf"></span>
+            }
+            <button type="button" class="tree__node" (click)="open(row.org)">
+              <span class="tree__name">{{ row.org.name }}</span>
+              <span class="badge tree__level">L{{ row.org.level }}</span>
+              @if (hasChildren(row.org)) {
+                <span class="tree__count">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/></svg>
+                  {{ row.org.child_count }}
+                </span>
+              }
+              @if (row.org.member_count) { <span class="tree__count">· {{ row.org.member_count }} member</span> }
+              @if (row.org.kind) { <span class="tree__kind">{{ row.org.kind }}</span> }
+            </button>
+          </div>
+
+          @if (row.loading) {
+            <div class="tree__nodeloading" [style.paddingLeft.px]="indentPx(row.org) + 32">
+              <span class="spinner spinner--brand"></span> Loading children…
+            </div>
+          }
+          @if (row.hasMore) {
+            <div [style.paddingLeft.px]="indentPx(row.org) + 32">
+              <button type="button" class="tree__loadmore" (click)="loadMore(row.org.org_id)">
+                Load more ({{ row.remaining }} remaining)
+              </button>
+            </div>
+          }
+        } @empty {
+          <p class="panel__status">No organizations yet. Create a root above to begin.</p>
+        }
+      </div>
+    }
+  </div>
+</section>

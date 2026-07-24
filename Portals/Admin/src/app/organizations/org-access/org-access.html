@@ -1,0 +1,58 @@
+<div class="panel">
+  <div class="panel__head">
+    <h2 class="panel__title">Effective Access Preview</h2>
+    <span class="panel__count">visible-projects</span>
+  </div>
+  <div class="panel__body">
+    <p class="subtitle" style="margin-bottom: .9rem;">
+      Enter a user subject to resolve the exact set of tracker projects visible to them across every
+      org they belong to — the net result of memberships, repository visibility scopes and grants.
+    </p>
+    <div class="form-row form-row--access">
+      <div class="field">
+        <label>User subject</label>
+        <input type="text" [(ngModel)]="accessSubject" placeholder="bob, alice…" aria-label="User subject"
+               (keyup.enter)="resolveAccess()" />
+      </div>
+      <button type="button" (click)="resolveAccess()" [disabled]="accessLoading() || !accessSubject.trim()">
+        @if (accessLoading()) { <span class="spinner"></span> Resolving… } @else { Resolve visible projects }
+      </button>
+    </div>
+
+    @if (accessError()) {
+      <div class="alert alert--error" style="margin-top: 1rem;"><span class="alert__icon">⚠</span><span>{{ accessError() }}</span></div>
+    }
+
+    @if (accessProjects(); as projects) {
+      <div class="access-result">
+        <p class="access-result__head">
+          <strong>{{ accessResolvedSubject() }}</strong> can see
+          <span class="badge badge--info">{{ projects.length }}</span> project(s)
+        </p>
+        @if (projects.length) {
+          <div class="panel__table-wrap">
+            <table>
+              <thead>
+                <tr><th>Project Key</th><th>Name</th><th>Provider</th><th>Owning Org</th></tr>
+              </thead>
+              <tbody>
+                @for (p of projects; track p.external_key + p.repo_id) {
+                  <tr>
+                    <td class="mono">{{ p.external_key }}</td>
+                    <td>{{ p.name || '—' }}</td>
+                    <td><span class="badge">{{ p.provider }}</span></td>
+                    <td class="mono">{{ p.org_id }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="alert alert--warning" style="margin-top: .6rem;">
+            <span class="alert__icon">∅</span><span>No projects are visible to this user.</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

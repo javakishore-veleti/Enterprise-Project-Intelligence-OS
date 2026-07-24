@@ -5,17 +5,28 @@ import pytest
 
 from org_management_api.common.exceptions import NotFoundError, ValidationError
 from org_management_api.dtos.requests import (
+    AddMemberRequest,
     CreateOrganizationRequest,
     MoveOrganizationRequest,
     UpdateOrganizationRequest,
 )
+from org_management_api.services.membership import DefaultMembershipService
 from org_management_api.services.organizations import DefaultOrganizationService
-from tests.support import FakeOrganizationsDao, Store
+from tests.support import FakeMembersDao, FakeOrganizationsDao, FakeUsersDao, Store
 
 
 def _service() -> tuple[DefaultOrganizationService, Store]:
     store = Store()
     return DefaultOrganizationService(FakeOrganizationsDao(store)), store
+
+
+@pytest.fixture
+def members_wiring() -> tuple[DefaultMembershipService, DefaultOrganizationService, Store]:
+    """A membership service + org service sharing one store (for member_count)."""
+    store = Store()
+    orgs_dao = FakeOrganizationsDao(store)
+    members = DefaultMembershipService(FakeUsersDao(store), FakeMembersDao(store), orgs_dao)
+    return members, DefaultOrganizationService(orgs_dao), store
 
 
 def _create(svc, name, parent=None):
@@ -61,7 +72,7 @@ def test_subtree_and_children_and_ancestors() -> None:
     subtree_ids = {o.org_id for o in svc.subtree(root.org_id)}
     assert subtree_ids == {root.org_id, emea.org_id, apac.org_id, sales.org_id}
 
-    child_ids = {o.org_id for o in svc.children(root.org_id)}
+    child_ids = {o.org_id for o in svc.children(root.org_id).organizations}
     assert child_ids == {emea.org_id, apac.org_id}
 
     ancestors = svc.ancestors(sales.org_id)
@@ -128,3 +139,80 @@ def test_list_roots_and_tenant() -> None:
     root2 = _create(svc, "Globex")
     assert {o.org_id for o in svc.list_roots()} == {root.org_id, root2.org_id}
     assert len(svc.list_tenant(root.org_id)) == 2  # root + EMEA
+
+
+# --- child_count / member_count -------------------------------------------
+
+
+def test_child_count_is_direct_children_only() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    emea = _create(svc, "EMEA", parent=root.org_id)
+    _create(svc, "APAC", parent=root.org_id)
+    _create(svc, "Sales", parent=emea.org_id)  # grandchild — NOT counted for root
+
+    roots = {o.org_id: o for o in svc.list_roots()}
+    assert roots[root.org_id].child_count == 2  # EMEA + APAC only
+
+    children = {o.org_id: o for o in svc.children(root.org_id).organizations}
+    assert children[emea.org_id].child_count == 1   # Sales
+    # Single-get also carries the count.
+    assert svc.get(emea.org_id).child_count == 1
+
+
+def test_member_count_counts_memberships(members_wiring) -> None:
+    members, orgs, _ = members_wiring
+    org = orgs.create(CreateOrganizationRequest(name="Acme"))
+    members.add_member(org.org_id, AddMemberRequest(subject="alice", roles=["admin"]))
+    members.add_member(org.org_id, AddMemberRequest(subject="bob", roles=["viewer"]))
+    assert orgs.get(org.org_id).member_count == 2
+
+
+# --- children pagination ---------------------------------------------------
+
+
+def test_children_pagination_orders_and_pages() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    for name in ["Delta", "Alpha", "Charlie", "Bravo"]:
+        _create(svc, name, parent=root.org_id)
+
+    first = svc.children(root.org_id, limit=2, offset=0)
+    assert first.total == 4 and first.limit == 2 and first.offset == 0
+    assert [o.name for o in first.organizations] == ["Alpha", "Bravo"]
+
+    second = svc.children(root.org_id, limit=2, offset=2)
+    assert [o.name for o in second.organizations] == ["Charlie", "Delta"]
+    assert second.total == 4
+
+
+# --- search ----------------------------------------------------------------
+
+
+def test_search_matches_name_case_insensitive_and_scopes_by_root() -> None:
+    svc, _ = _service()
+    acme = _create(svc, "Acme")
+    acme_sales = _create(svc, "Acme Sales", parent=acme.org_id)
+    globex = _create(svc, "Globex")
+    _create(svc, "Acme Corp", parent=globex.org_id)  # different tenant
+
+    # Unscoped: every "acme" match across tenants.
+    unscoped = svc.search("acme", None, limit=25, offset=0)
+    assert unscoped.total == 3
+    assert {o.name for o in unscoped.organizations} == {"Acme", "Acme Sales", "Acme Corp"}
+
+    # Scoped to the Acme tenant only.
+    scoped = svc.search("acme", acme.org_id, limit=25, offset=0)
+    assert {o.org_id for o in scoped.organizations} == {acme.org_id, acme_sales.org_id}
+    # Items carry the full response fields (path/level/child_count).
+    got = {o.org_id: o for o in scoped.organizations}
+    assert got[acme.org_id].child_count == 1
+
+
+def test_search_paginates() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    for i in range(5):
+        _create(svc, f"Team {i}", parent=root.org_id)
+    page = svc.search("team", None, limit=2, offset=0)
+    assert page.total == 5 and len(page.organizations) == 2
