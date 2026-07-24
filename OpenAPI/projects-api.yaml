@@ -146,6 +146,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -167,7 +183,12 @@ paths:
       description: 'Server-side, risk-ranked, paginated project search (scales to
         thousands
 
-        of projects per user). Ordered by risk_score desc (nulls last), then key.'
+        of projects per user). Ordered by risk_score desc (nulls last), then key.
+
+
+        Honors the Phase-2 org scope (``X-Org-Subject`` / ``X-Org-Key`` headers)
+
+        AND-composed with the legacy ``scope`` per-user narrowing.'
       operationId: searchProjectsScoped
       parameters:
       - name: scope
@@ -217,6 +238,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -296,6 +333,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -330,6 +383,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -364,6 +433,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -443,6 +528,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response

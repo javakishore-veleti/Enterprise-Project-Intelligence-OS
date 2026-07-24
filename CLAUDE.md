@@ -37,7 +37,7 @@ Functionally complete against the README vision. Intentionally deferred (add inc
 ### Running an analysis locally (needs the LLM)
 `ANTHROPIC_API_KEY` must be in the environment (the model SDK reads it; it is never stored/committed). The `api-services.sh` launcher inherits the shell env. Flow: containers up → `npm run local:db:migrate` (V001–V007) → seed Mongo → `local:api-services:start-all` → `POST /api/v1/analysis/projects/APACHE` (add `{"include_review": true}` for the full pipeline + reports; or `POST /api/v1/analysis/portfolios/{key}` for cross-project). The per-agent model/framework comes from `admin.agent_configs` (set via Admin-API `PUT /api/v1/admin/agents/{key}`).
 
-**Key environment facts:** **Python 3.12** (standardized: matches the service Dockerfiles and supports every agentic framework we target — LangGraph, CrewAI, OpenAI Agents, etc.; `api-services.sh` creates venvs with `python3.12`). Node 20. Docker infra reuses local images `postgres:16`, `mongo:7`, `chromadb/chroma:latest`, `apache/airflow:2.10.0-python3.12`. **Port map** (ChromaDB owns :8000, so APIs start at 8001): Postgres 5432 · Mongo 27017 · Chroma 8000 · Airflow 8080 · Ingestion 8001 · Admin 8002 · Projects 8003 · RiskAnalytics 8004 · Portals 4200/4201. **DB driver is pg8000** (pure-Python, no libpq); DAOs depend only on the DB-API surface so swapping to psycopg later is confined to `daos/connection.py`.
+**Key environment facts:** **Python 3.12** (standardized: matches the service Dockerfiles and supports every agentic framework we target — LangGraph, CrewAI, OpenAI Agents, etc.; `api-services.sh` creates venvs with `python3.12`). Node 20. Docker infra reuses local images `postgres:16`, `mongo:7`, `chromadb/chroma:latest`, `apache/airflow:2.10.0-python3.12`. **Port map** (ChromaDB owns :8000, so APIs start at 8001): Postgres 5432 · Mongo 27017 · Chroma 8000 · Airflow 8080 · Ingestion 8001 · Admin 8002 · Projects 8003 · RiskAnalytics 8004 · Org-Management 8005 · Portals 4200/4201. **DB driver is pg8000** (pure-Python, no libpq); DAOs depend only on the DB-API surface so swapping to psycopg later is confined to `daos/connection.py`.
 
 ## Repository Layout (planned monorepo)
 
@@ -45,7 +45,7 @@ Top-level directories, each a distinct deliverable:
 
 - `CICD/LocalDev/` — `docker-compose.yaml` per infra service (MongoDB, PostgreSQL, Airflow, ChromaDB) plus `docker-all-up.sh` / `docker-all-down.sh` / `status.sh`. Reuse existing local Docker images where noted.
 - `Airflow/` — `dags/` for operational + scheduled-analysis workflows (`project_dataset_acquire|ingest|validate|index|reconcile`, `project_risk_schedule`, `portfolio_risk_schedule`), plus `plugins/`, `config/`, `tests/`.
-- `Middleware/` — **four independent FastAPI microservices**, each on its own port: `Ingestion-API`, `Admin-API`, `Projects-API`, `RiskAnalytics-API` (see per-service structure below).
+- `Middleware/` — **five independent FastAPI microservices**, each on its own port: `Ingestion-API`, `Admin-API`, `Projects-API`, `RiskAnalytics-API`, `Org-Management-API` (:8005, multi-tenant org/repo management) (see per-service structure below).
 - `Agents/` — the 16 LangGraph specialist agents as standalone packages (`project_risk_manager`, `schedule_risk`, `quality_risk`, `critic`, `executive_reporting`, …), kept **separate** from the middleware services that invoke them.
 - `Portals/` — two Angular apps: `Admin/` and `Project-Tracker/`.
 - `Database/` — `PostgreSQL/` (`changelogs/`, `migrations/`, `seed/`) and `MongoDB/` (`indexes/`, `initialization/`, `validation/`).

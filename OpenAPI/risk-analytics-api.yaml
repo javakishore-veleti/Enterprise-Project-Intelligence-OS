@@ -55,6 +55,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -122,6 +138,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -199,6 +231,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       requestBody:
         required: true
         content:
@@ -233,6 +281,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       requestBody:
         required: true
         content:
@@ -316,6 +380,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -381,6 +461,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -409,6 +505,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       requestBody:
         required: true
         content:
@@ -492,6 +604,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -526,6 +654,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -554,6 +698,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       requestBody:
         required: true
         content:
@@ -636,6 +796,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -670,6 +846,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -698,6 +890,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       requestBody:
         required: true
         content:
@@ -781,6 +989,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -815,6 +1039,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response
@@ -1010,6 +1250,22 @@ paths:
           - type: string
           - type: 'null'
           title: X-Api-Key
+      - name: X-Org-Subject
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Subject
+      - name: X-Org-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Org-Key
       responses:
         '200':
           description: Successful Response

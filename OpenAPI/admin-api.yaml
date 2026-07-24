@@ -173,6 +173,17 @@ paths:
           minimum: 0
           default: 0
           title: Offset
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive substring on action / actor / entity_key /
+            entity_type.
+          title: Q
+        description: Case-insensitive substring on action / actor / entity_key / entity_type.
       - name: X-API-Key
         in: header
         required: false

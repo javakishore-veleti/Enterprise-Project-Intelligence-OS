@@ -1,0 +1,2052 @@
+openapi: 3.1.0
+info:
+  title: Org-Management API
+  description: Organization + multi-tenancy management for Enterprise Project Intelligence
+    OS.
+  version: 0.1.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/orgs:
+    post:
+      tags:
+      - organizations
+      summary: Create Organization
+      operationId: createOrganization
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - organizations
+      summary: List Organizations
+      operationId: listOrganizations
+      parameters:
+      - name: root
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Tenant root org id; omit for all roots.
+          title: Root
+        description: Tenant root org id; omit for all roots.
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/stats:
+    get:
+      tags:
+      - organizations
+      summary: Get Organization Stats
+      operationId: getOrganizationStats
+      parameters:
+      - name: root
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Restrict every count to one tenant (root_org_id).
+          title: Root
+        description: Restrict every count to one tenant (root_org_id).
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgStatsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/search:
+    get:
+      tags:
+      - organizations
+      summary: Search Organizations
+      operationId: searchOrganizations
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          description: Case-insensitive substring match on org name.
+          title: Q
+        description: Case-insensitive substring match on org name.
+      - name: root
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Restrict to one tenant (root_org_id).
+          title: Root
+        description: Restrict to one tenant (root_org_id).
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}:
+    get:
+      tags:
+      - organizations
+      summary: Get Organization
+      operationId: getOrganization
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - organizations
+      summary: Update Organization
+      operationId: updateOrganization
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/children:
+    get:
+      tags:
+      - organizations
+      summary: Get Children
+      operationId: getOrganizationChildren
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive substring filter on the DIRECT child names.
+          title: Q
+        description: Case-insensitive substring filter on the DIRECT child names.
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(name|created_at|child_count)$
+          description: "Order key: name (A\u2192Z), created_at (newest first), child_count\
+            \ (most sub-orgs first)."
+          default: name
+          title: Sort
+        description: "Order key: name (A\u2192Z), created_at (newest first), child_count\
+          \ (most sub-orgs first)."
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/subtree:
+    get:
+      tags:
+      - organizations
+      summary: Get Subtree
+      operationId: getOrganizationSubtree
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/ancestors:
+    get:
+      tags:
+      - organizations
+      summary: Get Ancestors
+      operationId: getOrganizationAncestors
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/move:
+    post:
+      tags:
+      - organizations
+      summary: Move Organization
+      operationId: moveOrganization
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveOrganizationRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users:
+    post:
+      tags:
+      - members
+      summary: Create User
+      operationId: createUser
+      parameters:
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/members:
+    post:
+      tags:
+      - members
+      summary: Add Member
+      operationId: addOrganizationMember
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - members
+      summary: List Members
+      operationId: listOrganizationMembers
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Substring match on subject/display_name/email.
+          title: Q
+        description: Substring match on subject/display_name/email.
+      - name: role
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Only members holding this direct role.
+          title: Role
+        description: Only members holding this direct role.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembersResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/roles:
+    get:
+      tags:
+      - members
+      summary: List Roles
+      operationId: listRoles
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Case-insensitive substring filter on role name.
+          title: Q
+        description: Case-insensitive substring filter on role name.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolesResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/{subject}/orgs:
+    get:
+      tags:
+      - members
+      summary: List User Orgs
+      operationId: listUserOrganizations
+      parameters:
+      - name: subject
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Subject
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOrgsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/repositories:
+    post:
+      tags:
+      - repositories
+      summary: Create Repository
+      operationId: createRepository
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRepositoryRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - repositories
+      summary: List Repositories
+      operationId: listOrganizationRepositories
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Substring filter on provider / external_account.
+          title: Q
+        description: Substring filter on provider / external_account.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoriesResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/repositories/{repo_id}/projects:
+    post:
+      tags:
+      - repositories
+      summary: Add Tracker Projects
+      operationId: addTrackerProjects
+      parameters:
+      - name: repo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTrackerProjectsRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackerProjectsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - repositories
+      summary: List Repository Projects
+      operationId: listRepositoryProjects
+      parameters:
+      - name: repo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Substring filter on external_key / name.
+          title: Q
+        description: Substring filter on external_key / name.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackerProjectsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/repositories/{repo_id}/grants:
+    get:
+      tags:
+      - repositories
+      summary: List Repository Grants
+      operationId: listRepositoryGrants
+      parameters:
+      - name: repo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - repositories
+      summary: Add Grant
+      operationId: addRepositoryGrant
+      parameters:
+      - name: repo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGrantRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/repositories/{repo_id}/visibility:
+    put:
+      tags:
+      - repositories
+      summary: Update Visibility
+      operationId: updateRepositoryVisibility
+      parameters:
+      - name: repo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo Id
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisibilityRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/{subject}/visible-projects:
+    get:
+      tags:
+      - access
+      summary: User Visible Projects
+      operationId: getUserVisibleProjects
+      parameters:
+      - name: subject
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Subject
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Substring filter on project external_key / name.
+          title: Q
+        description: Substring filter on project external_key / name.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisibleProjectsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orgs/{org_id}/effective-projects:
+    get:
+      tags:
+      - access
+      summary: Org Effective Projects
+      operationId: getOrganizationEffectiveProjects
+      parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Org Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Substring filter on project external_key / name.
+          title: Q
+        description: Substring filter on project external_key / name.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: X-API-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Api-Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EffectiveProjectsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AddGrantRequest:
+      properties:
+        grantee_org_id:
+          type: string
+          minLength: 1
+          title: Grantee Org Id
+        direction:
+          $ref: '#/components/schemas/GrantDirection'
+          default: org
+      additionalProperties: false
+      type: object
+      required:
+      - grantee_org_id
+      title: AddGrantRequest
+    AddMemberRequest:
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          title: Subject
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        inherits_down:
+          type: boolean
+          title: Inherits Down
+          default: true
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+      additionalProperties: false
+      type: object
+      required:
+      - subject
+      title: AddMemberRequest
+      description: Add a user (created if unknown) to an org with one or more roles.
+    AddTrackerProjectsRequest:
+      properties:
+        projects:
+          items:
+            $ref: '#/components/schemas/TrackerProjectInput'
+          type: array
+          minItems: 1
+          title: Projects
+      additionalProperties: false
+      type: object
+      required:
+      - projects
+      title: AddTrackerProjectsRequest
+      description: Add one or more tracker projects to a repository (bulk ok).
+    CreateOrganizationRequest:
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        parent_org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parent Org Id
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      title: CreateOrganizationRequest
+      description: 'Create an org. With `parent_org_id` it is a sub-branch (root/path/depth/
+
+        level derived from the parent); without it, a brand-new root/tenant.'
+    CreateRepositoryRequest:
+      properties:
+        provider:
+          $ref: '#/components/schemas/Provider'
+        external_account:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: External Account
+        visibility_scope:
+          $ref: '#/components/schemas/VisibilityScope'
+          default: org
+        connection_config:
+          additionalProperties: true
+          type: object
+          title: Connection Config
+      additionalProperties: false
+      type: object
+      required:
+      - provider
+      title: CreateRepositoryRequest
+    CreateUserRequest:
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          title: Subject
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+      additionalProperties: false
+      type: object
+      required:
+      - subject
+      title: CreateUserRequest
+    EffectiveProjectsResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        projects:
+          items:
+            $ref: '#/components/schemas/VisibleProjectResponse'
+          type: array
+          title: Projects
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - org_id
+      title: EffectiveProjectsResponse
+      description: 'An org''s effective (visible) tracker projects, with the same
+        optional
+
+        paging envelope as ``VisibleProjectsResponse``.'
+    GrantDirection:
+      type: string
+      enum:
+      - org
+      - subtree
+      title: GrantDirection
+      description: How a `shared` grant cascades to the grantee side.
+    GrantResponse:
+      properties:
+        repo_id:
+          type: string
+          title: Repo Id
+        grantee_org_id:
+          type: string
+          title: Grantee Org Id
+        direction:
+          type: string
+          title: Direction
+      additionalProperties: false
+      type: object
+      required:
+      - repo_id
+      - grantee_org_id
+      - direction
+      title: GrantResponse
+    GrantsResponse:
+      properties:
+        repo_id:
+          type: string
+          title: Repo Id
+        grants:
+          items:
+            $ref: '#/components/schemas/GrantResponse'
+          type: array
+          title: Grants
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - repo_id
+      title: GrantsResponse
+      description: A page of cross-org sharing grants on a repo.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - service
+      title: HealthResponse
+      description: Liveness / readiness payload.
+    InheritedRoleView:
+      properties:
+        role:
+          type: string
+          title: Role
+        source_org_id:
+          type: string
+          title: Source Org Id
+        source_org_name:
+          type: string
+          title: Source Org Name
+        source_org_level:
+          type: integer
+          title: Source Org Level
+      additionalProperties: false
+      type: object
+      required:
+      - role
+      - source_org_id
+      - source_org_name
+      - source_org_level
+      title: InheritedRoleView
+      description: A role that applies to a member via an ancestor org (inherited
+        down).
+    MemberResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        subject:
+          type: string
+          title: Subject
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        roles:
+          items:
+            $ref: '#/components/schemas/RoleView'
+          type: array
+          title: Roles
+          default: []
+        direct_roles:
+          items:
+            $ref: '#/components/schemas/RoleView'
+          type: array
+          title: Direct Roles
+          default: []
+        inherited_roles:
+          items:
+            $ref: '#/components/schemas/InheritedRoleView'
+          type: array
+          title: Inherited Roles
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - user_id
+      - subject
+      title: MemberResponse
+      description: 'A member of an org: identity + the roles they hold in that org.
+
+
+        ``roles`` / ``direct_roles`` are the DIRECT role_assignments in this org
+
+        (``roles`` retained for backward compatibility); ``inherited_roles`` are the
+
+        roles that apply here via an ancestor org (``inherits_down = true``).'
+    MembersResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        members:
+          items:
+            $ref: '#/components/schemas/MemberResponse'
+          type: array
+          title: Members
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - org_id
+      title: MembersResponse
+      description: 'Members of an org. The paging fields are populated by the paginated
+        list
+
+        endpoint; ``None`` when unset.'
+    MoveOrganizationRequest:
+      properties:
+        new_parent_org_id:
+          type: string
+          minLength: 1
+          title: New Parent Org Id
+      additionalProperties: false
+      type: object
+      required:
+      - new_parent_org_id
+      title: MoveOrganizationRequest
+      description: Reparent an org (and its whole subtree) under a new parent.
+    OrgStatsResponse:
+      properties:
+        total_orgs:
+          type: integer
+          title: Total Orgs
+        root_count:
+          type: integer
+          title: Root Count
+        total_members:
+          type: integer
+          title: Total Members
+        total_repositories:
+          type: integer
+          title: Total Repositories
+      additionalProperties: false
+      type: object
+      required:
+      - total_orgs
+      - root_count
+      - total_members
+      - total_repositories
+      title: OrgStatsResponse
+      description: "Cheap tenancy aggregate counts (COUNT queries only \u2014 never\
+        \ a subtree\nfetch). Powers the dashboard org summary. ``root`` scopes to\
+        \ one tenant."
+    OrganizationListResponse:
+      properties:
+        organizations:
+          items:
+            $ref: '#/components/schemas/OrganizationResponse'
+          type: array
+          title: Organizations
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      title: OrganizationListResponse
+      description: 'A list of orgs. For the paginated reads (children, search) the
+        paging
+
+        fields are populated; for the unpaged reads (subtree, ancestors, roots)
+
+        they stay ``None`` so existing callers are unaffected.'
+    OrganizationResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        parent_org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parent Org Id
+        root_org_id:
+          type: string
+          title: Root Org Id
+        path:
+          type: string
+          title: Path
+        depth:
+          type: integer
+          title: Depth
+        level:
+          type: integer
+          title: Level
+        name:
+          type: string
+          title: Name
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        child_count:
+          type: integer
+          title: Child Count
+          default: 0
+        member_count:
+          type: integer
+          title: Member Count
+          default: 0
+      additionalProperties: false
+      type: object
+      required:
+      - org_id
+      - parent_org_id
+      - root_org_id
+      - path
+      - depth
+      - level
+      - name
+      - status
+      - created_at
+      title: OrganizationResponse
+      description: Public view of an organization node.
+    Provider:
+      type: string
+      enum:
+      - jira
+      - github
+      - azure_devops
+      title: Provider
+      description: Supported tracker providers.
+    RepositoriesResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        repositories:
+          items:
+            $ref: '#/components/schemas/RepositoryResponse'
+          type: array
+          title: Repositories
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - org_id
+      title: RepositoriesResponse
+      description: 'Repositories under an org. Paging fields are populated by the
+        paginated
+
+        list endpoint (``q`` / ``limit`` / ``offset``); ``None`` when unset so the
+
+        default (no-param) call is unchanged.'
+    RepositoryResponse:
+      properties:
+        repo_id:
+          type: string
+          title: Repo Id
+        org_id:
+          type: string
+          title: Org Id
+        root_org_id:
+          type: string
+          title: Root Org Id
+        provider:
+          type: string
+          title: Provider
+        external_account:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: External Account
+        connection_config:
+          additionalProperties: true
+          type: object
+          title: Connection Config
+          default: {}
+        visibility_scope:
+          type: string
+          title: Visibility Scope
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - repo_id
+      - org_id
+      - root_org_id
+      - provider
+      - visibility_scope
+      - created_at
+      title: RepositoryResponse
+    RoleView:
+      properties:
+        role:
+          type: string
+          title: Role
+        inherits_down:
+          type: boolean
+          title: Inherits Down
+      additionalProperties: false
+      type: object
+      required:
+      - role
+      - inherits_down
+      title: RoleView
+    RolesResponse:
+      properties:
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+          default: []
+        total:
+          type: integer
+          title: Total
+          default: 0
+      additionalProperties: false
+      type: object
+      title: RolesResponse
+      description: 'Distinct role names for a role-picker typeahead. ``roles`` is
+        capped;
+
+        ``total`` is the total number of distinct roles matching the query.'
+    TrackerProjectInput:
+      properties:
+        external_key:
+          type: string
+          minLength: 1
+          title: External Key
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - external_key
+      title: TrackerProjectInput
+    TrackerProjectResponse:
+      properties:
+        tracker_project_id:
+          type: string
+          title: Tracker Project Id
+        repo_id:
+          type: string
+          title: Repo Id
+        external_key:
+          type: string
+          title: External Key
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - tracker_project_id
+      - repo_id
+      - external_key
+      title: TrackerProjectResponse
+    TrackerProjectsResponse:
+      properties:
+        repo_id:
+          type: string
+          title: Repo Id
+        projects:
+          items:
+            $ref: '#/components/schemas/TrackerProjectResponse'
+          type: array
+          title: Projects
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - repo_id
+      title: TrackerProjectsResponse
+      description: 'Tracker projects under a repo. Paging fields populated by the
+        paginated
+
+        LIST endpoint; ``None`` on the (create) response so that stays unchanged.'
+    UpdateOrganizationRequest:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Name
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+      additionalProperties: false
+      type: object
+      title: UpdateOrganizationRequest
+      description: Rename / re-kind an org (structure unchanged).
+    UpdateVisibilityRequest:
+      properties:
+        visibility_scope:
+          $ref: '#/components/schemas/VisibilityScope'
+      additionalProperties: false
+      type: object
+      required:
+      - visibility_scope
+      title: UpdateVisibilityRequest
+    UserOrgView:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        name:
+          type: string
+          title: Name
+        path:
+          type: string
+          title: Path
+        level:
+          type: integer
+          title: Level
+        roles:
+          items:
+            $ref: '#/components/schemas/RoleView'
+          type: array
+          title: Roles
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - org_id
+      - name
+      - path
+      - level
+      title: UserOrgView
+      description: One org a user belongs to, with the roles they hold there.
+    UserOrgsResponse:
+      properties:
+        subject:
+          type: string
+          title: Subject
+        orgs:
+          items:
+            $ref: '#/components/schemas/UserOrgView'
+          type: array
+          title: Orgs
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - subject
+      title: UserOrgsResponse
+    UserResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        subject:
+          type: string
+          title: Subject
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - user_id
+      - subject
+      - created_at
+      title: UserResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VisibilityScope:
+      type: string
+      enum:
+      - org
+      - subtree
+      - ancestors
+      - tenant
+      - shared
+      title: VisibilityScope
+      description: How far a repository's tracker_projects are visible from its owning
+        org.
+    VisibleProjectResponse:
+      properties:
+        external_key:
+          type: string
+          title: External Key
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        repo_id:
+          type: string
+          title: Repo Id
+        org_id:
+          type: string
+          title: Org Id
+        provider:
+          type: string
+          title: Provider
+      additionalProperties: false
+      type: object
+      required:
+      - external_key
+      - repo_id
+      - org_id
+      - provider
+      title: VisibleProjectResponse
+    VisibleProjectsResponse:
+      properties:
+        subject:
+          type: string
+          title: Subject
+        projects:
+          items:
+            $ref: '#/components/schemas/VisibleProjectResponse'
+          type: array
+          title: Projects
+          default: []
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        returned:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Returned
+        offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offset
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+      additionalProperties: false
+      type: object
+      required:
+      - subject
+      title: VisibleProjectsResponse
+      description: 'A subject''s visible tracker projects. Paging fields populated
+        when the
+
+        caller pages/searches (``q`` / ``limit`` / ``offset``); ``None`` otherwise
+
+        so the existing no-param call is unchanged.'
