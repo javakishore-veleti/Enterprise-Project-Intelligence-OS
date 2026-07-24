@@ -9,6 +9,7 @@ from org_management_api.dtos.common import (
     OrganizationRecord,
     RepositoryGrantRecord,
     RepositoryRecord,
+    RolePage,
     TrackerProjectRecord,
     UserRecord,
     VisibleProjectRecord,
@@ -36,7 +37,14 @@ class OrganizationService(ABC):
     def get(self, org_id: str) -> OrganizationRecord: ...
 
     @abstractmethod
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage: ...
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationPage: ...
 
     @abstractmethod
     def search(
@@ -82,6 +90,10 @@ class MembershipService(ABC):
         self, org_id: str, q: str | None, role: str | None, limit: int, offset: int
     ) -> MemberPage:
         """One page of an org's members with direct + inherited roles resolved."""
+
+    @abstractmethod
+    def list_roles(self, q: str | None, limit: int) -> RolePage:
+        """Distinct role names matching ``q`` (capped) for a role-picker typeahead."""
 
     @abstractmethod
     def list_orgs_for_user(self, subject: str) -> list[tuple[OrganizationRecord, list]]: ...

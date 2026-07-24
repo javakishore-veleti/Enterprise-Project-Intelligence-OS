@@ -8,6 +8,7 @@ from org_management_api.dtos.requests import AddMemberRequest, CreateUserRequest
 from org_management_api.dtos.responses import (
     MemberResponse,
     MembersResponse,
+    RolesResponse,
     UserOrgsResponse,
     UserResponse,
 )
@@ -42,6 +43,17 @@ def list_members(
 ):
     # Server-paged + filterable; each row carries direct + inherited roles.
     return facade.list_members_page(org_id, q, role, limit, offset)
+
+
+@router.get("/roles", response_model=RolesResponse, operation_id="listRoles")
+def list_roles(
+    q: str | None = Query(
+        default=None, description="Case-insensitive substring filter on role name."),
+    limit: int = Query(default=25, ge=1, le=50),
+    facade: ManageMembersFacade = Facade,
+):
+    # Distinct role names for a searchable role picker (never the full scroll list).
+    return facade.list_roles(q, limit)
 
 
 @router.get("/users/{subject}/orgs", response_model=UserOrgsResponse,

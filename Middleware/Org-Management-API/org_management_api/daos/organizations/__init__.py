@@ -86,16 +86,41 @@ class PostgresOrganizationsDao(OrganizationsDao):
                 return None
             return self._attach_counts(conn, [_row(row)])[0]
 
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
+    # Whitelisted ORDER BY clauses for the children page (never interpolate raw
+    # sort input into SQL). `child_count` orders by the number of DIRECT children
+    # via a correlated subquery so the "most sub-orgs first" view is exact.
+    _CHILD_ORDER = {
+        "name": "name, org_id",
+        "created_at": "created_at DESC, org_id",
+        "child_count": (
+            "(SELECT COUNT(*) FROM org.organizations c "
+            "WHERE c.parent_org_id = org.organizations.org_id) DESC, name, org_id"
+        ),
+    }
+
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationPage:
+        order_by = self._CHILD_ORDER.get(sort or "name", self._CHILD_ORDER["name"])
+        where = "parent_org_id = %s"
+        params: list = [org_id]
+        if q:
+            where += " AND name ILIKE %s ESCAPE '\\'"
+            params.append(f"%{escape_like(q)}%")
         with self._db.connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT COUNT(*) FROM org.organizations WHERE parent_org_id = %s", (org_id,))
+                f"SELECT COUNT(*) FROM org.organizations WHERE {where}", tuple(params))
             total = cur.fetchone()[0]
             cur.execute(
                 f"SELECT {_COLUMNS} FROM org.organizations "
-                "WHERE parent_org_id = %s ORDER BY name, org_id LIMIT %s OFFSET %s",
-                (org_id, limit, offset))
+                f"WHERE {where} ORDER BY {order_by} LIMIT %s OFFSET %s",
+                tuple(params) + (limit, offset))
             rows = self._attach_counts(conn, [_row(r) for r in cur.fetchall()])
             return OrganizationPage(organizations=rows, total=total, offset=offset, limit=limit)
 

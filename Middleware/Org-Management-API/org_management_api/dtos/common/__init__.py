@@ -117,6 +117,14 @@ class MemberPage(TypedModel):
     limit: int = 0
 
 
+class RolePage(TypedModel):
+    """A capped list of DISTINCT role names matching a search, plus the total
+    number of distinct matches (so a typeahead can hint "showing N of M")."""
+
+    roles: list[str] = []
+    total: int = 0
+
+
 class RepositoryRecord(TypedModel):
     """Internal record of a connected tracker account."""
 

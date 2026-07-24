@@ -19,11 +19,38 @@
       <label>Subject</label>
       <input type="text" [(ngModel)]="memberSubject" placeholder="alice, bob…" aria-label="Member subject" />
     </div>
-    <div class="field">
+    <div class="field rolepicker">
       <label>Roles</label>
-      <select multiple [(ngModel)]="memberRoles" aria-label="Member roles" class="multi">
-        @for (r of roleOptions; track r) { <option [value]="r">{{ r }}</option> }
-      </select>
+      <div class="rolepicker__box">
+        @for (r of memberRoles; track r) {
+          <span class="chip">{{ r }}
+            <button type="button" class="chip__x" (click)="removeRole(r)" aria-label="Remove role">×</button>
+          </span>
+        }
+        <input type="text" [(ngModel)]="addRoleQuery" (ngModelChange)="onAddRoleInput()"
+               (focus)="openAddRoles()" (blur)="closeAddRolesSoon()"
+               (keydown.enter)="$event.preventDefault(); canAddTypedRole() && addTypedRole()"
+               placeholder="Search or add a role…" aria-label="Search or add a role" class="rolepicker__input" />
+      </div>
+      @if (addRoleOpen()) {
+        <div class="rolepicker__menu">
+          @if (addRoleLoading()) {
+            <div class="rolepicker__status"><span class="spinner"></span> Searching…</div>
+          } @else {
+            @for (r of addRoleResults(); track r) {
+              <button type="button" class="rolepicker__opt" (mousedown)="addRoleValue(r)">{{ r }}</button>
+            }
+            @if (canAddTypedRole()) {
+              <button type="button" class="rolepicker__opt rolepicker__opt--new" (mousedown)="addTypedRole()">
+                add “{{ addRoleQuery.trim() }}”
+              </button>
+            }
+            @if (!addRoleResults().length && !canAddTypedRole()) {
+              <div class="rolepicker__status">No roles found.</div>
+            }
+          }
+        </div>
+      }
     </div>
     <label class="toggle">
       <input type="checkbox" [(ngModel)]="memberInherits" /> inherits down
@@ -40,12 +67,30 @@
       <input type="text" [(ngModel)]="query" (ngModelChange)="onQueryChange()"
              placeholder="subject, name or email…" aria-label="Search members" />
     </div>
-    <div class="field field--kind">
-      <label>Role</label>
-      <select [(ngModel)]="roleFilter" (ngModelChange)="onRoleFilterChange()" aria-label="Filter by role">
-        <option value="">All roles</option>
-        @for (r of roleOptions; track r) { <option [value]="r">{{ r }}</option> }
-      </select>
+    <div class="field field--kind rolepicker">
+      <label>Filter by role</label>
+      <div class="rolepicker__filterbar">
+        <input type="text" [(ngModel)]="filterRoleQuery" (ngModelChange)="onFilterRoleInput()"
+               (focus)="openFilterRoles()" (blur)="closeFilterRolesSoon()"
+               placeholder="All roles — search…" aria-label="Filter by role" class="rolepicker__input" />
+        @if (roleFilter) {
+          <button type="button" class="rolepicker__clear" (click)="clearRoleFilter()" aria-label="Clear role filter">×</button>
+        }
+      </div>
+      @if (filterRoleOpen()) {
+        <div class="rolepicker__menu">
+          @if (filterRoleLoading()) {
+            <div class="rolepicker__status"><span class="spinner"></span> Searching…</div>
+          } @else {
+            <button type="button" class="rolepicker__opt" (mousedown)="clearRoleFilter()">All roles</button>
+            @for (r of filterRoleResults(); track r) {
+              <button type="button" class="rolepicker__opt" (mousedown)="pickRoleFilter(r)">{{ r }}</button>
+            } @empty {
+              <div class="rolepicker__status">No roles match.</div>
+            }
+          }
+        </div>
+      }
     </div>
   </div>
 

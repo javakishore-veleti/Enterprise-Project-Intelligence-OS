@@ -6,6 +6,7 @@ from org_management_api.dtos.common import (
     MemberPage,
     OrganizationRecord,
     RoleAssignmentRecord,
+    RolePage,
     UserRecord,
 )
 from org_management_api.dtos.requests import AddMemberRequest, CreateUserRequest
@@ -57,6 +58,9 @@ class DefaultMembershipService(MembershipService):
         # Ancestor orgs supply inherited roles (assignments with inherits_down).
         ancestor_ids = [a.org_id for a in self._orgs.ancestors(org.path)]
         return self._members.list_members_page(org_id, q, role, limit, offset, ancestor_ids)
+
+    def list_roles(self, q: str | None, limit: int) -> RolePage:
+        return self._members.list_roles(q, limit)
 
     def list_orgs_for_user(
         self, subject: str

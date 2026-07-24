@@ -97,6 +97,46 @@ def test_children_pagination_and_counts_contract() -> None:
     assert len(default["organizations"]) == 3
 
 
+def test_children_filter_and_sort_contract() -> None:
+    c = _client()
+    root = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    for name in ["Platform", "Payments", "Marketing"]:
+        c.post("/api/v1/orgs", json={"name": name, "parent_org_id": root["org_id"]})
+
+    # `q` filters the direct children; `total` reflects the filtered count.
+    filtered = c.get(f"/api/v1/orgs/{root['org_id']}/children?q=p").json()
+    assert filtered["total"] == 2
+    assert [o["name"] for o in filtered["organizations"]] == ["Payments", "Platform"]
+
+    # Paging over a filtered set.
+    page = c.get(f"/api/v1/orgs/{root['org_id']}/children?q=p&limit=1&offset=1").json()
+    assert page["total"] == 2 and [o["name"] for o in page["organizations"]] == ["Platform"]
+
+    # `sort=child_count` is accepted (whitelist); an unknown value is rejected.
+    ok = c.get(f"/api/v1/orgs/{root['org_id']}/children?sort=child_count")
+    assert ok.status_code == 200
+    bad = c.get(f"/api/v1/orgs/{root['org_id']}/children?sort=drop_table")
+    assert bad.status_code == 422
+
+
+def test_roles_endpoint_contract() -> None:
+    c = _client()
+    org = c.post("/api/v1/orgs", json={"name": "Acme"}).json()
+    c.post(f"/api/v1/orgs/{org['org_id']}/members",
+           json={"subject": "alice", "roles": ["admin", "manager"], "inherits_down": True})
+    c.post(f"/api/v1/orgs/{org['org_id']}/members",
+           json={"subject": "bob", "roles": ["admin", "viewer"], "inherits_down": True})
+
+    allr = c.get("/api/v1/roles").json()
+    assert allr["roles"] == ["admin", "manager", "viewer"] and allr["total"] == 3
+
+    man = c.get("/api/v1/roles?q=man").json()
+    assert man["roles"] == ["manager"] and man["total"] == 1
+
+    capped = c.get("/api/v1/roles?q=a&limit=1").json()
+    assert len(capped["roles"]) == 1 and capped["total"] == 2
+
+
 def test_org_search_contract() -> None:
     c = _client()
     acme = c.post("/api/v1/orgs", json={"name": "Acme"}).json()

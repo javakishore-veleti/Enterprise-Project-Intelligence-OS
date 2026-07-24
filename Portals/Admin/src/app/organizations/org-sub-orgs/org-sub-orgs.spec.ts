@@ -33,13 +33,17 @@ describe('OrgSubOrgs', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('loads the selected org\'s children (paged) — never a subtree', () => {
+  it('renders ONLY the current page of children (bounded DOM) — never a subtree', () => {
     ctx.select(org({ child_count: 1 }));
     const fixture = TestBed.createComponent(OrgSubOrgs);
     fixture.detectChanges();
 
     const kids = httpMock.expectOne(
-      (r) => r.url === `${base}/orgs/r1/children` && r.params.get('offset') === '0',
+      (r) =>
+        r.url === `${base}/orgs/r1/children` &&
+        r.params.get('offset') === '0' &&
+        r.params.get('limit') === '25' &&
+        r.params.get('sort') === 'name',
     );
     expect(kids.request.method).toBe('GET');
     kids.flush({
@@ -48,9 +52,46 @@ describe('OrgSubOrgs', () => {
     });
 
     fixture.detectChanges();
-    const nodes = (fixture.nativeElement as HTMLElement).querySelectorAll('.tree__node');
-    expect(nodes.length).toBe(1);
-    expect(nodes[0].textContent).toContain('Platform');
+    // Rows render in a compact table — the DOM is bounded to the current page.
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('tbody tr');
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('Platform');
     httpMock.expectNone(`${base}/orgs/r1/subtree`);
+  });
+
+  it('page-replaces (does not accumulate) when advancing to the next page', () => {
+    ctx.select(org({ child_count: 60 }));
+    const fixture = TestBed.createComponent(OrgSubOrgs);
+    fixture.detectChanges();
+
+    const p0 = httpMock.expectOne(
+      (r) => r.url === `${base}/orgs/r1/children` && r.params.get('offset') === '0',
+    );
+    p0.flush({
+      organizations: Array.from({ length: 25 }, (_, i) =>
+        org({ org_id: `a${i}`, parent_org_id: 'r1', name: `A${i}`, child_count: 0 })),
+      total: 60, returned: 25, offset: 0, limit: 25,
+    });
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('tbody tr').length).toBe(25);
+
+    // Next page fetches offset=25 and REPLACES the rows (still 25, not 50).
+    host.querySelectorAll('button').forEach((b) => {
+      if (b.textContent?.trim() === 'Next') { (b as HTMLButtonElement).click(); }
+    });
+    const p1 = httpMock.expectOne(
+      (r) => r.url === `${base}/orgs/r1/children` && r.params.get('offset') === '25',
+    );
+    p1.flush({
+      organizations: Array.from({ length: 25 }, (_, i) =>
+        org({ org_id: `b${i}`, parent_org_id: 'r1', name: `B${i}`, child_count: 0 })),
+      total: 60, returned: 25, offset: 25, limit: 25,
+    });
+    fixture.detectChanges();
+    const rows = host.querySelectorAll('tbody tr');
+    expect(rows.length).toBe(25);
+    expect(host.textContent).toContain('B0');
+    expect(host.textContent).not.toContain('A0');
   });
 });

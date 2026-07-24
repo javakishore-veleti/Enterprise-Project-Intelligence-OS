@@ -13,6 +13,7 @@ from org_management_api.dtos.common import (
     MemberRecord,
     OrganizationRecord,
     RoleAssignmentRecord,
+    RolePage,
     UserRecord,
 )
 from org_management_api.interfaces.daos import MembersDao
@@ -158,6 +159,25 @@ class PostgresMembersDao(MembersDao):
                 for u in users
             ]
             return MemberPage(members=members, total=total, offset=offset, limit=limit)
+
+    def list_roles(self, q: str | None, limit: int) -> RolePage:
+        where = ""
+        params: list = []
+        if q:
+            where = "WHERE role ILIKE %s ESCAPE '\\'"
+            params.append(f"%{escape_like(q)}%")
+        with self._db.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COUNT(*) FROM "
+                f"(SELECT DISTINCT role FROM org.role_assignments {where}) t",
+                tuple(params))
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT DISTINCT role FROM org.role_assignments {where} "
+                "ORDER BY role LIMIT %s", tuple(params) + (limit,))
+            roles = [r[0] for r in cur.fetchall()]
+            return RolePage(roles=roles, total=total)
 
     def list_orgs_for_user(
         self, subject: str

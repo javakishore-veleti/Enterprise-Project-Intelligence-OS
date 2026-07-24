@@ -15,9 +15,11 @@ import {
   MembersResponse,
   MoveOrganizationRequest,
   Organization,
+  OrgChildrenQuery,
   OrganizationListResponse,
   RepositoriesResponse,
   Repository,
+  RolesResponse,
   TrackerProjectsResponse,
   UpdateOrganizationRequest,
   UpdateVisibilityRequest,
@@ -55,15 +57,40 @@ export class OrgAdminService {
   }
 
   /**
-   * One PAGE of an org's direct children. Used by the lazy tree — a node's
-   * children are fetched only when it is expanded, never a whole subtree.
+   * One PAGE of an org's direct children — bounded, server-filtered (`q`) and
+   * sorted (`sort`). The page browser replaces rows per page (never a whole
+   * subtree, never an accumulating list) so the DOM stays bounded at scale.
    */
-  children(orgId: string, limit = 50, offset = 0): Observable<OrganizationListResponse> {
-    const params = new HttpParams().set('limit', limit).set('offset', offset);
+  children(
+    orgId: string,
+    opts: OrgChildrenQuery = {},
+  ): Observable<OrganizationListResponse> {
+    let params = new HttpParams()
+      .set('limit', opts.limit ?? 50)
+      .set('offset', opts.offset ?? 0);
+    if (opts.q) {
+      params = params.set('q', opts.q);
+    }
+    if (opts.sort) {
+      params = params.set('sort', opts.sort);
+    }
     return this.http.get<OrganizationListResponse>(
       `${this.baseUrl}/orgs/${encodeURIComponent(orgId)}/children`,
       { params },
     );
+  }
+
+  /**
+   * Distinct role names matching `q` (case-insensitive substring), capped.
+   * Backs the searchable role picker so a large role catalog is never loaded
+   * into a scroll list.
+   */
+  roles(q: string, limit = 25): Observable<RolesResponse> {
+    let params = new HttpParams().set('limit', limit);
+    if (q) {
+      params = params.set('q', q);
+    }
+    return this.http.get<RolesResponse>(`${this.baseUrl}/roles`, { params });
   }
 
   /**

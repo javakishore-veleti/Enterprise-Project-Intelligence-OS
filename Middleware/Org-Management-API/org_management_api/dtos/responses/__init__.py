@@ -114,6 +114,14 @@ class UserOrgsResponse(TypedModel):
     orgs: list[UserOrgView] = []
 
 
+class RolesResponse(TypedModel):
+    """Distinct role names for a role-picker typeahead. ``roles`` is capped;
+    ``total`` is the total number of distinct roles matching the query."""
+
+    roles: list[str] = []
+    total: int = 0
+
+
 # --- Repositories / tracker projects / grants ---
 
 class RepositoryResponse(TypedModel):

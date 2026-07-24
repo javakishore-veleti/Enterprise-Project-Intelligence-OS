@@ -84,6 +84,17 @@ export interface OrganizationListResponse {
   limit?: number;
 }
 
+/** Whitelisted sort keys for the direct-children page (mirrors the API). */
+export type OrgChildSort = 'name' | 'created_at' | 'child_count';
+
+/** Query options for the paginated + filterable direct-children list. */
+export interface OrgChildrenQuery {
+  q?: string;
+  sort?: OrgChildSort;
+  limit?: number;
+  offset?: number;
+}
+
 export interface CreateOrganizationRequest {
   name: string;
   parent_org_id?: string | null;
@@ -150,6 +161,14 @@ export interface AddMemberRequest {
   inherits_down: boolean;
   email?: string | null;
   display_name?: string | null;
+}
+
+/** Distinct role names for the searchable role picker (`GET /roles`). */
+export interface RolesResponse {
+  /** Capped, ordered distinct role names matching the query. */
+  roles: string[];
+  /** Total number of distinct roles matching (may exceed `roles.length`). */
+  total: number;
 }
 
 // --- Repositories / tracker projects / grants -------------------------------

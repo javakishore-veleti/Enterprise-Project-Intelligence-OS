@@ -69,9 +69,16 @@ class DefaultOrganizationService(OrganizationService):
     def get(self, org_id: str) -> OrganizationRecord:
         return self._require(org_id)
 
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationPage:
         self._require(org_id)
-        return self._dao.children(org_id, limit, offset)
+        return self._dao.children(org_id, limit, offset, q, sort)
 
     def search(
         self, q: str, root: str | None, limit: int, offset: int

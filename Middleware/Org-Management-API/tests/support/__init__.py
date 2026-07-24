@@ -21,6 +21,7 @@ from org_management_api.dtos.common import (
     RepositoryGrantRecord,
     RepositoryRecord,
     RoleAssignmentRecord,
+    RolePage,
     TrackerProjectRecord,
     UserRecord,
     VisibleProjectRecord,
@@ -74,12 +75,31 @@ class FakeOrganizationsDao(OrganizationsDao):
         rec = self._s.orgs.get(org_id)
         return self._decorate(rec) if rec else None
 
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
-        rows = sorted(
-            (o for o in self._s.orgs.values() if o.parent_org_id == org_id),
-            key=lambda o: (o.name, o.org_id))
+    def _direct_child_count(self, org_id: str) -> int:
+        return sum(1 for o in self._s.orgs.values() if o.parent_org_id == org_id)
+
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationPage:
+        rows = [o for o in self._s.orgs.values() if o.parent_org_id == org_id]
+        if q:
+            needle = q.lower()
+            rows = [o for o in rows if needle in o.name.lower()]
+        # Mirror the SQL ORDER BY (stable secondary/tertiary keys via chained sorts).
+        rows.sort(key=lambda o: (o.name, o.org_id))
+        if sort == "created_at":
+            rows.sort(key=lambda o: o.org_id)                 # tie-break org_id ASC
+            rows.sort(key=lambda o: o.created_at, reverse=True)
+        elif sort == "child_count":
+            rows.sort(key=lambda o: self._direct_child_count(o.org_id), reverse=True)
+        total = len(rows)
         page = [self._decorate(o) for o in rows[offset:offset + limit]]
-        return OrganizationPage(organizations=page, total=len(rows), offset=offset, limit=limit)
+        return OrganizationPage(organizations=page, total=total, offset=offset, limit=limit)
 
     def search(self, q: str, root: str | None, limit: int, offset: int) -> OrganizationPage:
         needle = q.lower()
@@ -219,6 +239,13 @@ class FakeMembersDao(MembersDao):
             for u in page
         ]
         return MemberPage(members=members, total=total, offset=offset, limit=limit)
+
+    def list_roles(self, q, limit) -> RolePage:
+        roles = sorted({role for (_uid, _oid, role) in self._s.roles})
+        if q:
+            needle = q.lower()
+            roles = [r for r in roles if needle in r.lower()]
+        return RolePage(roles=roles[:limit], total=len(roles))
 
     def list_orgs_for_user(self, subject):
         user = self._s.users.get(subject)

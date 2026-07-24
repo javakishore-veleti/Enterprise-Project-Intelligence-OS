@@ -59,8 +59,15 @@ class ManageOrganizationsFacade:
     def get(self, org_id: str) -> OrganizationResponse:
         return _response(self._service.get(org_id))
 
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationListResponse:
-        return _page(self._service.children(org_id, limit, offset))
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationListResponse:
+        return _page(self._service.children(org_id, limit, offset, q, sort))
 
     def search(
         self, q: str, root: str | None, limit: int, offset: int

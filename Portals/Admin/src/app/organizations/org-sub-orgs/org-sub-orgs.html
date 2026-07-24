@@ -45,7 +45,7 @@
       </div>
     </div>
 
-    <!-- Children of the selected org -->
+    <!-- Children of the selected org (bounded, page-replacement) -->
     <div class="panel" style="margin-bottom: 1.3rem;">
       <div class="panel__head">
         <h2 class="panel__title">Sub-Organizations of “{{ ctx.selected()!.name }}”</h2>
@@ -61,38 +61,92 @@
         </div>
       }
 
-      @if (loading() && children().length === 0) {
-        <p class="panel__status"><span class="spinner spinner--brand"></span> Loading sub-organizations…</p>
-      } @else if (error()) {
-        <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
-      } @else {
-        <div class="tree">
-          @for (c of children(); track c.org_id) {
-            <button type="button" class="tree__node" (click)="drillIn(c)">
-              <span class="tree__twig">›</span>
-              <span class="tree__name">{{ c.name }}</span>
-              <span class="badge tree__level">L{{ c.level }}</span>
-              @if (c.child_count) {
-                <span class="tree__count">
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/></svg>
-                  {{ c.child_count }}
-                </span>
-              }
-              @if (c.member_count) { <span class="tree__count">· {{ c.member_count }} member</span> }
-              @if (c.kind) { <span class="tree__kind">{{ c.kind }}</span> }
-              <span class="tree__drill">Open →</span>
-            </button>
-          } @empty {
-            <p class="panel__status">No sub-organizations yet. Create one below.</p>
-          }
+      <!-- Filter + sort (server-side; both reset to page 0) -->
+      <div class="form-row form-row--members">
+        <div class="field">
+          <label>Filter sub-organizations</label>
+          <input type="text" [(ngModel)]="filter" (ngModelChange)="onFilterChange()"
+                 placeholder="Filter this org's children by name…" aria-label="Filter sub-organizations" />
         </div>
-        @if (remaining > 0) {
-          <div style="padding: 0 1.25rem 1rem;">
-            <button type="button" class="tree__loadmore" (click)="loadMore()" [disabled]="loading()">
-              @if (loading()) { <span class="spinner"></span> Loading… } @else { Load more ({{ remaining }} remaining) }
-            </button>
+        <div class="field field--kind">
+          <label>Sort</label>
+          <select [(ngModel)]="sortBy" (ngModelChange)="onSortChange()" aria-label="Sort sub-organizations">
+            <option value="name">Name (A–Z)</option>
+            <option value="created_at">Newest</option>
+            <option value="child_count">Most sub-orgs</option>
+          </select>
+        </div>
+        <div class="field field--kind">
+          <label>Page size</label>
+          <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)" aria-label="Rows per page">
+            @for (s of pageSizes; track s) { <option [ngValue]="s">{{ s }} / page</option> }
+          </select>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ error() }}</span></div>
+      }
+      @if (loading()) {
+        <p class="panel__status"><span class="spinner spinner--brand"></span> Loading sub-organizations…</p>
+      } @else {
+        <div class="panel__table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th class="center">Level</th><th>Kind</th>
+                <th class="center">Sub-orgs</th><th class="center">Members</th>
+                <th class="center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of children(); track c.org_id) {
+                <tr>
+                  <td>
+                    <button type="button" class="linklike strong" (click)="drillIn(c)"
+                            title="Drill into this organization">{{ c.name }}</button>
+                  </td>
+                  <td class="center"><span class="badge tree__level">L{{ c.level }}</span></td>
+                  <td>@if (c.kind) { <span class="tree__kind">{{ c.kind }}</span> } @else { <span class="muted">—</span> }</td>
+                  <td class="center">{{ c.child_count ?? 0 }}</td>
+                  <td class="center">{{ c.member_count ?? 0 }}</td>
+                  <td class="center">
+                    <div class="row-actions">
+                      <button type="button" class="btn--sm btn--ghost" (click)="drillIn(c)">Drill-in</button>
+                      <button type="button" class="btn--sm btn--ghost" (click)="openProfile(c)">Open Profile</button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td class="empty" colspan="6">
+                    @if (filter.trim()) { No sub-organizations match “{{ filter }}”. }
+                    @else { No sub-organizations yet. Create one below. }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bounded pager -->
+        <div class="pager">
+          <span class="pager__info">
+            @if (total() > 0) { Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }} }
+            @else { No sub-organizations }
+          </span>
+          <div class="pager__controls">
+            <button type="button" class="btn--sm btn--ghost" (click)="prev()" [disabled]="!canPrev()">Previous</button>
+            <span class="pager__page">
+              Page
+              <input type="number" min="1" [max]="pageCount()" [ngModel]="currentPage()"
+                     (change)="jumpToPage($any($event.target).valueAsNumber)"
+                     aria-label="Jump to page" class="pager__jump" />
+              of {{ pageCount() }}
+            </span>
+            <button type="button" class="btn--sm btn--ghost" (click)="next()" [disabled]="!canNext()">Next</button>
           </div>
-        }
+        </div>
       }
     </div>
 

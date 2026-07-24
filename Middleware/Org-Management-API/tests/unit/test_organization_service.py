@@ -186,6 +186,76 @@ def test_children_pagination_orders_and_pages() -> None:
     assert second.total == 4
 
 
+def test_children_q_filters_by_name_and_total_reflects_filter() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    for name in ["Platform", "Payments", "Marketing", "Sales"]:
+        _create(svc, name, parent=root.org_id)
+
+    # Case-insensitive substring on the DIRECT children.
+    page = svc.children(root.org_id, limit=25, offset=0, q="p")
+    assert page.total == 2  # total reflects the FILTER, not all 4 children
+    assert [o.name for o in page.organizations] == ["Payments", "Platform"]
+
+    # No match -> empty page, zero total.
+    empty = svc.children(root.org_id, limit=25, offset=0, q="zzz")
+    assert empty.total == 0 and empty.organizations == []
+
+
+def test_children_paging_over_a_filtered_set() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    for name in ["Team A", "Team B", "Team C", "Other"]:
+        _create(svc, name, parent=root.org_id)
+
+    first = svc.children(root.org_id, limit=2, offset=0, q="team")
+    assert first.total == 3 and [o.name for o in first.organizations] == ["Team A", "Team B"]
+    second = svc.children(root.org_id, limit=2, offset=2, q="team")
+    assert second.total == 3 and [o.name for o in second.organizations] == ["Team C"]
+
+
+def test_children_sort_by_child_count_desc_then_created_at() -> None:
+    svc, _ = _service()
+    root = _create(svc, "Acme")
+    big = _create(svc, "Big", parent=root.org_id)
+    small = _create(svc, "Small", parent=root.org_id)
+    _create(svc, "Empty", parent=root.org_id)
+    # Give Big two grandchildren, Small one.
+    _create(svc, "b1", parent=big.org_id)
+    _create(svc, "b2", parent=big.org_id)
+    _create(svc, "s1", parent=small.org_id)
+
+    by_count = svc.children(root.org_id, sort="child_count")
+    assert [o.name for o in by_count.organizations] == ["Big", "Small", "Empty"]
+
+    # `created_at` orders newest-first; all three roots' children share a clock in
+    # the fake (same _now), so this at least exercises the whitelist path safely.
+    by_created = svc.children(root.org_id, sort="created_at")
+    assert {o.name for o in by_created.organizations} == {"Big", "Small", "Empty"}
+
+
+# --- distinct roles (role-picker typeahead) --------------------------------
+
+
+def test_list_roles_distinct_filtered_and_capped(members_wiring) -> None:
+    members, orgs, _ = members_wiring
+    org = orgs.create(CreateOrganizationRequest(name="Acme"))
+    members.add_member(org.org_id, AddMemberRequest(subject="alice", roles=["admin", "manager"]))
+    members.add_member(org.org_id, AddMemberRequest(subject="bob", roles=["admin", "viewer"]))
+
+    # Distinct across assignments (admin appears twice -> once).
+    allr = members.list_roles(None, 50)
+    assert allr.roles == ["admin", "manager", "viewer"] and allr.total == 3
+
+    # Case-insensitive substring filter.
+    man = members.list_roles("MAN", 50)
+    assert man.roles == ["manager"] and man.total == 1
+
+    # Cap respected; total still reflects all distinct matches.
+    capped = members.list_roles("a", 1)
+    assert len(capped.roles) == 1 and capped.total == 2  # admin, manager
+
+
 # --- search ----------------------------------------------------------------
 
 

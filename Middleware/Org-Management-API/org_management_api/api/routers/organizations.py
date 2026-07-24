@@ -61,9 +61,15 @@ def get_children(
     org_id: str,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    q: str | None = Query(
+        default=None, description="Case-insensitive substring filter on the DIRECT child names."),
+    sort: str = Query(
+        default="name", pattern="^(name|created_at|child_count)$",
+        description="Order key: name (A→Z), created_at (newest first), child_count (most sub-orgs first)."),
     facade: ManageOrganizationsFacade = Facade,
 ):
-    return facade.children(org_id, limit, offset)
+    # Filter/sort apply to the DIRECT children only; paging + `total` reflect the filter.
+    return facade.children(org_id, limit, offset, q, sort)
 
 
 @router.get("/{org_id}/subtree", response_model=OrganizationListResponse,

@@ -13,6 +13,7 @@ from org_management_api.dtos.responses import (
     InheritedRoleView,
     MemberResponse,
     MembersResponse,
+    RolesResponse,
     RoleView,
     UserOrgsResponse,
     UserOrgView,
@@ -79,6 +80,10 @@ class ManageMembersFacade:
         return MembersResponse(
             org_id=org_id, members=members, total=page.total,
             returned=len(members), offset=page.offset, limit=page.limit)
+
+    def list_roles(self, q: str | None, limit: int) -> RolesResponse:
+        page = self._service.list_roles(q, limit)
+        return RolesResponse(roles=page.roles, total=page.total)
 
     def list_orgs_for_user(self, subject: str) -> UserOrgsResponse:
         rows = self._service.list_orgs_for_user(subject)

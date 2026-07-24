@@ -10,6 +10,7 @@ from org_management_api.dtos.common import (
     RepositoryGrantRecord,
     RepositoryRecord,
     RoleAssignmentRecord,
+    RolePage,
     TrackerProjectRecord,
     UserRecord,
     VisibleProjectRecord,
@@ -26,9 +27,18 @@ class OrganizationsDao(ABC):
     def get(self, org_id: str) -> OrganizationRecord | None: ...
 
     @abstractmethod
-    def children(self, org_id: str, limit: int = 50, offset: int = 0) -> OrganizationPage:
-        """One PAGE of direct children (one level down), ordered by name, with the
-        total child count for the paging envelope."""
+    def children(
+        self,
+        org_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        q: str | None = None,
+        sort: str = "name",
+    ) -> OrganizationPage:
+        """One PAGE of direct children (one level down), with the total (filtered)
+        child count for the paging envelope. ``q`` is a case-insensitive substring
+        filter on child name; ``sort`` is a whitelisted key (``name`` /
+        ``created_at`` / ``child_count``)."""
 
     @abstractmethod
     def search(
@@ -116,6 +126,11 @@ class MembersDao(ABC):
         subject/display_name/email) and/or ``role`` (holds that direct role),
         each row carrying direct roles PLUS roles inherited from the given
         ancestor orgs (``inherits_down = true``). One bounded query set, no N+1."""
+
+    @abstractmethod
+    def list_roles(self, q: str | None, limit: int) -> RolePage:
+        """A capped, ordered list of DISTINCT role names across all assignments,
+        filtered by ``q`` (case-insensitive substring), plus the distinct total."""
 
     @abstractmethod
     def list_orgs_for_user(
