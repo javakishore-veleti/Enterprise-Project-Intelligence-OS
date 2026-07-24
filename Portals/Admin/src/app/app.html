@@ -4,17 +4,43 @@
     <div class="sidebar__brand">
       <span class="sidebar__logo">◆</span>
       <span class="sidebar__brand-text">
-        <strong>Project Intelligence OS</strong>
-        <small>Admin Console</small>
+        <strong>Admin Console</strong>
+        <small>Project Intelligence OS</small>
       </span>
     </div>
 
     <nav class="sidebar__nav">
       <span class="sidebar__section">Platform</span>
+      <a routerLink="/dashboard" routerLinkActive="is-active">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </a>
       <a routerLink="/agents" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         <span>Agents</span>
       </a>
+
+      <!-- Organizations: expandable parent with an indented sub-nav -->
+      <button
+        type="button"
+        class="sidebar__parent"
+        [class.is-active]="orgNavExpanded()"
+        (click)="toggleOrgNav()"
+        [attr.aria-expanded]="orgNavExpanded()"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01"/><path d="M15 11h.01"/></svg>
+        <span>Organizations</span>
+        <svg class="sidebar__caret" [class.is-open]="orgNavExpanded()" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      @if (orgNavExpanded()) {
+        <div class="sidebar__subnav">
+          <a routerLink="/organizations" fragment="org-tree">Org Tree</a>
+          <a routerLink="/organizations" fragment="org-members">Members &amp; Roles</a>
+          <a routerLink="/organizations" fragment="org-repos">Repositories &amp; Visibility</a>
+          <a routerLink="/organizations" fragment="org-access">Effective Access</a>
+        </div>
+      }
+
       <a routerLink="/health" routerLinkActive="is-active">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         <span>System Health</span>

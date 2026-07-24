@@ -1,0 +1,80 @@
+/* Dashboard home — teal/azure tokens only (no violet), reuses shared
+   .panel / .kpi / table / badge system from styles.css. */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.3rem;
+  margin-bottom: 1.3rem;
+  align-items: start;
+}
+
+.panel__link {
+  font-size: .8rem; font-weight: 700; color: var(--brand-500);
+  white-space: nowrap;
+}
+.panel__link:hover { color: var(--brand-400); }
+
+.dash-lead { color: var(--ink-700); font-size: .92rem; margin-bottom: .8rem; }
+.dash-lead strong { color: var(--ink-900); }
+
+.dash-scroll { max-height: 22rem; overflow-y: auto; }
+
+.strong { font-weight: 700; color: var(--ink-900); }
+.agent-key { font-size: .72rem; color: var(--ink-400); margin-top: .1rem; }
+.empty { text-align: center; color: var(--ink-400); font-style: italic; }
+
+/* ---- Root list ----------------------------------------------------------- */
+.root-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.root-list__item {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .55rem .7rem; border-radius: var(--radius-sm);
+  background: var(--surface-alt); border: 1px solid var(--border);
+}
+.root-list__mark { color: var(--brand-500); flex: none; }
+.root-list__name { font-weight: 700; color: var(--ink-900); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.root-list__count { flex: none; }
+.root-list__empty { color: var(--ink-500); font-size: .88rem; padding: .5rem 0; }
+
+/* ---- Executions / activity ----------------------------------------------- */
+.exec-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 2fr;
+  gap: 1.2rem;
+  align-items: start;
+}
+.exec-card {
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem 1.15rem;
+  display: flex; flex-direction: column; gap: .7rem;
+}
+.exec-card__title {
+  font-size: .74rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--brand-500); font-weight: 700;
+}
+.exec-card__foot { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0; }
+
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  display: inline-flex; align-items: center;
+  padding: .25rem .6rem; border-radius: 999px;
+  background: var(--bg-2); color: var(--brand-500);
+  font-size: .74rem; font-weight: 600;
+  border: 1px solid var(--border-strong);
+}
+
+.activity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.activity-list__item {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  padding: .5rem .65rem; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: .82rem;
+}
+.activity-list__entity { color: var(--ink-900); }
+.activity-list__actor { color: var(--ink-500); }
+.activity-list__time { color: var(--ink-400); margin-left: auto; font-size: .74rem; }
+
+@media (max-width: 960px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .exec-grid { grid-template-columns: 1fr; }
+}

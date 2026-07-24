@@ -1,0 +1,186 @@
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <h1>Admin Console</h1>
+      <p class="subtitle">
+        Enterprise Project Intelligence OS — operator overview of the tenancy model, the specialist
+        agents and recent platform activity, at a glance.
+      </p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="refresh()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  <!-- KPI summary cards -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--brand">⌂</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Organizations</span>
+        <span class="kpi__value">{{ orgsLoading() ? '—' : orgCount() }}</span>
+        <span class="kpi__sub">{{ rootCount() }} tenant root(s)</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--info">◆</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Configured Agents</span>
+        <span class="kpi__value">{{ agentsLoading() ? '—' : agentCount() }}</span>
+        <span class="kpi__sub">{{ enabledAgentCount() }} enabled</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--success">✓</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Enabled Agents</span>
+        <span class="kpi__value">{{ agentsLoading() ? '—' : enabledAgentCount() }}</span>
+        <span class="kpi__sub">{{ disabledAgentCount() }} disabled</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--warning">⚡</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Recent Activity</span>
+        <span class="kpi__value">{{ activityLoading() ? '—' : activity().length }}</span>
+        <span class="kpi__sub">audited event(s)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <!-- ===== Organizations summary ===== -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Organizations</h2>
+        <a routerLink="/organizations" class="panel__link">Manage →</a>
+      </div>
+
+      @if (orgsLoading()) {
+        <p class="panel__status"><span class="spinner spinner--brand"></span> Loading organizations…</p>
+      } @else if (orgsError()) {
+        <div class="alert alert--error" style="margin: 1rem;"><span class="alert__icon">⚠</span><span>{{ orgsError() }}</span></div>
+      } @else {
+        <div class="panel__body">
+          <p class="dash-lead"><strong>{{ orgCount() }}</strong> organization(s) across <strong>{{ rootCount() }}</strong> tenant root(s).</p>
+          <ul class="root-list">
+            @for (r of roots(); track r.org.org_id) {
+              <li class="root-list__item">
+                <span class="root-list__mark">◈</span>
+                <span class="root-list__name">{{ r.org.name }}</span>
+                @if (r.org.kind) { <span class="badge">{{ r.org.kind }}</span> }
+                <span class="badge badge--info root-list__count">{{ r.nodeCount }} node(s)</span>
+              </li>
+            } @empty {
+              <li class="root-list__empty">No organizations yet. Create a tenant root in <a routerLink="/organizations">Organizations</a>.</li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <!-- ===== Agents summary ===== -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Agents</h2>
+        <a routerLink="/agents" class="panel__link">Configure →</a>
+      </div>
+
+      @if (agentsLoading()) {
+        <p class="panel__status"><span class="spinner spinner--brand"></span> Loading agents…</p>
+      } @else if (agentsError()) {
+        <div class="alert alert--error" style="margin: 1rem;"><span class="alert__icon">⚠</span><span>{{ agentsError() }}</span></div>
+      } @else {
+        <div class="panel__table-wrap dash-scroll">
+          <table>
+            <thead>
+              <tr><th>Agent</th><th>Framework</th><th class="center">Enabled</th></tr>
+            </thead>
+            <tbody>
+              @for (a of agents(); track a.agent_key) {
+                <tr>
+                  <td>
+                    <div class="strong">{{ a.display_name }}</div>
+                    <div class="agent-key mono">{{ a.agent_key }}</div>
+                  </td>
+                  <td><span class="badge">{{ a.framework }}</span></td>
+                  <td class="center">
+                    @if (a.enabled) {
+                      <span class="badge badge--success badge--dot">on</span>
+                    } @else {
+                      <span class="badge badge--medium">off</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td class="empty" colspan="3">No agents configured.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ===== Agent executions / status + activity ===== -->
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Agent Executions &amp; Activity</h2>
+      <span class="panel__count">status + audited activity</span>
+    </div>
+    <div class="panel__body">
+      <div class="alert alert--info" style="margin-bottom: 1rem;">
+        <span class="alert__icon">i</span>
+        <span>
+          The Admin portal has no dedicated agent-run stream, so this panel reflects the agents'
+          current enabled/framework <strong>status</strong> alongside the Admin-API's real audited
+          platform activity. No numbers are fabricated.
+        </span>
+      </div>
+
+      <div class="exec-grid">
+        <div class="exec-card">
+          <span class="exec-card__title">Frameworks in use</span>
+          @if (agentsLoading()) {
+            <p class="muted">Loading…</p>
+          } @else {
+            <div class="chips">
+              @for (f of frameworkBreakdown(); track f.framework) {
+                <span class="chip">{{ f.framework }} · {{ f.count }}</span>
+              } @empty {
+                <span class="muted">No agents configured.</span>
+              }
+            </div>
+            <p class="exec-card__foot">
+              <span class="badge badge--success">{{ enabledAgentCount() }} enabled</span>
+              <span class="badge badge--medium">{{ disabledAgentCount() }} disabled</span>
+            </p>
+          }
+        </div>
+
+        <div class="exec-card exec-card--wide">
+          <span class="exec-card__title">Recent activity</span>
+          @if (activityLoading()) {
+            <p class="muted">Loading…</p>
+          } @else if (activityError()) {
+            <div class="alert alert--error"><span class="alert__icon">⚠</span><span>{{ activityError() }}</span></div>
+          } @else {
+            <ul class="activity-list">
+              @for (e of activity(); track e.event_id) {
+                <li class="activity-list__item">
+                  <span class="badge badge--info">{{ e.action }}</span>
+                  <span class="activity-list__entity mono">{{ e.entity_type }}/{{ e.entity_key }}</span>
+                  <span class="activity-list__actor">by {{ e.actor }}</span>
+                  <span class="activity-list__time mono">{{ e.created_at }}</span>
+                </li>
+              } @empty {
+                <li class="root-list__empty">No audited activity yet.</li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,418 @@
+<section class="page-wrap">
+  <header class="page-head">
+    <div>
+      <p class="subtitle">
+        The multi-tenancy management surface: shape the organization tree, assign members and roles,
+        connect tracker repositories with visibility scopes and cross-branch grants, and preview a
+        user's effective project access — all through the Org-Management-API on :8005.
+      </p>
+    </div>
+    <button type="button" class="btn--ghost" (click)="loadTree()" [disabled]="loading()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  <!-- KPI summary cards -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--brand">⌂</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Organizations</span>
+        <span class="kpi__value">{{ orgs().length }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--info">◈</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Tenant Roots</span>
+        <span class="kpi__value">{{ rootCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--success">☰</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Tree Depth</span>
+        <span class="kpi__value">{{ maxLevel() }}</span>
+        <span class="kpi__sub">levels</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--warning">◷</div>
+      <div class="kpi__body">
+        <span class="kpi__label">Selected Org</span>
+        <span class="kpi__value kpi__value--sm">{{ selectedOrg()?.name || '—' }}</span>
+        @if (selectedOrg(); as s) {
+          <span class="kpi__sub">level {{ s.level }} · {{ s.kind || 'org' }}</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error" style="margin-bottom: 1.1rem;">
+      <span class="alert__icon">⚠</span><span>{{ error() }}</span>
+    </div>
+  }
+
+  <div class="org-grid" id="org-tree">
+    <!-- ================= LEFT: Org tree ================= -->
+    <div class="org-col">
+      <div class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Organization Tree</h2>
+          <span class="panel__count">{{ orgs().length }} node(s)</span>
+        </div>
+
+        <!-- Create root -->
+        <div class="form-row form-row--split">
+          <div class="field">
+            <label>New root / tenant</label>
+            <input type="text" [(ngModel)]="rootName" placeholder="Organization name" aria-label="Root organization name" />
+          </div>
+          <div class="field field--kind">
+            <label>Kind</label>
+            <input type="text" [(ngModel)]="rootKind" placeholder="tenant, division…" aria-label="Root organization kind" />
+          </div>
+          <button type="button" class="btn--sm" (click)="createRoot()" [disabled]="!rootName.trim() || creatingRoot()">
+            @if (creatingRoot()) { <span class="spinner"></span> } @else { Create root }
+          </button>
+        </div>
+
+        @if (loading()) {
+          <p class="panel__status"><span class="spinner spinner--brand"></span> Loading organizations…</p>
+        } @else {
+          <div class="tree">
+            @for (node of tree(); track node.org_id) {
+              <button
+                type="button"
+                class="tree__node"
+                [class.is-active]="isSelected(node)"
+                [style.paddingLeft.px]="14 + node.indent * 22"
+                (click)="selectOrg(node)"
+              >
+                <span class="tree__twig" [class.tree__twig--root]="node.indent === 0">{{ node.indent === 0 ? '◈' : '›' }}</span>
+                <span class="tree__name">{{ node.name }}</span>
+                <span class="badge tree__level">L{{ node.level }}</span>
+                @if (node.kind) { <span class="tree__kind">{{ node.kind }}</span> }
+              </button>
+            } @empty {
+              <p class="panel__status">No organizations yet. Create a root above to begin.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Selected-org actions -->
+      @if (selectedOrg(); as sel) {
+        <div class="panel">
+          <div class="panel__head">
+            <h2 class="panel__title">Manage “{{ sel.name }}”</h2>
+            <span class="panel__count">level {{ sel.level }}</span>
+          </div>
+          <div class="panel__body actions-stack">
+            <div class="mini-form">
+              <span class="mini-form__title">Rename</span>
+              <div class="form-row form-row--split">
+                <div class="field"><input type="text" [(ngModel)]="renameName" placeholder="Name" aria-label="Rename organization" /></div>
+                <div class="field field--kind"><input type="text" [(ngModel)]="renameKind" placeholder="Kind" aria-label="Organization kind" /></div>
+                <button type="button" class="btn--sm" (click)="rename()" [disabled]="renaming() || !renameName.trim()">
+                  @if (renaming()) { <span class="spinner"></span> } @else { Save }
+                </button>
+              </div>
+            </div>
+
+            <div class="mini-form">
+              <span class="mini-form__title">Add child organization</span>
+              <div class="form-row form-row--split">
+                <div class="field"><input type="text" [(ngModel)]="childName" placeholder="Child name" aria-label="Child organization name" /></div>
+                <div class="field field--kind"><input type="text" [(ngModel)]="childKind" placeholder="Kind" aria-label="Child organization kind" /></div>
+                <button type="button" class="btn--sm" (click)="createChild()" [disabled]="creatingChild() || !childName.trim()">
+                  @if (creatingChild()) { <span class="spinner"></span> } @else { Add child }
+                </button>
+              </div>
+            </div>
+
+            <div class="mini-form">
+              <span class="mini-form__title">Move (reparent subtree)</span>
+              <div class="form-row form-row--split">
+                <div class="field"><input type="text" [(ngModel)]="moveTargetId" placeholder="New parent org_id" aria-label="New parent org id" /></div>
+                <button type="button" class="btn--sm btn--danger" (click)="move()" [disabled]="moving() || !moveTargetId.trim()">
+                  @if (moving()) { <span class="spinner"></span> } @else { Move }
+                </button>
+              </div>
+              <p class="hint mono">this org_id: {{ sel.org_id }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ================= RIGHT: detail panels ================= -->
+    <div class="org-col">
+      @if (!selectedOrg()) {
+        <div class="panel">
+          <div class="panel__body empty-hint">
+            <div class="empty-hint__icon">◈</div>
+            <p>Select an organization in the tree to manage its members, repositories and visibility.</p>
+          </div>
+        </div>
+      } @else {
+        <!-- Members -->
+        <div class="panel" id="org-members">
+          <div class="panel__head">
+            <h2 class="panel__title">Members &amp; Roles</h2>
+            <span class="panel__count">{{ members().length }} member(s)</span>
+          </div>
+
+          <div class="form-row form-row--members">
+            <div class="field">
+              <label>Subject</label>
+              <input type="text" [(ngModel)]="memberSubject" placeholder="alice, bob…" aria-label="Member subject" />
+            </div>
+            <div class="field">
+              <label>Roles</label>
+              <select multiple [(ngModel)]="memberRoles" aria-label="Member roles" class="multi">
+                @for (r of roleOptions; track r) { <option [value]="r">{{ r }}</option> }
+              </select>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" [(ngModel)]="memberInherits" /> inherits down
+            </label>
+            <button type="button" class="btn--sm" (click)="addMember()" [disabled]="addingMember() || !memberSubject.trim()">
+              @if (addingMember()) { <span class="spinner"></span> } @else { Add member }
+            </button>
+          </div>
+
+          @if (membersError()) {
+            <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ membersError() }}</span></div>
+          }
+          @if (membersLoading()) {
+            <p class="panel__status"><span class="spinner spinner--brand"></span> Loading members…</p>
+          } @else {
+            <div class="panel__table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Subject</th><th>Roles</th><th class="center">Inherits Down</th></tr>
+                </thead>
+                <tbody>
+                  @for (m of members(); track m.user_id) {
+                    <tr>
+                      <td>
+                        <div class="strong">{{ m.subject }}</div>
+                        @if (m.display_name) { <div class="tree__kind">{{ m.display_name }}</div> }
+                      </td>
+                      <td>
+                        @for (r of m.roles; track r.role) { <span class="badge badge--info">{{ r.role }}</span> }
+                        @if (m.roles.length === 0) { <span class="muted">—</span> }
+                      </td>
+                      <td class="center">
+                        @if (m.roles.length && m.roles[0].inherits_down) {
+                          <span class="badge badge--success badge--dot">yes</span>
+                        } @else { <span class="muted">no</span> }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td class="empty" colspan="3">No members yet.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <!-- Repositories -->
+        <div class="panel" id="org-repos">
+          <div class="panel__head">
+            <h2 class="panel__title">Repositories &amp; Visibility</h2>
+            <span class="panel__count">{{ repositories().length }} repo(s)</span>
+          </div>
+
+          <div class="form-row form-row--members">
+            <div class="field">
+              <label>Provider</label>
+              <select [(ngModel)]="repoProvider" aria-label="Repository provider">
+                @for (p of providers; track p) { <option [value]="p">{{ providerLabels[p] }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label>External account</label>
+              <input type="text" [(ngModel)]="repoExternalAccount" placeholder="org / account" aria-label="External account" />
+            </div>
+            <div class="field">
+              <label>Visibility</label>
+              <select [(ngModel)]="repoVisibility" aria-label="Repository visibility scope">
+                @for (v of visibilityScopes; track v) { <option [value]="v">{{ v }}</option> }
+              </select>
+            </div>
+            <button type="button" class="btn--sm" (click)="addRepository()" [disabled]="addingRepo()">
+              @if (addingRepo()) { <span class="spinner"></span> } @else { Add repository }
+            </button>
+          </div>
+
+          @if (reposError()) {
+            <div class="alert alert--error" style="margin: 0 1rem 1rem;"><span class="alert__icon">⚠</span><span>{{ reposError() }}</span></div>
+          }
+          @if (reposLoading()) {
+            <p class="panel__status"><span class="spinner spinner--brand"></span> Loading repositories…</p>
+          } @else {
+            <div class="panel__table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Provider</th><th>Account</th><th>Visibility</th><th class="center">Actions</th></tr>
+                </thead>
+                <tbody>
+                  @for (repo of repositories(); track repo.repo_id) {
+                    <tr [class.is-active-row]="isRepoSelected(repo)">
+                      <td><span class="badge">{{ repo.provider }}</span></td>
+                      <td class="mono">{{ repo.external_account || '—' }}</td>
+                      <td><span class="badge badge--info">{{ repo.visibility_scope }}</span></td>
+                      <td class="center">
+                        <button type="button" class="btn--sm btn--ghost" (click)="selectRepo(repo)">
+                          {{ isRepoSelected(repo) ? 'Managing' : 'Manage' }}
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td class="empty" colspan="4">No repositories connected.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Selected repository detail -->
+          @if (selectedRepo(); as repo) {
+            <div class="repo-detail">
+              <h3 class="repo-detail__title">
+                <span class="badge">{{ repo.provider }}</span>
+                {{ repo.external_account || 'repository' }}
+                <span class="mono repo-detail__id">{{ repo.repo_id }}</span>
+              </h3>
+
+              <div class="repo-tools">
+                <!-- Change visibility -->
+                <div class="mini-form">
+                  <span class="mini-form__title">Visibility scope</span>
+                  <div class="form-row">
+                    <select [(ngModel)]="repoNewVisibility" aria-label="Change visibility scope">
+                      @for (v of visibilityScopes; track v) { <option [value]="v">{{ v }}</option> }
+                    </select>
+                    <button type="button" class="btn--sm" (click)="changeVisibility()"
+                            [disabled]="savingVisibility() || repoNewVisibility === repo.visibility_scope">
+                      @if (savingVisibility()) { <span class="spinner"></span> } @else { Apply }
+                    </button>
+                  </div>
+                  <p class="hint">{{ visibilityHints[repoNewVisibility] }}</p>
+                </div>
+
+                <!-- Add tracker project -->
+                <div class="mini-form">
+                  <span class="mini-form__title">Add tracker project</span>
+                  <div class="form-row form-row--split">
+                    <div class="field"><input type="text" [(ngModel)]="projKey" placeholder="external_key (e.g. SAKAI)" aria-label="Tracker project key" /></div>
+                    <div class="field"><input type="text" [(ngModel)]="projName" placeholder="name (optional)" aria-label="Tracker project name" /></div>
+                    <button type="button" class="btn--sm" (click)="addProject()" [disabled]="addingProject() || !projKey.trim()">
+                      @if (addingProject()) { <span class="spinner"></span> } @else { Add }
+                    </button>
+                  </div>
+                  @if (projectsFor(repo.repo_id).length) {
+                    <div class="chips">
+                      @for (p of projectsFor(repo.repo_id); track p.tracker_project_id) {
+                        <span class="chip">{{ p.external_key }}@if (p.name) { · {{ p.name }} }</span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Add grant -->
+                <div class="mini-form">
+                  <span class="mini-form__title">Cross-branch / cross-tenant grant</span>
+                  <div class="form-row form-row--split">
+                    <div class="field"><input type="text" [(ngModel)]="grantOrgId" placeholder="grantee org_id" aria-label="Grantee org id" /></div>
+                    <div class="field field--kind">
+                      <select [(ngModel)]="grantDirection" aria-label="Grant direction">
+                        @for (d of grantDirections; track d) { <option [value]="d">{{ d }}</option> }
+                      </select>
+                    </div>
+                    <button type="button" class="btn--sm" (click)="addGrant()" [disabled]="addingGrant() || !grantOrgId.trim()">
+                      @if (addingGrant()) { <span class="spinner"></span> } @else { Grant }
+                    </button>
+                  </div>
+                  <p class="hint">Grants apply when visibility scope is <strong>shared</strong>.</p>
+                  @if (grantsFor(repo.repo_id).length) {
+                    <div class="chips">
+                      @for (g of grantsFor(repo.repo_id); track g.grantee_org_id) {
+                        <span class="chip">→ {{ g.grantee_org_id }} ({{ g.direction }})</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ================= Effective-access preview ================= -->
+  <div class="panel" id="org-access">
+    <div class="panel__head">
+      <h2 class="panel__title">Effective Access Preview</h2>
+      <span class="panel__count">visible-projects</span>
+    </div>
+    <div class="panel__body">
+      <p class="subtitle" style="margin-bottom: .9rem;">
+        Enter a user subject to resolve the exact set of tracker projects visible to them across every
+        org they belong to — the net result of memberships, repository visibility scopes and grants.
+      </p>
+      <div class="form-row form-row--access">
+        <div class="field">
+          <label>User subject</label>
+          <input type="text" [(ngModel)]="accessSubject" placeholder="bob, alice…" aria-label="User subject"
+                 (keyup.enter)="resolveAccess()" />
+        </div>
+        <button type="button" (click)="resolveAccess()" [disabled]="accessLoading() || !accessSubject.trim()">
+          @if (accessLoading()) { <span class="spinner"></span> Resolving… } @else { Resolve visible projects }
+        </button>
+      </div>
+
+      @if (accessError()) {
+        <div class="alert alert--error" style="margin-top: 1rem;"><span class="alert__icon">⚠</span><span>{{ accessError() }}</span></div>
+      }
+
+      @if (accessProjects(); as projects) {
+        <div class="access-result">
+          <p class="access-result__head">
+            <strong>{{ accessResolvedSubject() }}</strong> can see
+            <span class="badge badge--info">{{ projects.length }}</span> project(s)
+          </p>
+          @if (projects.length) {
+            <div class="panel__table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Project Key</th><th>Name</th><th>Provider</th><th>Owning Org</th></tr>
+                </thead>
+                <tbody>
+                  @for (p of projects; track p.external_key + p.repo_id) {
+                    <tr>
+                      <td class="mono">{{ p.external_key }}</td>
+                      <td>{{ p.name || '—' }}</td>
+                      <td><span class="badge">{{ p.provider }}</span></td>
+                      <td class="mono">{{ p.org_id }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="alert alert--warning" style="margin-top: .6rem;">
+              <span class="alert__icon">∅</span><span>No projects are visible to this user.</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>
