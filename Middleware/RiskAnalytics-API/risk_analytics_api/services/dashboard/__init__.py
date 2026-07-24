@@ -10,9 +10,11 @@ class DefaultDashboardService(DashboardService):
     def __init__(self, dashboard_dao: DashboardDao) -> None:
         self._dao = dashboard_dao
 
-    def activity(self, limit: int) -> DashboardActivityResponse:
+    def activity(
+        self, limit: int, projects: list[str] | None = None
+    ) -> DashboardActivityResponse:
         return DashboardActivityResponse(
-            recent_runs=self._dao.recent_runs(limit),
-            recent_findings=self._dao.recent_findings(limit),
-            totals=self._dao.totals(),
+            recent_runs=self._dao.recent_runs(limit, projects),
+            recent_findings=self._dao.recent_findings(limit, projects),
+            totals=self._dao.totals(projects),
         )

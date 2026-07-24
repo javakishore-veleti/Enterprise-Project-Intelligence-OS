@@ -59,7 +59,9 @@ def _scope_clause(
         clauses.append("(project_key ILIKE %s OR narrative ILIKE %s)")
         like = f"%{q}%"
         params.extend([like, like])
-    if projects:
+    if projects is not None:
+        # ``is not None`` (not truthiness): an empty list is an authoritative
+        # "match nothing" filter (org scope that sees no projects), not "no filter".
         clauses.append("project_key = ANY(%s)")
         params.append(list(projects))
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""

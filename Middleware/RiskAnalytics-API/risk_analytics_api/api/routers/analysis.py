@@ -9,6 +9,7 @@ from fastapi import Query
 
 from risk_analytics_api.api.dependencies import (
     provide_approve_decision_facade,
+    provide_org_scope,
     provide_get_analysis_run_facade,
     provide_get_attention_feed_facade,
     provide_get_dashboard_activity_facade,
@@ -31,6 +32,9 @@ from risk_analytics_api.api.dependencies import (
     provide_start_portfolio_analysis_facade,
     provide_start_project_analysis_facade,
 )
+from risk_analytics_api.common.exceptions import NotFoundError
+from risk_analytics_api.common.utilities import narrow_with_org_scope
+from risk_analytics_api.dtos.common import OrgScope
 from risk_analytics_api.dtos.requests import (
     DecisionRequest,
     ForecastRequest,
@@ -93,13 +97,28 @@ def _parse_projects(projects: str | None) -> list[str] | None:
     return parsed or None
 
 
+def _guard_project(project_key: str, org_scope: OrgScope | None) -> None:
+    """Phase-2 tenancy guard for single-project reads/runs: when an org scope is
+    present and ``project_key`` is outside it, 404 — a project you can't see must
+    be indistinguishable from one that doesn't exist (no existence leak). No org
+    scope -> no-op (behavior unchanged)."""
+    if org_scope is not None and not org_scope.allows(project_key):
+        # Domain NotFoundError -> the standard {"error": {"code": "not_found"}}
+        # 404 envelope (same shape a genuinely-missing resource returns).
+        raise NotFoundError(f"project '{project_key}' not found")
+
+
 @router.get("/activity", response_model=DashboardActivityResponse,
             operation_id="getDashboardActivity")
 def get_dashboard_activity(
     limit: int = Query(default=15, ge=1, le=100),
     facade: GetDashboardActivityFacade = Depends(provide_get_dashboard_activity_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> DashboardActivityResponse:
-    return facade.execute(limit)
+    # Org scope present -> narrow the cross-project feed to the visible set
+    # (empty scope -> nothing); absent -> all projects (unchanged).
+    projects = org_scope.as_list() if org_scope is not None else None
+    return facade.execute(limit, projects)
 
 
 @router.get("/attention", response_model=AttentionResponse, operation_id="getAttentionFeed")
@@ -115,6 +134,7 @@ def get_attention_feed(
     ),
     offset: int = Query(default=0, ge=0),
     facade: GetAttentionFeedFacade = Depends(provide_get_attention_feed_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> AttentionResponse:
     parsed_as_of: date | None = None
     if as_of is not None:
@@ -130,6 +150,8 @@ def get_attention_feed(
         project_list = [p.strip() for p in projects.split(",") if p.strip()]
         if not project_list:
             project_list = None
+    # AND-compose the org scope onto the existing ``projects=`` filter.
+    project_list = narrow_with_org_scope(project_list, org_scope)
     return facade.execute(top, parsed_as_of, project_list, offset)
 
 
@@ -153,7 +175,9 @@ def start_project_analysis(
     project_key: str,
     request: StartAnalysisRequest,
     facade: StartProjectAnalysisFacade = Depends(provide_start_project_analysis_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> AnalysisRunResponse:
+    _guard_project(project_key, org_scope)
     return facade.execute(project_key, request)
 
 
@@ -166,7 +190,9 @@ def start_project_analysis(
 def investigate_project(
     request: InvestigateRequest,
     facade: InvestigateProjectFacade = Depends(provide_investigate_project_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> InvestigationResponse:
+    _guard_project(request.project_key, org_scope)
     return facade.execute(request)
 
 
@@ -189,8 +215,10 @@ def list_investigations(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListInvestigationsFacade = Depends(provide_list_investigations_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> InvestigationsPageResponse:
-    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
+    projects = narrow_with_org_scope(_parse_projects(projects), org_scope)
+    return facade.execute(scope, q, limit, offset, projects)
 
 
 @router.get(
@@ -213,8 +241,11 @@ def list_investigation_templates(
 def get_investigation(
     investigation_id: str,
     facade: GetInvestigationFacade = Depends(provide_get_investigation_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> InvestigationResponse:
-    return facade.execute(investigation_id)
+    result = facade.execute(investigation_id)
+    _guard_project(result.project_key, org_scope)
+    return result
 
 
 # --- Predict: Delivery Forecast -------------------------------------------
@@ -229,7 +260,9 @@ def get_investigation(
 def run_forecast(
     request: ForecastRequest,
     facade: RunForecastFacade = Depends(provide_run_forecast_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ForecastResponse:
+    _guard_project(request.project_key, org_scope)
     return facade.execute(request)
 
 
@@ -252,8 +285,10 @@ def list_forecasts(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListForecastsFacade = Depends(provide_list_forecasts_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ForecastsPageResponse:
-    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
+    projects = narrow_with_org_scope(_parse_projects(projects), org_scope)
+    return facade.execute(scope, q, limit, offset, projects)
 
 
 @router.get(
@@ -264,8 +299,11 @@ def list_forecasts(
 def get_forecast(
     forecast_id: str,
     facade: GetForecastFacade = Depends(provide_get_forecast_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ForecastResponse:
-    return facade.execute(forecast_id)
+    result = facade.execute(forecast_id)
+    _guard_project(result.project_key, org_scope)
+    return result
 
 
 # --- Predict: Digital-Twin Scenario Simulator -----------------------------
@@ -280,7 +318,9 @@ def get_forecast(
 def run_scenario(
     request: ScenarioRequest,
     facade: RunScenarioFacade = Depends(provide_run_scenario_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ScenarioResponse:
+    _guard_project(request.project_key, org_scope)
     return facade.execute(request)
 
 
@@ -303,8 +343,10 @@ def list_scenarios(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListScenariosFacade = Depends(provide_list_scenarios_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ScenariosPageResponse:
-    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
+    projects = narrow_with_org_scope(_parse_projects(projects), org_scope)
+    return facade.execute(scope, q, limit, offset, projects)
 
 
 @router.get(
@@ -315,8 +357,11 @@ def list_scenarios(
 def get_scenario(
     scenario_id: str,
     facade: GetScenarioFacade = Depends(provide_get_scenario_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> ScenarioResponse:
-    return facade.execute(scenario_id)
+    result = facade.execute(scenario_id)
+    _guard_project(result.project_key, org_scope)
+    return result
 
 
 # --- Decide: Options-first decision support --------------------------------
@@ -331,7 +376,9 @@ def get_scenario(
 def run_decision(
     request: DecisionRequest,
     facade: RunDecisionFacade = Depends(provide_run_decision_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> DecisionResponse:
+    _guard_project(request.project_key, org_scope)
     return facade.execute(request)
 
 
@@ -354,8 +401,10 @@ def list_decisions(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     facade: ListDecisionsFacade = Depends(provide_list_decisions_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> DecisionsPageResponse:
-    return facade.execute(scope, q, limit, offset, _parse_projects(projects))
+    projects = narrow_with_org_scope(_parse_projects(projects), org_scope)
+    return facade.execute(scope, q, limit, offset, projects)
 
 
 @router.get(
@@ -366,8 +415,11 @@ def list_decisions(
 def get_decision(
     decision_id: str,
     facade: GetDecisionFacade = Depends(provide_get_decision_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> DecisionResponse:
-    return facade.execute(decision_id)
+    result = facade.execute(decision_id)
+    _guard_project(result.project_key, org_scope)
+    return result
 
 
 @router.post(
@@ -436,5 +488,8 @@ def start_portfolio_analysis(
 def get_analysis_run(
     run_id: str,
     facade: GetAnalysisRunFacade = Depends(provide_get_analysis_run_facade),
+    org_scope: OrgScope | None = Depends(provide_org_scope),
 ) -> AnalysisRunResponse:
-    return facade.execute(run_id)
+    run = facade.execute(run_id)
+    _guard_project(run.project_key, org_scope)
+    return run

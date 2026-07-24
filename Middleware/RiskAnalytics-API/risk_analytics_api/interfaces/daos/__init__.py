@@ -37,6 +37,27 @@ class AgentConfigGateway(ABC):
         """Return (enabled, model, framework) or None if unconfigured."""
 
 
+class OrgAccessGateway(ABC):
+    """Read-only gateway to the Org-Management-API (:8005) effective-access
+    resolver — the Phase-2 tenancy seam. Resolves the project-key set a user or
+    org context may see (``external_key`` in that service == our ``project_key``).
+
+    Both methods return ``None`` to signal the org API was **unreachable** (so the
+    caller degrades to *no org scope*), which is deliberately distinct from an
+    empty list — an empty list is an authoritative "sees nothing" answer.
+    """
+
+    @abstractmethod
+    def visible_project_keys(self, subject: str) -> list[str] | None:
+        """Project keys visible to an org user ``subject`` across all their orgs;
+        ``None`` if the org API is unreachable."""
+
+    @abstractmethod
+    def effective_project_keys(self, org_id: str) -> list[str] | None:
+        """Project keys effective for a single ``org_id`` context; ``None`` if the
+        org API is unreachable."""
+
+
 class EvidenceDao(ABC):
     """Builds a bounded, deterministic evidence package from the evidence store."""
 
@@ -67,18 +88,27 @@ class GraphRunDao(ABC):
 
 
 class DashboardDao(ABC):
-    """Cross-project reads for the dashboard activity feed (PostgreSQL)."""
+    """Cross-project reads for the dashboard activity feed (PostgreSQL).
+
+    Every read takes an optional ``projects`` filter (the Phase-2 org-scope
+    narrowing): ``None`` == all projects (unchanged); a list (even empty) narrows
+    to ``project_key IN (...)`` so an empty org scope yields nothing.
+    """
 
     @abstractmethod
-    def recent_runs(self, limit: int) -> list["AnalysisRunSummary"]:
-        """Recent run summaries (with finding/report counts) across all projects, newest first."""
+    def recent_runs(
+        self, limit: int, projects: list[str] | None = None
+    ) -> list["AnalysisRunSummary"]:
+        """Recent run summaries (with finding/report counts), newest first."""
 
     @abstractmethod
-    def recent_findings(self, limit: int) -> list["DashboardFindingSummary"]:
-        """Most recent findings across all projects, newest first."""
+    def recent_findings(
+        self, limit: int, projects: list[str] | None = None
+    ) -> list["DashboardFindingSummary"]:
+        """Most recent findings, newest first."""
 
     @abstractmethod
-    def totals(self) -> "DashboardTotals":
+    def totals(self, projects: list[str] | None = None) -> "DashboardTotals":
         """Total run count, finding count, and distinct-project count."""
 
 

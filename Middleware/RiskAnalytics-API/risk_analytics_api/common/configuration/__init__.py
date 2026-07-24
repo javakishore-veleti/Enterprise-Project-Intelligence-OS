@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     mongo_uri: str = Field(default="mongodb://localhost:27017/epi_os", alias="MONGO_URI")
     mongo_database: str = Field(default="epi_os", alias="MONGO_DATABASE")
 
+    # Org-Management-API (Phase-2 multi-tenancy): resolves the project-key set a
+    # user/org may see. Absent org headers => this is never called (behavior
+    # unchanged); when it is unreachable the read/run path degrades to no org scope.
+    org_api_base_url: str = Field(
+        default="http://localhost:8005", alias="ORG_API_BASE_URL"
+    )
+
     # Fallback defaults if an agent has no Admin-API config row yet.
     default_agent_model: str = Field(default="claude-opus-4-8", alias="AGENT_MODEL")
     default_agent_framework: str = Field(default="langgraph", alias="AGENT_FRAMEWORK")

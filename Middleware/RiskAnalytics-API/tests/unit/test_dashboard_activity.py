@@ -38,14 +38,17 @@ class FakeDashboardDao(DashboardDao):
         self._findings = [_finding("f2", "SPARK"), _finding("f1", "APACHE")]
         self.limits: list[int] = []
 
-    def recent_runs(self, limit):
+    def recent_runs(self, limit, projects=None):
         self.limits.append(limit)
-        return self._runs[:limit]
+        runs = self._runs if projects is None else [r for r in self._runs if r.project_key in set(projects)]
+        return runs[:limit]
 
-    def recent_findings(self, limit):
-        return self._findings[:limit]
+    def recent_findings(self, limit, projects=None):
+        findings = self._findings if projects is None else [
+            f for f in self._findings if f.project_key in set(projects)]
+        return findings[:limit]
 
-    def totals(self):
+    def totals(self, projects=None):
         return DashboardTotals(total_runs=2, total_findings=6, projects_analyzed=2)
 
 

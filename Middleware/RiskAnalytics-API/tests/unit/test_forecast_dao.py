@@ -119,3 +119,12 @@ def test_projects_absent_returns_all() -> None:
     _seed_multi_project(dao)
     assert dao.list_forecasts(None, None, 20, 0).total == 3
     assert dao.list_forecasts(None, None, 20, 0, projects=None).total == 3
+
+
+def test_empty_projects_filter_yields_nothing_not_all() -> None:
+    # Phase-2 org-scope isolation: an empty project set is an authoritative
+    # "sees nothing" filter, never "no filter" -> must NOT return every row.
+    dao = PostgresForecastDao(fake_forecast_db())
+    _seed_multi_project(dao)
+    page = dao.list_forecasts(None, None, 20, 0, projects=[])
+    assert page.items == [] and page.total == 0

@@ -51,9 +51,11 @@ def _activity() -> DashboardActivityResponse:
 class _FakeFacade:
     def __init__(self):
         self.limit = None
+        self.projects = None
 
-    def execute(self, limit):
+    def execute(self, limit, projects=None):
         self.limit = limit
+        self.projects = projects
         return _activity()
 
 

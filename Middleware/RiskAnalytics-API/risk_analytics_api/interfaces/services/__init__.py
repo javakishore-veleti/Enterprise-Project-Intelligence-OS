@@ -152,7 +152,9 @@ class EarlyWarningService(ABC):
 
 class DashboardService(ABC):
     @abstractmethod
-    def activity(self, limit: int) -> DashboardActivityResponse: ...
+    def activity(
+        self, limit: int, projects: list[str] | None = None
+    ) -> DashboardActivityResponse: ...
 
 
 class AttentionService(ABC):

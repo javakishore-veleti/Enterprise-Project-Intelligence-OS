@@ -10,5 +10,7 @@ class GetDashboardActivityFacade(GetDashboardActivityUseCase):
     def __init__(self, service: DashboardService) -> None:
         self._service = service
 
-    def execute(self, limit: int) -> DashboardActivityResponse:
-        return self._service.activity(limit)
+    def execute(
+        self, limit: int, projects: list[str] | None = None
+    ) -> DashboardActivityResponse:
+        return self._service.activity(limit, projects)

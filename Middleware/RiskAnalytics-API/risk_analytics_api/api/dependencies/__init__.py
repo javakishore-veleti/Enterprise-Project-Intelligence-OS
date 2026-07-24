@@ -3,10 +3,15 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from fastapi import Depends, Header
+
 from risk_analytics_api.common.configuration import get_settings
 from risk_analytics_api.daos.agent_config_gateway import PostgresAgentConfigGateway
 from risk_analytics_api.daos.attention import PostgresAttentionDao
 from risk_analytics_api.daos.connection import MongoDatabaseFactory, PostgresDatabase
+from risk_analytics_api.daos.org_gateway import HttpOrgAccessGateway
+from risk_analytics_api.dtos.common import OrgScope
+from risk_analytics_api.interfaces.daos import OrgAccessGateway
 from risk_analytics_api.daos.dashboard import PostgresDashboardDao
 from risk_analytics_api.daos.decisions import PostgresDecisionDao
 from risk_analytics_api.daos.evidence import MongoEvidenceDao
@@ -62,6 +67,38 @@ def get_postgres() -> PostgresDatabase:
 @lru_cache
 def get_mongo() -> MongoDatabaseFactory:
     return MongoDatabaseFactory(get_settings())
+
+
+def provide_org_gateway() -> OrgAccessGateway:
+    """The Org-Management-API access gateway. Overridden with a fake in tests so
+    no network is touched."""
+    return HttpOrgAccessGateway(get_settings())
+
+
+def provide_org_scope(
+    x_org_subject: str | None = Header(default=None, alias="X-Org-Subject"),
+    x_org_key: str | None = Header(default=None, alias="X-Org-Key"),
+    gateway: OrgAccessGateway = Depends(provide_org_gateway),
+) -> OrgScope | None:
+    """Resolve the Phase-2 org scope from optional request headers.
+
+    - ``X-Org-Key`` (org context) wins if present -> effective projects for the org.
+    - else ``X-Org-Subject`` (org user) -> that user's visible projects.
+    - neither header -> ``None`` (no org scope; legacy behavior untouched).
+
+    A resolver returning ``None`` (org API unreachable) also yields ``None`` here
+    -> graceful degradation to no org scope. A resolver returning a list (even
+    empty) yields a concrete ``OrgScope`` -> authoritative isolation.
+    """
+    if x_org_key:
+        keys = gateway.effective_project_keys(x_org_key)
+    elif x_org_subject:
+        keys = gateway.visible_project_keys(x_org_subject)
+    else:
+        return None
+    if keys is None:
+        return None
+    return OrgScope(project_keys=tuple(keys))
 
 
 def _orchestration_service() -> DefaultAnalysisOrchestrationService:

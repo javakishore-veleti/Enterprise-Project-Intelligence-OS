@@ -49,7 +49,9 @@ class GetAnalysisRunUseCase(ABC):
 
 class GetDashboardActivityUseCase(ABC):
     @abstractmethod
-    def execute(self, limit: int) -> DashboardActivityResponse: ...
+    def execute(
+        self, limit: int, projects: list[str] | None = None
+    ) -> DashboardActivityResponse: ...
 
 
 class GetAttentionFeedUseCase(ABC):
